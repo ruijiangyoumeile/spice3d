@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>金银花 · 3D 模型展示</title>
+  <meta name="description" content="金银花 3D 数字标本：拖动旋转、缩放查看，手机支持 AR 实景展示。" />
+  <meta property="og:title" content="金银花 · 3D 模型展示" />
+  <meta property="og:description" content="金银花 3D 数字标本：拖动旋转、缩放查看，手机支持 AR 实景展示。" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#171208" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🌼</text></svg>" />
+  <link rel="modulepreload" href="../shared/model-viewer.min.js" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+
+  <style>
+    :root {
+      --accent: #fbbf24;
+      --accent-soft: #fde68a;
+      --accent-glow: rgba(251, 191, 36, .15);
+      --accent-active: rgba(251, 191, 36, .2);
+      --accent-border: rgba(251, 191, 36, .34);
+      --glass: rgba(9, 16, 14, .55);
+      --glass-border: rgba(255, 255, 255, .11);
+      --text: #ecf5f2;
+      --text-dim: rgba(236, 245, 242, .74);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(90% 60% at 78% 88%, var(--accent-glow) 0%, transparent 60%),
+        radial-gradient(120% 120% at 20% 0%, #2a2210 0%, #171208 55%, #0d0a05 100%);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    model-viewer {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      --poster-color: transparent; background: transparent;
+    }
+    model-viewer::part(default-progress-bar) { display: none; }
+    model-viewer::part(ar-button) {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(255,255,255,.92) url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27%23111%27%3E%3Cpath d=%27M17.5 11.5v4.6l-3 2.2v-5.3l3-1.5zm-11 0l3 1.5v5.3l-3-2.2v-4.6zm2-1.5l2.7-1.4 2.7 1.4-2.7 1.4-2.7-1.4zM12 3.5l8.5 4.3v8.4L12 20.5l-8.5-4.3V7.8L12 3.5zm0 1.8L5.5 8.6v6.8L12 18.7l6.5-3.3V8.6L12 5.3z%27/%3E%3C/svg%3E") center/60% no-repeat;
+      color: #111; box-shadow: 0 4px 14px rgba(0,0,0,.35);
+    }
+    .overlay { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+    .overlay > * { pointer-events: auto; }
+    .title-card {
+      position: absolute; top: 18px; left: 18px;
+      max-width: min(340px, calc(100vw - 36px));
+      padding: 16px 18px 14px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 30px rgba(0,0,0,.28);
+    }
+    .title-card h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: 2px;
+      display: flex; align-items: baseline; gap: 9px;
+    }
+    .title-card h1 .leaf { font-size: 20px; align-self: center; }
+    .title-card h1 .latin {
+      font-size: 11.5px; font-weight: 500; font-style: italic;
+      letter-spacing: .4px; color: var(--accent-soft); opacity: .85;
+    }
+    .title-card .desc {
+      margin-top: 7px; font-size: 13px; line-height: 1.7;
+      color: var(--text-dim);
+    }
+    .title-card .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 11px; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; letter-spacing: .6px;
+      color: var(--accent-soft);
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+    }
+    .controls {
+      position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+      display: flex; gap: 4px; padding: 5px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 24px rgba(0,0,0,.3);
+    }
+    .ctl-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: none; background: transparent; color: var(--text);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s ease, color .15s ease, transform .1s ease;
+    }
+    .ctl-btn:hover { background: rgba(255,255,255,.08); }
+    .ctl-btn:active { transform: scale(.92); }
+    .ctl-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .ctl-btn.on { background: var(--accent-active); color: var(--accent-soft); }
+    .ctl-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .hint {
+      position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
+      padding: 7px 15px; border-radius: 999px;
+      font-size: 12.5px; letter-spacing: .4px; white-space: nowrap;
+      color: var(--text-dim);
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      transition: opacity .6s ease, transform .6s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .hint.gone { opacity: 0; transform: translateX(-50%) translateY(8px); pointer-events: none; }
+    .hint b { color: var(--text); font-weight: 600; }
+    #loading {
+      position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+      text-align: center; transition: opacity .4s ease;
+    }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    .ring {
+      width: 52px; height: 52px; margin: 0 auto 16px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.14);
+      border-top-color: var(--accent);
+      box-shadow: 0 0 26px var(--accent-glow);
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading .pct {
+      font-size: 30px; font-weight: 700; letter-spacing: 1px;
+      font-variant-numeric: tabular-nums; color: var(--text);
+    }
+    #loading .pct small { font-size: 16px; font-weight: 600; color: var(--text-dim); }
+    #loading .msg { margin-top: 8px; font-size: 12.5px; letter-spacing: .5px; color: var(--text-dim); }
+    #error {
+      position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+      display: none; text-align: center; padding: 22px 26px;
+      background: rgba(120, 22, 22, .72);
+      border: 1px solid rgba(255,120,120,.4);
+      border-radius: 14px; font-size: 14px; max-width: 82vw; line-height: 1.7;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
+    #error.show { display: block; }
+    #error .retry {
+      margin-top: 12px; padding: 7px 18px; border-radius: 9px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.45); background: transparent;
+      color: #fff; font-size: 13px;
+    }
+    #toast {
+      position: absolute; left: 50%; top: 20px;
+      transform: translateX(-50%) translateY(-90px);
+      padding: 9px 18px; border-radius: 999px; font-size: 13px;
+      background: rgba(9,16,14,.82);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      transition: transform .3s ease; max-width: calc(100vw - 40px);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    .grain {
+      position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: .05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27160%27 height=%27160%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E");
+    }
+
+    .title-card, .controls, .hint { animation: enterCard .8s cubic-bezier(.22, 1, .36, 1) backwards; }
+    .title-card { animation-delay: .15s; }
+    .controls { animation-name: enterCenter; animation-delay: .3s; }
+    .hint { animation-name: enterCenter; animation-delay: .6s; }
+    @keyframes enterCard { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes enterCenter { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .ring { animation-duration: 1.6s; }
+      .hint, #toast { transition: none; }
+      .title-card, .controls, .hint { animation: none; }
+    }
+    @media (max-width: 520px) {
+      .title-card { top: 12px; left: 12px; padding: 12px 14px 11px; max-width: calc(100vw - 24px); }
+      .title-card h1 { font-size: 18px; }
+      .title-card .desc { font-size: 12px; }
+      .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
+      .ctl-btn { width: 42px; height: 42px; }
+    }
+  </style>
+</head>
+<body>
+
+  <model-viewer
+    id="viewer"
+    alt="金银花 3D 模型，可用鼠标或手指拖动旋转查看"
+    camera-controls
+    touch-action="pan-y"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-scale="auto"
+    shadow-intensity="1.1"
+    exposure="1.0"
+    environment-image="neutral"
+    interaction-prompt="none"
+    auto-rotate
+    auto-rotate-delay="3000"
+    loading="eager"
+  ></model-viewer>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="overlay">
+    <div class="title-card">
+      <h1><span class="leaf">🌼</span>金银花<span class="latin">Lonicera japonica</span></h1>
+      <p class="desc">忍冬科忍冬属 · 药食两用。<br/>初开花白，数日后转黄，故名金银花。</p>
+      <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+    </div>
+
+    <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
+
+    <div class="controls">
+      <button class="ctl-btn on" id="btnRotate" title="自动旋转" aria-label="自动旋转开关" aria-pressed="true">
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      </button>
+      <button class="ctl-btn" id="btnReset" title="重置视角" aria-label="重置视角">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      </button>
+      <button class="ctl-btn" id="btnFullscreen" title="全屏查看" aria-label="全屏查看">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </div>
+
+    <div id="loading">
+      <div class="ring"></div>
+      <div class="pct" id="progressPct">0<small>%</small></div>
+      <div class="msg">模型加载中 · 约 0.5 MB</div>
+    </div>
+
+    <div id="error">
+      模型加载失败，请检查网络后重试。
+      <br/><button class="retry" onclick="location.reload()">重新加载</button>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+
+  <script type="module">
+    // 自托管 model-viewer：无外部 CDN 依赖
+    import * as MV from "../shared/model-viewer.min.js";
+    const ModelViewerElement = MV.ModelViewerElement || MV.default;
+    // Draco 解码器指向自托管文件（默认 gstatic 在国内不可达）
+    ModelViewerElement.dracoDecoderLocation = "../shared/draco/";
+
+    const viewer = document.getElementById("viewer");
+    const loading = document.getElementById("loading");
+    const pctEl = document.getElementById("progressPct");
+    const errorBox = document.getElementById("error");
+    const toastBox = document.getElementById("toast");
+    const hint = document.getElementById("hint");
+    const btnRotate = document.getElementById("btnRotate");
+    const btnReset = document.getElementById("btnReset");
+    const btnFullscreen = document.getElementById("btnFullscreen");
+
+    // 双通道加载：主通道卡住 4 秒即切 jsDelivr 备用
+    const PRIMARY = "models/jinyinhua.glb";
+    const FALLBACK = "https://cdn.jsdelivr.net/gh/ruijiangyoumeile/xiangliao@main/jinyinhua/models/jinyinhua.glb";
+    const PRIMARY_TIMEOUT = 4000;
+    const FALLBACK_TIMEOUT = 15000;
+
+
+    let loaded = false;
+    let stage = 0;
+    let watchdog = null;
+
+    function armWatchdog() {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(function () {
+        if (!loaded) { if (stage === 0) { switchFallback(); } else { showError(); } }
+      }, stage === 0 ? PRIMARY_TIMEOUT : FALLBACK_TIMEOUT);
+    }
+
+    function switchFallback() {
+      if (loaded || stage >= 1) { return; }
+      stage = 1;
+      toast("已自动切换加速通道…");
+      viewer.src = FALLBACK;
+      armWatchdog();
+    }
+
+    function showError() {
+      loading.classList.add("hide");
+      errorBox.classList.add("show");
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+      toastBox.textContent = msg;
+      toastBox.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toastBox.classList.remove("show"); }, 2600);
+    }
+
+    viewer.addEventListener("progress", function (e) {
+      var p = Math.round(((e.detail && e.detail.totalProgress) || 0) * 100);
+      pctEl.innerHTML = p + "<small>%</small>";
+    });
+
+    viewer.addEventListener("load", function () {
+      loaded = true;
+      clearTimeout(watchdog);
+      loading.classList.add("hide");
+      if (stage === 1) { toast("备用通道加载完成"); }
+    });
+
+    viewer.addEventListener("error", function () {
+      if (!loaded) { if (stage === 0) { switchFallback(); } else { showError(); } }
+    });
+
+    viewer.src = PRIMARY;
+    armWatchdog();
+
+    var hideHint = function () { hint.classList.add("gone"); };
+    viewer.addEventListener("pointerdown", hideHint, { once: true });
+    viewer.addEventListener("wheel", hideHint, { once: true, passive: true });
+
+    btnRotate.addEventListener("click", function () {
+      var on = (viewer.getAttribute("auto-rotate") === null);
+      if (on) { viewer.setAttribute("auto-rotate", ""); } else { viewer.removeAttribute("auto-rotate"); }
+      btnRotate.classList.toggle("on", on);
+      btnRotate.setAttribute("aria-pressed", String(on));
+    });
+
+
+    btnReset.addEventListener("click", function () {
+      viewer.cameraOrbit = "0deg 75deg auto";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+      toast("视角已重置");
+    });
+
+    btnFullscreen.addEventListener("click", function () {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(function () {});
+      } else {
+        try {
+          viewer.requestFullscreen({ navigationUI: "hide" }).catch(function () {
+            toast("当前浏览器不支持全屏，请横屏查看");
+          });
+        } catch (e) { toast("当前浏览器不支持全屏，请横屏查看"); }
+      }
+    });
+
+    viewer.addEventListener("ar-status", function (e) {
+      var s = e.detail && e.detail.status;
+      if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
+      if (s === "object-placed") { toast("模型已放置，可走动观察"); }
+    });
+  </script>
+</body>
+</html>

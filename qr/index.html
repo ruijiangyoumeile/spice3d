@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>二维码生成 · 香料 3D 展示</title>
+  <meta name="description" content="本地生成的香料 3D 展示二维码工具，离线可用。" />
+  <meta name="theme-color" content="#0b1613" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>📱</text></svg>" />
+  <style>
+    :root {
+      --accent: #5eead4;
+      --accent-soft: #99f6e4;
+      --accent-glow: rgba(94, 234, 212, .15);
+      --accent-active: rgba(94, 234, 212, .2);
+      --accent-border: rgba(94, 234, 212, .34);
+      --glass: rgba(9, 16, 14, .55);
+      --glass-border: rgba(255, 255, 255, .11);
+      --text: #ecf5f2;
+      --text-dim: rgba(236, 245, 242, .74);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(90% 60% at 78% 88%, var(--accent-glow) 0%, transparent 60%),
+        radial-gradient(120% 120% at 20% 0%, #122922 0%, #0b1613 55%, #070d0b 100%);
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 28px 16px; -webkit-tap-highlight-color: transparent;
+    }
+    .card {
+      width: 100%; max-width: 430px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 40px rgba(0,0,0,.35);
+      padding: 24px 22px;
+    }
+    h1 { font-size: 19px; letter-spacing: 1px; display: flex; align-items: baseline; gap: 8px; }
+    .sub { margin-top: 6px; font-size: 12.5px; line-height: 1.7; color: var(--text-dim); }
+    .tabs { display: flex; gap: 6px; margin-top: 16px; flex-wrap: wrap; }    .tab {
+      padding: 7px 13px; border-radius: 999px; cursor: pointer;
+      font-size: 13px; color: var(--text-dim);
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--glass-border);
+      transition: all .15s ease;
+    }
+    .tab:hover { background: rgba(255,255,255,.09); }
+    .tab.on {
+      color: var(--accent-soft);
+      background: var(--accent-glow);
+      border-color: var(--accent-border);
+    }
+    #url {
+      width: 100%; margin-top: 14px; padding: 11px 13px;
+      border-radius: 12px; font-size: 13.5px;
+      color: var(--text); background: rgba(255,255,255,.06);
+      border: 1px solid var(--glass-border); outline: none;
+      font-family: Consolas, monospace;
+    }
+    #url:focus { border-color: var(--accent-border); }
+    #qrbox {
+      margin: 18px auto 0; width: 262px; padding: 10px;
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.3);
+    }
+    #qr { display: block; width: 242px; height: 242px; image-rendering: pixelated; }
+    .row { display: flex; gap: 8px; margin-top: 16px; }
+    .row button {
+      flex: 1; padding: 10px 0; border-radius: 12px; cursor: pointer;
+      font-size: 13.5px; letter-spacing: 1px;
+      color: var(--accent-soft);
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: all .15s ease;
+    }
+    .row button:hover { background: var(--accent-active); }
+    .row button:active { transform: scale(.97); }
+    .card { animation: enterCard .8s cubic-bezier(.22, 1, .36, 1) backwards; }
+    @keyframes enterCard { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .tab:focus-visible, .row button:focus-visible, #url:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+    .tip { margin-top: 12px; min-height: 18px; font-size: 12px; color: var(--text-dim); text-align: center; }
+    .grain {
+      position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: .05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27160%27 height=%27160%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="card">
+    <h1>📱 香料 3D 展示 · 二维码</h1>
+    <p class="sub">本地生成、离线可用。发布后请把地址换成线上地址（默认已填 GitHub Pages）。</p>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-go="bohe/">🌱 薄荷</button>
+      <button class="tab" data-go="jinyinhua/">🌼 金银花</button>
+      <button class="tab" data-go="midiexiang/">🌿 迷迭香</button>
+      <button class="tab" data-go="">✳️ 自定义</button>
+    </div>
+    <input id="url" type="url" spellcheck="false" placeholder="输入页面地址" />
+    <div id="qrbox"><canvas id="qr" width="520" height="520"></canvas></div>
+    <div class="row">
+      <button id="dl">⬇ 下载 PNG</button>
+      <button id="cp">📋 复制链接</button>
+    </div>
+    <p class="tip" id="tip"></p>
+  </div>
+
+  <script src="../shared/qrcode.min.js"></script><script>
+    var DEFAULT_BASE = "https://ruijiangyoumeile.github.io/xiangliao/";
+    var KNOWN = ["bohe/", "jinyinhua/", "midiexiang/"];
+    var tabs = document.querySelectorAll(".tab");
+    var input = document.getElementById("url");
+    var canvas = document.getElementById("qr");
+    var tip = document.getElementById("tip");
+    var ctx = canvas.getContext("2d");
+
+    function endsWithAny(s, arr) {
+      for (var i = 0; i < arr.length; i++) {
+        if (s.indexOf(arr[i], s.length - arr[i].length) !== -1) { return arr[i]; }
+      }
+      return null;
+    }
+
+    function makeQR(text) {
+      tip.textContent = "";
+      try {
+        var qr = qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+        var n = qr.getModuleCount();
+        var size = canvas.width;
+        var quiet = 4;
+        var cell = Math.floor(size / (n + quiet * 2));
+        var off = Math.floor((size - cell * n) / 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = "#101312";
+        for (var r = 0; r < n; r++) {
+          for (var c = 0; c < n; c++) {
+            if (qr.isDark(r, c)) { ctx.fillRect(off + c * cell, off + r * cell, cell, cell); }
+          }
+        }
+      } catch (e) {
+        tip.textContent = "生成失败：" + (e && e.message ? e.message : e);
+      }
+    }
+
+    function refresh() {
+      var t = input.value.trim();
+      try { localStorage.setItem("sp3d-qr-url", t); } catch (e) {}
+      if (!t) {
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        tip.textContent = "请输入要生成二维码的地址";
+        return;
+      }
+      makeQR(t);
+    }    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener("click", function () {
+        for (var j = 0; j < tabs.length; j++) { tabs[j].classList.remove("on"); }
+        this.classList.add("on");
+        var go = this.getAttribute("data-go");
+        var cur = input.value.trim();
+        var suffix = endsWithAny(cur, KNOWN);
+        var base = suffix ? cur.slice(0, cur.length - suffix.length) : DEFAULT_BASE;
+        input.value = base + go;
+        refresh();
+      });
+    }
+
+    var deb = null;
+    input.addEventListener("input", function () {
+      clearTimeout(deb);
+      deb = setTimeout(refresh, 250);
+    });
+
+    document.getElementById("dl").addEventListener("click", function () {
+      var a = document.createElement("a");
+      a.download = "香料3D-二维码.png";
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+      tip.textContent = "已保存 PNG 图片";
+    });
+
+    document.getElementById("cp").addEventListener("click", function () {
+      var t = input.value.trim();
+      var done = function () { tip.textContent = "链接已复制"; };
+      var fail = function () {
+        input.select();
+        try { document.execCommand("copy"); tip.textContent = "链接已复制"; }
+        catch (e) { tip.textContent = "复制失败，请手动长按选择复制"; }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done, fail);
+      } else { fail(); }
+    });
+
+    var stored = null;
+    try { stored = localStorage.getItem("sp3d-qr-url"); } catch (e) {}
+    input.value = stored || (DEFAULT_BASE + "bohe/");
+    refresh();
+</script>
+</body>
+</html>
