@@ -8,6 +8,9 @@
   <meta property="og:title" content="金银花 · 3D 模型展示" />
   <meta property="og:description" content="金银花 3D 数字标本：拖动旋转、缩放查看，手机支持 AR 实景展示。" />
   <meta name="format-detection" content="telephone=no" />
+  <meta name="renderer" content="webkit" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="applicable-device" content="mobile" />
   <meta name="theme-color" content="#171208" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🌼</text></svg>" />
   <link rel="modulepreload" href="../shared/model-viewer.min.js" />
@@ -115,6 +118,41 @@
     .hint b { color: var(--text); font-weight: 600; }
     .ar-note { bottom: 132px; white-space: normal; max-width: 88vw; line-height: 1.65; text-align: center; }
     .ar-note[hidden] { display: none; }
+    model-viewer::part(ar-button) { display: none !important; }
+    #btnAR[hidden] { display: none; }
+    .ar-sheet {
+      position: absolute; inset: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: rgba(4,8,7,.55);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      animation: arFade .22s ease;
+    }
+    .ar-sheet[hidden] { display: none; }
+    @keyframes arFade { from { opacity: 0; } to { opacity: 1; } }
+    .ar-card {
+      width: 100%; max-width: 344px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: 20px; padding: 22px 20px 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 54px rgba(0,0,0,.5);
+      text-align: center; animation: arUp .28s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes arUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .ar-card h2 { font-size: 17px; letter-spacing: 2px; }
+    .ar-browser { margin-top: 7px; font-size: 12.5px; color: var(--text-dim); }
+    .ar-go {
+      margin-top: 16px; width: 100%; padding: 12px 0; border-radius: 12px;
+      border: 1px solid var(--accent-border); background: var(--accent-glow);
+      color: var(--accent-soft); font-size: 14.5px; font-weight: 600; letter-spacing: 2px; cursor: pointer;
+    }
+    .ar-go:active { transform: scale(.98); }
+    .ar-advice { margin-top: 12px; font-size: 12px; line-height: 1.75; color: var(--text-dim); }
+    .ar-advice b { color: var(--text); }
+    .ar-copy {
+      margin-top: 10px; width: 100%; padding: 10px 0; border-radius: 12px;
+      border: 1px solid var(--glass-border); background: rgba(255,255,255,.05);
+      color: var(--text); font-size: 13px; cursor: pointer;
+    }
+    .ar-x { margin-top: 6px; width: 100%; padding: 10px 0; border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; }
     #loading {
       position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
       text-align: center; transition: opacity .4s ease;
@@ -216,6 +254,9 @@
     <div id="arTip" class="hint ar-note" hidden></div>
 
     <div class="controls">
+      <button class="ctl-btn" id="btnAR" title="实景 AR" aria-label="实景 AR" hidden>
+        <svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 22V12"/></svg>
+      </button>
       <button class="ctl-btn on" id="btnRotate" title="自动旋转" aria-label="自动旋转开关" aria-pressed="true">
         <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
       </button>
@@ -236,6 +277,17 @@
     <div id="error">
       模型加载失败，请检查网络后重试。
       <br/><button class="retry" onclick="location.reload()">重新加载</button>
+    </div>
+
+    <div id="arSheet" class="ar-sheet" hidden>
+      <div class="ar-card">
+        <h2>🌿 实景 AR</h2>
+        <p class="ar-browser" id="arBrowser"></p>
+        <button class="ar-go" id="arLaunch">启动 AR 实景</button>
+        <p class="ar-advice" id="arAdvice"></p>
+        <button class="ar-copy" id="arCopy">复制链接 · 换浏览器打开</button>
+        <button class="ar-x" id="arClose">继续 3D 浏览</button>
+      </div>
     </div>
 
     <div id="toast"></div>
@@ -308,14 +360,9 @@
       loading.classList.add("hide");
       if (stage === 1) { toast("备用通道加载完成"); }
       var ua0 = navigator.userAgent || "";
-      var isWeChat = /MicroMessenger/i.test(ua0);
-      var isMobile0 = /Android|iPhone|iPad|iPod/i.test(ua0);
       var arTip = document.getElementById("arTip");
-      if (isWeChat) {
+      if (/MicroMessenger/i.test(ua0)) {
         arTip.innerHTML = "微信内暂不支持 AR · 请点右上角 <b>···</b> 选择「在浏览器打开」体验实景 AR";
-        arTip.removeAttribute("hidden");
-      } else if (isMobile0 && !viewer.canActivateAR) {
-        arTip.textContent = "当前浏览器不支持网页 AR，请用系统 Chrome / Safari 打开本页体验";
         arTip.removeAttribute("hidden");
       }
     });
@@ -324,6 +371,19 @@
       if (!loaded) { if (stage === 0) { switchFallback(); } else { showError(); } }
     });
 
+    (function () {
+      function webglOK() {
+        try {
+          var c = document.createElement("canvas");
+          return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+        } catch (e) { return false; }
+      }
+      if (!webglOK()) {
+        loading.classList.add("hide");
+        errorBox.innerHTML = "当前浏览器不支持 3D 渲染（WebGL）。<br/>请升级浏览器内核，或使用 Chrome / Edge 打开。<br/><button class='retry' onclick='location.reload()'>重新加载</button>";
+        errorBox.classList.add("show");
+      }
+    })();
     viewer.src = PRIMARY;
     armWatchdog();
 
@@ -347,17 +407,125 @@
     });
 
     btnFullscreen.addEventListener("click", function () {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(function () {});
+      var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      var exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+      var reqFs = viewer.requestFullscreen || viewer.webkitRequestFullscreen || viewer.webkitEnterFullscreen;
+      if (fsEl) {
+        try { exitFs.call(document); } catch (e) {}
       } else {
+        if (!reqFs) { toast("当前浏览器不支持全屏，请横屏查看"); return; }
         try {
-          viewer.requestFullscreen({ navigationUI: "hide" }).catch(function () {
-            toast("当前浏览器不支持全屏，请横屏查看");
-          });
+          var r = reqFs.call(viewer, { navigationUI: "hide" });
+          if (r && r.catch) { r.catch(function () { toast("当前浏览器不支持全屏，请横屏查看"); }); }
         } catch (e) { toast("当前浏览器不支持全屏，请横屏查看"); }
       }
     });
 
+    // ===== 多浏览器 AR 启动器 =====
+    var btnAR = document.getElementById("btnAR");
+    var arSheet = document.getElementById("arSheet");
+    var arBrowserEl = document.getElementById("arBrowser");
+    var arLaunch = document.getElementById("arLaunch");
+    var arAdvice = document.getElementById("arAdvice");
+    var arCopy = document.getElementById("arCopy");
+    var arClose = document.getElementById("arClose");
+
+    function uaStr() { return navigator.userAgent || ""; }
+    function isIOSUA(ua) { return /iPhone|iPad|iPod/i.test(ua); }
+    function isAndroidUA(ua) { return /Android/i.test(ua); }
+    function isMobileUA(ua) { return isIOSUA(ua) || isAndroidUA(ua); }
+    function isWeChatUA(ua) { return /MicroMessenger/i.test(ua); }
+    function isIOSSafari(ua) {
+      if (!isIOSUA(ua)) { return false; }
+      return /Safari/i.test(ua) && !/(CriOS|EdgiOS|FxiOS|MicroMessenger|MQQBrowser|UCBrowser|Quark|baidubrowser|BIDUBrowser|HeyTapBrowser|MiuiBrowser|HuaweiBrowser|VivoBrowser)/i.test(ua);
+    }
+    function browserName(ua) {
+      var m = [
+        [/MicroMessenger/i, "微信内置浏览器"],
+        [/MQQBrowser/i, "QQ 浏览器"],
+        [/Quark/i, "夸克浏览器"],
+        [/baidubrowser|BIDUBrowser/i, "百度浏览器"],
+        [/UCBrowser|UBrowser/i, "UC 浏览器"],
+        [/360 Aroha|QihooBrowser/i, "360 浏览器"],
+        [/VivoBrowser/i, "vivo 浏览器"],
+        [/HeyTapBrowser/i, "OPPO 浏览器"],
+        [/MiuiBrowser/i, "小米浏览器"],
+        [/HonorBrowser/i, "荣耀浏览器"],
+        [/HuaweiBrowser/i, "华为浏览器"],
+        [/SamsungBrowser/i, "三星浏览器"],
+        [/EdgA|Edg/i, "Edge 浏览器"],
+        [/Firefox|FxiOS/i, "Firefox 浏览器"],
+        [/iPhone|iPad|iPod/i, "Safari 浏览器"],
+        [/CriOS|Chrome/i, "Chrome 浏览器"]
+      ];
+      for (var i = 0; i < m.length; i++) { if (m[i][0].test(ua)) { return m[i][1]; } }
+      return "系统自带浏览器";
+    }
+    var webxrOK = false;
+    function checkWebXR() {
+      if (navigator.xr && navigator.xr.isSessionSupported) {
+        return navigator.xr.isSessionSupported("immersive-ar").then(function (ok) { webxrOK = !!ok; }).catch(function () { webxrOK = false; });
+      }
+      return Promise.resolve();
+    }
+    function openSheet(mode) {
+      var ua = uaStr();
+      arBrowserEl.textContent = "当前环境 · " + browserName(ua);
+      arLaunch.style.display = "";
+      arAdvice.style.display = "";
+      if (mode === "wechat") {
+        arLaunch.style.display = "none";
+        arAdvice.innerHTML = "微信内置浏览器禁止网页调用 AR。<br/>请点右上角 <b>···</b> →「在浏览器打开」后，再点 AR 按钮。";
+      } else if (mode === "iosother") {
+        arLaunch.style.display = "none";
+        arAdvice.innerHTML = "iPhone 上的实景 AR 需要系统 Safari。<br/>请点底部「分享」→「在 Safari 中打开」后再试。";
+      } else {
+        arAdvice.innerHTML = "将调用手机的系统 AR 组件，部分机型会弹出「打开 Google 应用」，点<b>打开</b>即可（ARCore）。<br/>若没有反应或无法使用，请复制本页链接用 <b>Chrome 浏览器</b>打开（需支持 ARCore 的机型）。";
+      }
+      arSheet.hidden = false;
+    }
+    function closeSheet() { arSheet.hidden = true; }
+    function launchSceneViewer() {
+      var modelUrl = encodeURIComponent(new URL(PRIMARY, location.href).href);
+      var fallback = encodeURIComponent(location.href.split("#")[0] + "#arfb=1");
+      var intent = "intent://arvr.google.com/scene-viewer/1.0?file=" + modelUrl +
+        "&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;" +
+        "action=android.intent.action.VIEW;S.browser_fallback_url=" + fallback + ";end";
+      location.href = intent;
+    }
+    btnAR.addEventListener("click", function () {
+      var ua = uaStr();
+      if (isWeChatUA(ua)) { openSheet("wechat"); return; }
+      if (isIOSUA(ua)) {
+        if (isIOSSafari(ua)) { location.href = "models/jinyinhua.usdz"; } else { openSheet("iosother"); }
+        return;
+      }
+      if (webxrOK) {
+        try { viewer.activateAR(); return; } catch (e) {}
+      }
+      openSheet("scene");
+    });
+    arLaunch.addEventListener("click", launchSceneViewer);
+    arClose.addEventListener("click", closeSheet);
+    arSheet.addEventListener("click", function (e) { if (e.target === arSheet) { closeSheet(); } });
+    arCopy.addEventListener("click", function () {
+      var t = location.href.split("#")[0];
+      function ok() { toast("链接已复制，粘贴到 Chrome 浏览器打开"); }
+      function fail() {
+        var ta = document.createElement("textarea");
+        ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); ok(); } catch (e) { toast("请手动复制地址栏链接"); }
+        document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok, fail); } else { fail(); }
+    });
+    var uaInit = uaStr();
+    if (isMobileUA(uaInit)) { btnAR.hidden = false; checkWebXR(); }
+    window.__arDebug = { name: browserName(uaInit), wechat: isWeChatUA(uaInit), iosSafari: isIOSSafari(uaInit), mobile: isMobileUA(uaInit) };
+    if (location.hash.indexOf("arfb=") === 1) {
+      setTimeout(function () { toast("AR 未能启动：当前浏览器缺少系统 AR 组件"); openSheet("scene"); }, 400);
+    }
     viewer.addEventListener("ar-status", function (e) {
       var s = e.detail && e.detail.status;
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
