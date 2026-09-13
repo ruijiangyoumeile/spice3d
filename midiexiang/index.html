@@ -113,6 +113,8 @@
     }
     .hint.gone { opacity: 0; transform: translateX(-50%) translateY(8px); pointer-events: none; }
     .hint b { color: var(--text); font-weight: 600; }
+    .ar-note { bottom: 132px; white-space: normal; max-width: 88vw; line-height: 1.65; text-align: center; }
+    .ar-note[hidden] { display: none; }
     #loading {
       position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
       text-align: center; transition: opacity .4s ease;
@@ -189,7 +191,7 @@
     camera-controls
     touch-action="pan-y"
     ar
-    ar-modes="webxr scene-viewer quick-look"
+    ar-modes="webxr quick-look"
     ios-src="models/midiexiang.usdz"
           ar-scale="auto"
     shadow-intensity="1.1"
@@ -211,6 +213,7 @@
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
+    <div id="arTip" class="hint ar-note" hidden></div>
 
     <div class="controls">
       <button class="ctl-btn on" id="btnRotate" title="自动旋转" aria-label="自动旋转开关" aria-pressed="true">
@@ -304,6 +307,17 @@
       clearTimeout(watchdog);
       loading.classList.add("hide");
       if (stage === 1) { toast("备用通道加载完成"); }
+      var ua0 = navigator.userAgent || "";
+      var isWeChat = /MicroMessenger/i.test(ua0);
+      var isMobile0 = /Android|iPhone|iPad|iPod/i.test(ua0);
+      var arTip = document.getElementById("arTip");
+      if (isWeChat) {
+        arTip.innerHTML = "微信内暂不支持 AR · 请点右上角 <b>···</b> 选择「在浏览器打开」体验实景 AR";
+        arTip.removeAttribute("hidden");
+      } else if (isMobile0 && !viewer.canActivateAR) {
+        arTip.textContent = "当前浏览器不支持网页 AR，请用系统 Chrome / Safari 打开本页体验";
+        arTip.removeAttribute("hidden");
+      }
     });
 
     viewer.addEventListener("error", function () {
