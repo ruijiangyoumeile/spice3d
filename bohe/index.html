@@ -231,6 +231,34 @@
       .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
       .ctl-btn { width: 42px; height: 42px; }
     }
+      /* ARC-CSS */
+    .arc-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 11px; padding: 7px 14px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; cursor: pointer;
+      color: var(--accent-soft); background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: background .15s ease, transform .1s ease;
+      font-family: inherit;
+    }
+    .arc-toggle:hover { background: rgba(255,255,255,.09); }
+    .arc-toggle:active { transform: scale(.97); }
+    .arc-panel {
+      margin-top: 10px; max-height: min(46vh, 330px); overflow-y: auto;
+      padding: 13px 15px; border-radius: 14px;
+      background: rgba(6,12,10,.74); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: arcUp .24s cubic-bezier(.22,1,.36,1);
+      overscroll-behavior: contain; text-align: left;
+    }
+    .arc-panel[hidden] { display: none; }
+    @keyframes arcUp { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .arc-item + .arc-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+    .arc-item h4 { font-size: 11.5px; letter-spacing: 1.2px; color: var(--accent-soft); margin-bottom: 4px; font-weight: 600; }
+    .arc-item p { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); }
+    .arc-panel::-webkit-scrollbar { width: 5px; }
+    .arc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { .arc-panel { animation: none; } }
   </style>
 </head>
 <body>
@@ -260,6 +288,16 @@
       <h1><span class="leaf">🌱</span>薄荷<span class="latin">Mentha haplocalyx</span></h1>
       <p class="desc">唇形科薄荷属 · 清凉香草。<br/>叶对生、茎四方，揉之清香透凉。</p>
       <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+      <!--ARC-START-->
+      <button class="arc-toggle" id="arcBtn" aria-expanded="false" aria-controls="arcPanel">📖 香料档案</button>
+      <div class="arc-panel" id="arcPanel" hidden>
+        <div class="arc-item"><h4>植物学特征</h4><p>唇形科薄荷属多年生草本。茎直立四棱，叶对生、卵状披针形具锯齿，表面密布腺鳞；轮伞花序腋生，花小淡紫。全株揉之有清凉香气。</p></div>
+        <div class="arc-item"><h4>药用价值</h4><p>性凉味辛，归肺、肝经。疏散风热、清利头目、利咽透疹、疏肝行气。主治风热感冒、头痛目赤、咽喉肿痛、食滞腹胀，为辛凉解表代表药。</p></div>
+        <div class="arc-item"><h4>香气成分</h4><p>主含薄荷醇（70%–90%）、薄荷酮、乙酸薄荷酯、柠檬烯等。清凉感源于薄荷醇激活皮肤 TRPM8 冷觉受体，并非真实降温。</p></div>
+        <div class="arc-item"><h4>使用场景</h4><p>泡茶与冷饮调味、糖果糕点、牙膏口香糖等日化香精；中药用于风热感冒方剂（如银翘散）；精油用于提神与缓解头痛。</p></div>
+        <div class="arc-item"><h4>文化背景</h4><p>古称“银丹草”，《唐本草》已收载。地中海与东亚各有悠久的食用药用传统，是世界上最古老的香草之一，欧洲人视其为“清凉与好客”的象征。</p></div>
+      </div>
+      <!--ARC-END-->
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
@@ -635,6 +673,17 @@
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
       if (s === "object-placed") { toast("模型已放置，可走动观察"); }
     });
-  </script>
+    /* ARC-JS */
+  (function () {
+    var b = document.getElementById("arcBtn"), p = document.getElementById("arcPanel");
+    if (!b || !p) return;
+    b.addEventListener("click", function () {
+      var open = p.hidden;
+      p.hidden = !open;
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+      b.textContent = open ? "📖 收起档案" : "📖 香料档案";
+    });
+  })();
+</script>
 </body>
 </html>

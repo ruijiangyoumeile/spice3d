@@ -231,6 +231,34 @@
       .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
       .ctl-btn { width: 42px; height: 42px; }
     }
+      /* ARC-CSS */
+    .arc-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 11px; padding: 7px 14px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; cursor: pointer;
+      color: var(--accent-soft); background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: background .15s ease, transform .1s ease;
+      font-family: inherit;
+    }
+    .arc-toggle:hover { background: rgba(255,255,255,.09); }
+    .arc-toggle:active { transform: scale(.97); }
+    .arc-panel {
+      margin-top: 10px; max-height: min(46vh, 330px); overflow-y: auto;
+      padding: 13px 15px; border-radius: 14px;
+      background: rgba(6,12,10,.74); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: arcUp .24s cubic-bezier(.22,1,.36,1);
+      overscroll-behavior: contain; text-align: left;
+    }
+    .arc-panel[hidden] { display: none; }
+    @keyframes arcUp { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .arc-item + .arc-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+    .arc-item h4 { font-size: 11.5px; letter-spacing: 1.2px; color: var(--accent-soft); margin-bottom: 4px; font-weight: 600; }
+    .arc-item p { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); }
+    .arc-panel::-webkit-scrollbar { width: 5px; }
+    .arc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { .arc-panel { animation: none; } }
   </style>
 </head>
 <body>
@@ -260,6 +288,16 @@
       <h1><span class="leaf">🪵</span>檀香<span class="latin">Santalum album</span></h1>
       <p class="desc">檀香科檀香属 · 心材。<br/>木质致密奶香悠长，千年名贵香材。</p>
       <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+      <!--ARC-START-->
+      <button class="arc-toggle" id="arcBtn" aria-expanded="false" aria-controls="arcPanel">📖 香料档案</button>
+      <div class="arc-panel" id="arcPanel" hidden>
+        <div class="arc-item"><h4>植物学特征</h4><p>檀香科檀香属半寄生常绿乔木，高可达十余米。叶对生、椭圆状披针形革质；花小、初开淡黄后转紫红。根系吸附于寄主植物根上吸取养分，生长极其缓慢。</p></div>
+        <div class="arc-item"><h4>药用价值</h4><p>性温味辛，归脾、胃、心、肺经。行气止痛、散寒调中，主治胸腹冷痛、胃脘疼痛、噎膈呕吐；檀香油用于皮肤护理与安神。</p></div>
+        <div class="arc-item"><h4>香气成分</h4><p>心材富含 α-檀香醇与 β-檀香醇（合计可逾 70%），另含檀香烯，气息温润奶甜、绵长沉稳，是公认最持久的天然木香。</p></div>
+        <div class="arc-item"><h4>使用场景</h4><p>高级香水定香、线香与盘香主料、佛像雕刻与文玩；檀香粉用于篆香、熏衣与佛事。</p></div>
+        <div class="arc-item"><h4>文化背景</h4><p>印度称“白檀”，为佛教、印度教供香之首，佛经中“栴檀”即指此物；中国自汉唐经丝路与海路输入，成为文人清供与寺庙香事的顶级香材。老山檀需数十年成材，历来贵比黄金。</p></div>
+      </div>
+      <!--ARC-END-->
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
@@ -635,6 +673,17 @@
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
       if (s === "object-placed") { toast("模型已放置，可走动观察"); }
     });
-  </script>
+    /* ARC-JS */
+  (function () {
+    var b = document.getElementById("arcBtn"), p = document.getElementById("arcPanel");
+    if (!b || !p) return;
+    b.addEventListener("click", function () {
+      var open = p.hidden;
+      p.hidden = !open;
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+      b.textContent = open ? "📖 收起档案" : "📖 香料档案";
+    });
+  })();
+</script>
 </body>
 </html>

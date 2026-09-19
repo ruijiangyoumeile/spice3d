@@ -231,6 +231,34 @@
       .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
       .ctl-btn { width: 42px; height: 42px; }
     }
+      /* ARC-CSS */
+    .arc-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 11px; padding: 7px 14px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; cursor: pointer;
+      color: var(--accent-soft); background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: background .15s ease, transform .1s ease;
+      font-family: inherit;
+    }
+    .arc-toggle:hover { background: rgba(255,255,255,.09); }
+    .arc-toggle:active { transform: scale(.97); }
+    .arc-panel {
+      margin-top: 10px; max-height: min(46vh, 330px); overflow-y: auto;
+      padding: 13px 15px; border-radius: 14px;
+      background: rgba(6,12,10,.74); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: arcUp .24s cubic-bezier(.22,1,.36,1);
+      overscroll-behavior: contain; text-align: left;
+    }
+    .arc-panel[hidden] { display: none; }
+    @keyframes arcUp { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .arc-item + .arc-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+    .arc-item h4 { font-size: 11.5px; letter-spacing: 1.2px; color: var(--accent-soft); margin-bottom: 4px; font-weight: 600; }
+    .arc-item p { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); }
+    .arc-panel::-webkit-scrollbar { width: 5px; }
+    .arc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { .arc-panel { animation: none; } }
   </style>
 </head>
 <body>
@@ -260,6 +288,16 @@
       <h1><span class="leaf">🌼</span>金银花<span class="latin">Lonicera japonica</span></h1>
       <p class="desc">忍冬科忍冬属 · 药食两用。<br/>初开花白，数日后转黄，故名金银花。</p>
       <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+      <!--ARC-START-->
+      <button class="arc-toggle" id="arcBtn" aria-expanded="false" aria-controls="arcPanel">📖 香料档案</button>
+      <div class="arc-panel" id="arcPanel" hidden>
+        <div class="arc-item"><h4>植物学特征</h4><p>忍冬科忍冬属半常绿缠绕藤本。叶卵形对生，花成对腋生，初开洁白、次日转黄，故称“金银”；花冠唇形，雄蕊与花柱伸出花冠外。</p></div>
+        <div class="arc-item"><h4>药用价值</h4><p>性寒味甘，归肺、心、胃经。清热解毒、疏散风热，主治痈肿疔疮、喉痹丹毒、风热感冒与温病初起，被誉“中药里的青霉素”。</p></div>
+        <div class="arc-item"><h4>香气成分</h4><p>含芳樟醇、双花醇、苯乙醇、丁香酚氧化物及绿原酸等，清甜花香中带青草木气，柔和而不冲。</p></div>
+        <div class="arc-item"><h4>使用场景</h4><p>金银花茶、凉茶（如王老吉配方）、中成药与含片；提取物亦用于日化香精与护肤品抗炎配方。</p></div>
+        <div class="arc-item"><h4>文化背景</h4><p>一名“忍冬”，因凌冬不凋；又呼“鸳鸯藤”，取一蒂二花之意。《本草纲目》载其茎叶花功用皆同，民间夏日以之代茶解暑，是南北常见的庭院藤蔓。</p></div>
+      </div>
+      <!--ARC-END-->
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
@@ -635,6 +673,17 @@
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
       if (s === "object-placed") { toast("模型已放置，可走动观察"); }
     });
-  </script>
+    /* ARC-JS */
+  (function () {
+    var b = document.getElementById("arcBtn"), p = document.getElementById("arcPanel");
+    if (!b || !p) return;
+    b.addEventListener("click", function () {
+      var open = p.hidden;
+      p.hidden = !open;
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+      b.textContent = open ? "📖 收起档案" : "📖 香料档案";
+    });
+  })();
+</script>
 </body>
 </html>

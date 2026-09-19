@@ -231,6 +231,34 @@
       .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
       .ctl-btn { width: 42px; height: 42px; }
     }
+      /* ARC-CSS */
+    .arc-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 11px; padding: 7px 14px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; cursor: pointer;
+      color: var(--accent-soft); background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: background .15s ease, transform .1s ease;
+      font-family: inherit;
+    }
+    .arc-toggle:hover { background: rgba(255,255,255,.09); }
+    .arc-toggle:active { transform: scale(.97); }
+    .arc-panel {
+      margin-top: 10px; max-height: min(46vh, 330px); overflow-y: auto;
+      padding: 13px 15px; border-radius: 14px;
+      background: rgba(6,12,10,.74); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: arcUp .24s cubic-bezier(.22,1,.36,1);
+      overscroll-behavior: contain; text-align: left;
+    }
+    .arc-panel[hidden] { display: none; }
+    @keyframes arcUp { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .arc-item + .arc-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+    .arc-item h4 { font-size: 11.5px; letter-spacing: 1.2px; color: var(--accent-soft); margin-bottom: 4px; font-weight: 600; }
+    .arc-item p { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); }
+    .arc-panel::-webkit-scrollbar { width: 5px; }
+    .arc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { .arc-panel { animation: none; } }
   </style>
 </head>
 <body>
@@ -260,6 +288,16 @@
       <h1><span class="leaf">🏺</span>透雕五足三层银熏炉<span class="latin">Toudiao Wuzu Sanceng Yin Xunlu</span></h1>
       <p class="desc">古代香器数字复原 · 透雕三层、五足垂链。<br/>拖动旋转，细赏镂空纹饰与质感。</p>
       <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+      <!--ARC-START-->
+      <button class="arc-toggle" id="arcBtn" aria-expanded="false" aria-controls="arcPanel">📖 香料档案</button>
+      <div class="arc-panel" id="arcPanel" hidden>
+        <div class="arc-item"><h4>器物形制</h4><p>透雕五足三层银熏炉，器身三层套合，通体镂空缠枝纹与云气纹，五兽足承托，顶设宝珠钮与烟气孔，银质錾刻，灯光下银辉温润。</p></div>
+        <div class="arc-item"><h4>香事用途</h4><p>用于焚燃盘香、篆香与香丸：下层贮灰、中层置炭、上层出烟，镂空纹样令香烟盘旋而出，兼具控温与观烟之妙。</p></div>
+        <div class="arc-item"><h4>工艺特征</h4><p>以锤揲、錾刻、焊接与透雕为主，需反复退火与打磨；银材导热快、不易锈蚀，最宜长期与香灰香料接触。</p></div>
+        <div class="arc-item"><h4>使用场景</h4><p>书房清供、禅室坐香、茶席焚香与展陈；亦为古代宫廷与文房熏衣、熏被之器。</p></div>
+        <div class="arc-item"><h4>文化背景</h4><p>中国熏香传统自先秦“燎祭”而兴，唐宋香事鼎盛，熏炉成为文人士大夫的日用之器；“红袖添香”与“焚香伴读”皆是其文化剪影。</p></div>
+      </div>
+      <!--ARC-END-->
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
@@ -635,6 +673,17 @@
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
       if (s === "object-placed") { toast("模型已放置，可走动观察"); }
     });
-  </script>
+    /* ARC-JS */
+  (function () {
+    var b = document.getElementById("arcBtn"), p = document.getElementById("arcPanel");
+    if (!b || !p) return;
+    b.addEventListener("click", function () {
+      var open = p.hidden;
+      p.hidden = !open;
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+      b.textContent = open ? "📖 收起档案" : "📖 香料档案";
+    });
+  })();
+</script>
 </body>
 </html>

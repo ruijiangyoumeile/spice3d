@@ -231,6 +231,34 @@
       .hint { bottom: 80px; font-size: 11.5px; padding: 6px 13px; }
       .ctl-btn { width: 42px; height: 42px; }
     }
+      /* ARC-CSS */
+    .arc-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 11px; padding: 7px 14px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; cursor: pointer;
+      color: var(--accent-soft); background: var(--accent-glow);
+      border: 1px solid var(--accent-border);
+      transition: background .15s ease, transform .1s ease;
+      font-family: inherit;
+    }
+    .arc-toggle:hover { background: rgba(255,255,255,.09); }
+    .arc-toggle:active { transform: scale(.97); }
+    .arc-panel {
+      margin-top: 10px; max-height: min(46vh, 330px); overflow-y: auto;
+      padding: 13px 15px; border-radius: 14px;
+      background: rgba(6,12,10,.74); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: arcUp .24s cubic-bezier(.22,1,.36,1);
+      overscroll-behavior: contain; text-align: left;
+    }
+    .arc-panel[hidden] { display: none; }
+    @keyframes arcUp { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .arc-item + .arc-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+    .arc-item h4 { font-size: 11.5px; letter-spacing: 1.2px; color: var(--accent-soft); margin-bottom: 4px; font-weight: 600; }
+    .arc-item p { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); }
+    .arc-panel::-webkit-scrollbar { width: 5px; }
+    .arc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { .arc-panel { animation: none; } }
   </style>
 </head>
 <body>
@@ -260,6 +288,16 @@
       <h1><span class="leaf">🤍</span>白芷<span class="latin">Angelica dahurica</span></h1>
       <p class="desc">伞形科当归属 · 干燥根。<br/>根粗壮芳香，色白如脂，古方常用。</p>
       <span class="badge">◈ 香料博物 · 3D 数字标本</span>
+      <!--ARC-START-->
+      <button class="arc-toggle" id="arcBtn" aria-expanded="false" aria-controls="arcPanel">📖 香料档案</button>
+      <div class="arc-panel" id="arcPanel" hidden>
+        <div class="arc-item"><h4>植物学特征</h4><p>伞形科当归属多年生草本。根粗壮圆锥形、外皮黄褐、断面白色粉性，具环状纹理；茎高可达2米，复伞形花序开白色小花。</p></div>
+        <div class="arc-item"><h4>药用价值</h4><p>性温味辛，归胃、大肠、肺经。解表散寒、祛风止痛、通鼻窍、燥湿止带、消肿排脓，为治鼻渊头痛与牙痛要药。</p></div>
+        <div class="arc-item"><h4>香气成分</h4><p>含欧前胡素、异欧前胡素等香豆素类及挥发油（榄香烯、壬烯醇），气息辛香微苦带药气，浓而不烈。</p></div>
+        <div class="arc-item"><h4>使用场景</h4><p>中药方剂（如九味羌活汤、苍耳子散）；炖煮牛羊肉时少量去腥提香；亦用于香料复合配方与日化皂用香精。</p></div>
+        <div class="arc-item"><h4>文化背景</h4><p>《楚辞》多以“芷”喻高洁，屈原“扈江离与辟芷兮”即指此类香草；白芷古称“芳香”，是传统香身、香囊与“沐浴兰汤”的重要香料。</p></div>
+      </div>
+      <!--ARC-END-->
     </div>
 
     <div class="hint" id="hint"><b>拖动</b> 旋转 · <b>滚轮 / 双指</b> 缩放</div>
@@ -635,6 +673,17 @@
       if (s === "session-started") { toast("AR 已启动，移动手机寻找平面"); }
       if (s === "object-placed") { toast("模型已放置，可走动观察"); }
     });
-  </script>
+    /* ARC-JS */
+  (function () {
+    var b = document.getElementById("arcBtn"), p = document.getElementById("arcPanel");
+    if (!b || !p) return;
+    b.addEventListener("click", function () {
+      var open = p.hidden;
+      p.hidden = !open;
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+      b.textContent = open ? "📖 收起档案" : "📖 香料档案";
+    });
+  })();
+</script>
 </body>
 </html>
