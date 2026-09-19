@@ -327,6 +327,81 @@ body::after{
 }
 
 /* ============================================================
+   garden · 气候与走商
+   ============================================================ */
+.wx{
+  display:flex;align-items:flex-start;gap:12px;padding:12px 14px;margin-bottom:12px;
+  border:1px solid var(--line);border-left:3px solid var(--seal);border-radius:var(--r);
+  background:linear-gradient(180deg, rgba(255,253,246,.8), rgba(255,253,246,.45));
+}
+.wx-icon{font-size:22px;line-height:1.2}
+.wx-name{font-family:var(--kai);font-size:15px;letter-spacing:1.5px}
+.wx-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.wx-tag{
+  font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;
+}
+.trade{
+  border:1px solid rgba(162,62,43,.32);border-left:3px solid var(--seal);
+  background:linear-gradient(180deg, rgba(162,62,43,.07), rgba(255,253,246,.5));
+}
+.log-item{font-size:12.5px;color:var(--ink-2);padding:4px 0;border-bottom:1px dashed var(--line-2)}
+.log-item:last-child{border-bottom:none}
+.log-item b{font-family:var(--kai);color:var(--seal)}
+
+/* ============================================================
+   codex · 成就
+   ============================================================ */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.ach{
+  padding:11px 13px;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(255,253,246,.45);
+}
+.ach.on{border-color:rgba(162,62,43,.4);background:linear-gradient(180deg, rgba(162,62,43,.08), rgba(255,253,246,.5))}
+.ach .an{font-family:var(--kai);font-size:14.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.ach .ad{font-size:12px;color:var(--muted);line-height:1.6;margin-top:3px}
+.ach .ar{font-size:11.5px;margin-top:5px}
+.ach.off{opacity:.55}
+.ach.off .an{color:var(--muted)}
+
+/* ============================================================
+   quiz · 香料问答
+   ============================================================ */
+.quiz-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.quiz-dots{display:flex;gap:5px;margin:12px 0 4px}
+.quiz-dot{width:22px;height:5px;border-radius:999px;background:rgba(58,46,32,.14)}
+.quiz-dot.ok{background:var(--good)}
+.quiz-dot.no{background:var(--bad)}
+.quiz-dot.cur{background:var(--seal)}
+.quiz-q{
+  font-family:var(--serif);font-size:16.5px;line-height:2;color:var(--ink);text-align:justify;
+}
+.quiz-opts{display:grid;gap:9px;margin-top:14px}
+.quiz-opt{
+  text-align:left;padding:11px 15px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.6);font-family:inherit;color:inherit;font-size:14px;
+  transition:background .18s,border-color .18s,transform .18s;
+}
+.quiz-opt:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px)}
+.quiz-opt:disabled{cursor:default;transform:none}
+.quiz-opt.ok{border-color:var(--good);background:rgba(74,107,63,.10);color:var(--good)}
+.quiz-opt.no{border-color:var(--bad);background:var(--seal-soft);color:var(--bad)}
+.quiz-opt .k{font-family:var(--kai);color:var(--muted);margin-right:8px}
+
+/* 成就弹报 */
+#achPop{
+  position:fixed;right:18px;bottom:24px;z-index:190;display:none;max-width:300px;
+  background:linear-gradient(180deg,#fffdf6,#f5eeda);
+  border:1px solid rgba(162,62,43,.34);border-left:3px solid var(--seal);border-radius:var(--r);
+  box-shadow:0 6px 26px rgba(58,46,32,.22);padding:12px 15px;
+}
+#achPop .ach-pop-t{
+  font-family:var(--kai);font-size:13px;letter-spacing:2px;color:var(--seal);margin-bottom:6px;
+}
+#achPop .ach-pop-i{font-family:var(--kai);font-size:14px;letter-spacing:1px;padding:3px 0}
+#achPop .ach-pop-i span{font-family:var(--sans);font-size:11.5px;color:var(--muted);margin-left:5px}
+#achPop .ach-pop-i b{color:var(--seal);font-family:var(--serif);font-size:13px;margin-left:5px}
+
+/* ============================================================
    响应式
    ============================================================ */
 @media (max-width:760px){
@@ -334,6 +409,7 @@ body::after{
   .blend-top{grid-template-columns:1fr}
   .wheel-box{order:-1}
   #wheel{max-width:236px}
+  #achPop{right:10px;left:10px;bottom:14px;max-width:none}
   .slots{grid-template-columns:repeat(2,1fr)}
   .zone-grid{grid-template-columns:1fr}
   .model-stage{aspect-ratio:1/1}
@@ -364,10 +440,12 @@ body::after{
     <section class="screen" id="sc-garden"></section>
     <section class="screen" id="sc-blend"></section>
     <section class="screen" id="sc-codex"></section>
+    <section class="screen" id="sc-quiz"></section>
   </div>
 </div>
 
 <div id="toast"></div>
+<div id="achPop"></div>
 
 <!-- AR 说明弹层 -->
 <div class="sheet" id="arSheet" hidden>
@@ -487,11 +565,61 @@ const CODEX = {
     lore:'《本草纲目》称其「辛能发散，凉能清利」。名方逍遥散中用之极少，却能疏肝解郁。' }
 };
 
+/* 气候：在「过一日」香草成熟时结算，加到各区香草的品质上。
+   明日天气会提前预告，故可据此决定「种哪一味、种在哪个区」。 */
+const WEATHERS = [
+  { id:'mild',   name:'和风', icon:'🍃', desc:'风调雨顺，草木安和', w:3,
+    zone:{ 干燥:+0.03, 湿润:+0.03, 半阴:+0.03 }, tip:'诸区皆宜，长势平稳' },
+  { id:'clear',  name:'晴爽', icon:'☀', desc:'天高日朗，土爽气清', w:3,
+    zone:{ 干燥:+0.11, 湿润:-0.02, 半阴:+0.01 }, tip:'干燥区得日光之力，最宜艾草' },
+  { id:'plum',   name:'梅雨', icon:'☂', desc:'连日阴雨，水气弥漫', w:3,
+    zone:{ 干燥:-0.08, 湿润:+0.11, 半阴:+0.03 }, tip:'湿润区正得其时，最宜薄荷、佩兰' },
+  { id:'shade',  name:'林霭', icon:'☾', desc:'林间雾起，散射光柔', w:2,
+    zone:{ 干燥:0, 湿润:+0.04, 半阴:+0.12 }, tip:'半阴区最宜，散射光下白芷香气渐积' },
+  { id:'drought',name:'亢旱', icon:'🔥', desc:'久旱不雨，土燥气烈', w:2,
+    zone:{ 干燥:-0.12, 湿润:-0.10, 半阴:-0.04 }, tip:'缺水则木质偏燥，诸区品质皆损' }
+];
+const WEATHER_OF = {};
+WEATHERS.forEach(w => { WEATHER_OF[w.id] = w; });
+
+/* 走商收购香草的底价（按品质折算），也是「香草换钱」的唯一渠道 */
+const HERB_BASE = { aicao:6, peilan:7, baizhi:8, bohe:7 };
+
+/* 成就：check 只读 state，达成后由 grantAchievements 发奖并记录 id */
+const ACHIEVEMENTS = [
+  { id:'sprout',   name:'初莳草木', desc:'在药圃种下第一株香草',            reward:{ money:6 },
+    check:s => s.plants.length > 0 || s.stats.harvest > 0 },
+  { id:'harvest10',name:'圃中老手', desc:'累计收获 10 株香草',              reward:{ money:15 },
+    check:s => (s.stats.harvest || 0) >= 10 },
+  { id:'top3',     name:'上品之选', desc:'收得 3 株品质 85% 以上的香草',    reward:{ money:15 },
+    check:s => (s.stats.topGrade || 0) >= 3 },
+  { id:'know2',    name:'略识香草', desc:'辨出两味香草',                    reward:{ money:10 },
+    check:s => Object.keys(s.known).filter(k => s.known[k]).length >= 2 },
+  { id:'know4',    name:'四味俱全', desc:'辨出全部四味香草',                reward:{ money:20 },
+    check:s => Object.keys(s.known).filter(k => s.known[k]).length >= 4 },
+  { id:'reader',   name:'博览群书', desc:'读遍全部六张古籍卡',              reward:{ money:12 },
+    check:s => s.readCards.length >= ANCIENT_CARDS.length },
+  { id:'first',    name:'开张第一单', desc:'首次合香出售',                  reward:{ money:8 },
+    check:s => (s.stats.blends || 0) >= 1 },
+  { id:'blend10',  name:'熟能生巧', desc:'累计合香 10 次',                  reward:{ money:20 },
+    check:s => (s.stats.blends || 0) >= 10 },
+  { id:'star3',    name:'神品一方', desc:'合出一方 90 分以上的香',          reward:{ money:30 },
+    check:s => (s.stats.best || 0) >= 90 },
+  { id:'orders3',  name:'三单皆交', desc:'民间、医馆、文人各交一单',        reward:{ money:18 },
+    check:s => ['folk','clinic','scholar'].every(k => (s.orders[k].done || 0) > 0) },
+  { id:'royal',    name:'御用香方', desc:'完成宫中的御用订单',              reward:{ money:40 },
+    check:s => (s.orders.royal.done || 0) > 0 },
+  { id:'quizperf', name:'博闻强识', desc:'香料问答中一轮五题全对',          reward:{ money:20 },
+    check:s => (s.stats.quizPerfect || 0) >= 1 },
+  { id:'rich',     name:'小有积蓄', desc:'持有 200 钱',                     reward:{ money:25 },
+    check:s => s.money >= 200 }
+];
+
 const SLOT_NAMES = ['君','臣','佐','使'];
 const SLOT_W = { 君:1.0, 臣:0.75, 佐:0.5, 使:0.3 };
 const CARD_COST = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '1.3';
+const BUILD = '1.4';
 
 /* ============================================================
    =3 STORE
@@ -509,7 +637,13 @@ const DEFAULT_STATE = {
   orders:{ folk:{done:0}, clinic:{done:0}, scholar:{done:0}, royal:{unlocked:false} },
   history:[],
   historyCards:[],
-  stats:{ blends:0, best:0, earned:0, stars:0 },
+  stats:{ blends:0, best:0, earned:0, stars:0, harvest:0, topGrade:0, quizPerfect:0, quizRight:0, quizWrong:0 },
+  ach:{},
+  weather:'mild', weatherNext:'mild',
+  trade:null,
+  log:[],
+  quizDay:0,
+  quiz:null,
   settings:{ seenIntro:false }
 };
 
@@ -518,19 +652,53 @@ let state = load();
 function load(){
   try{
     const p = JSON.parse(localStorage.getItem(KEY));
-    if(!p || p.v !== 1) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    if(!p || p.v !== 1) return freshState();
     const s = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), p);
     s.seeds = Object.assign({}, DEFAULT_STATE.seeds, p.seeds || {});
     s.orders = Object.assign({}, DEFAULT_STATE.orders, p.orders || {});
     s.stats = Object.assign({}, DEFAULT_STATE.stats, p.stats || {});
+    s.ach = Object.assign({}, DEFAULT_STATE.ach, p.ach || {});
+    if(!Array.isArray(s.log)) s.log = [];
+    if(!WEATHER_OF[s.weather]) s.weather = 'mild';
+    if(!WEATHER_OF[s.weatherNext]) s.weatherNext = 'mild';
     return s;
-  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+  }catch(e){ return freshState(); }
+}
+/* 新档：气候从随机一处起头，免得开局总是「和风」 */
+function freshState(){
+  const s = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  s.weather = rollWeather();
+  s.weatherNext = rollWeather();
+  return s;
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
 }
-/* 单一变异入口：改状态 → 存盘 → 重绘 */
-function mutate(fn){ fn(state); save(); render(); }
+
+/* 成就结算：达成即发奖并记名。返回本轮新达成的成就列表 */
+function grantAchievements(){
+  const got = [];
+  ACHIEVEMENTS.forEach(a => {
+    if(state.ach[a.id]) return;
+    let ok = false;
+    try{ ok = !!a.check(state); }catch(e){ ok = false; }
+    if(!ok) return;
+    state.ach[a.id] = true;
+    if(a.reward.money) state.money += a.reward.money;
+    if(a.reward.seed) state.seeds[a.reward.seed] = (state.seeds[a.reward.seed] || 0) + 1;
+    got.push(a);
+  });
+  return got;
+}
+
+/* 单一变异入口：改状态 → 结算成就 → 存盘 → 重绘 */
+function mutate(fn){
+  fn(state);
+  const got = grantAchievements();
+  save();
+  render();
+  if(got.length) achPop(got);
+}
 
 /* ============================================================
    =4 SCORE —— 纯函数，不碰 DOM
@@ -738,6 +906,208 @@ function payoutOf(orderId, total){
 }
 
 /* ============================================================
+   =4.5 WEATHER · 气候与走商（随机事件）
+   ============================================================ */
+function rollWeather(){
+  const total = WEATHERS.reduce((s, w) => s + w.w, 0);
+  let r = Math.random() * total;
+  for(const w of WEATHERS){ r -= w.w; if(r <= 0) return w.id; }
+  return 'mild';
+}
+function wxOf(id){ return WEATHER_OF[id] || WEATHER_OF.mild; }
+/* 某区在某天气下的品质增减 */
+function wxDelta(zone, weatherId){ return wxOf(weatherId).zone[zone] || 0; }
+
+function addLog(text){
+  state.log.push({ day: state.day, text });
+  if(state.log.length > 40) state.log = state.log.slice(-40);
+}
+
+/* 走商：每日最多一位，专收某味香草，价高于散卖 */
+function makeTrade(){
+  const pool = Object.keys(HERBS).filter(k => (state.inventory[k] || 0) > 0);
+  if(!pool.length) return null;
+  const herb = pool[Math.floor(Math.random() * pool.length)];
+  const mult = +(1.7 + Math.random() * 0.7).toFixed(2);
+  return { herb, mult };
+}
+function tradeUnitPrice(herb, mult){
+  return Math.max(1, Math.round(HERB_BASE[herb] * (0.55 + qOf(herb) * 0.9) * mult));
+}
+/* 散卖：平价出手，任何香草都可 */
+function herbUnitPrice(herb){ return Math.max(1, Math.round(HERB_BASE[herb] * (0.55 + qOf(herb) * 0.9))); }
+
+/* 事件池：过一日时按权重抽一件 */
+const EVENTS = [
+  { id:'merchant', w:5, run(){
+      const t = makeTrade();
+      if(!t) return null;
+      state.trade = t;
+      return `走商路过，愿以高价收${HERBS[t.herb].name}（每株 ${tradeUnitPrice(t.herb, t.mult)} 钱）。`;
+    } },
+  { id:'seedfind', w:2, run(){
+      const ks = Object.keys(HERBS);
+      const k = ks[Math.floor(Math.random() * ks.length)];
+      state.seeds[k] = (state.seeds[k] || 0) + 1;
+      return `圃边拾得${HERBS[k].name}种子一枚。`;
+    } },
+  { id:'coin', w:2, run(){
+      const n = 8 + Math.floor(Math.random() * 9);
+      state.money += n;
+      return `邻人以零碎香末求购，得钱 ${n}。`;
+    } },
+  { id:'dew', w:2, run(){
+      const n = state.plants.filter(p => !p.ready).length;
+      if(!n) return null;
+      state.plants.forEach(p => { if(!p.ready){ p.ready = true; p.quality = +Math.min(1, p.quality + 0.05).toFixed(2); } });
+      return `夜来露重，圃中 ${n} 株香草一夜长成，品质亦增。`;
+    } }
+];
+
+function rollEvent(){
+  const total = EVENTS.reduce((s, e) => s + e.w, 0);
+  if(Math.random() * (total + 6) >= total) return null;   // 风平浪静
+  let r = Math.random() * total;
+  for(const e of EVENTS){ r -= e.w; if(r <= 0) return e; }
+  return null;
+}
+
+/* 过一日：按明日天气催熟 → 抽事件 → 天气推进。返回本日日志行 */
+function nextDay(){
+  state.day += 1;
+  state.trade = null;
+
+  const wx = wxOf(state.weatherNext);   // 成熟发生在次日，故用预告的明日天气结算
+  let ripened = 0;
+  state.plants.forEach(p => {
+    if(p.ready) return;
+    p.ready = true;
+    ripened++;
+    const d = wxDelta(p.zone, state.weatherNext);
+    p.quality = +Math.max(0.35, Math.min(1, p.quality + d)).toFixed(2);
+    p.wxDelta = d;
+  });
+
+  const lines = [];
+  if(ripened) lines.push(`第 ${state.day} 日 · ${wx.name}：${wx.tip}。圃中 ${ripened} 株已熟。`);
+  else lines.push(`第 ${state.day} 日 · ${wx.name}：${wx.desc}。`);
+
+  const ev = rollEvent();
+  if(ev){ const t = ev.run(); if(t) lines.push(t); }
+
+  state.weather = state.weatherNext;
+  state.weatherNext = rollWeather();
+  lines.forEach(addLog);
+  return lines;
+}
+
+/* ============================================================
+   =4.6 QUIZ · 香料问答题库（题干与答案全部取自 CODEX / HERBS / 古籍卡）
+   ============================================================ */
+const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
+function pickN(arr, n){ return shuffle(arr).slice(0, n); }
+
+/* 造一道「选香草」题 */
+function herbQ(q, correct, why, n){
+  const others = pickN(Object.keys(HERBS).filter(k => k !== correct), n || 3);
+  const opts = shuffle([correct].concat(others));
+  return { q, opts: opts.map(k => HERBS[k].name), ans: opts.indexOf(correct), why };
+}
+
+function buildQuizPool(){
+  const ks = Object.keys(HERBS);
+  const pool = [];
+
+  /* 宜种区 */
+  ks.forEach(k => {
+    const h = HERBS[k], c = CODEX[k];
+    const opts = shuffle(ZONES.map(z => z.id));
+    pool.push({ q:`${h.name}最宜种在哪一区？`, opts: opts.map(z => z + '区'),
+      ans: opts.indexOf(h.zone), why:`香草志载：${c.habitat}。故宜种于${h.zone}区。` });
+  });
+
+  /* 学名 */
+  ks.forEach(k => {
+    const others = pickN(ks.filter(x => x !== k), 3);
+    const opts = shuffle([k].concat(others));
+    pool.push({ q:`${HERBS[k].name}的学名是？`, opts: opts.map(x => CODEX[x].latin),
+      ans: opts.indexOf(k), why:`${HERBS[k].name}（${CODEX[k].family}）学名 ${CODEX[k].latin}。` });
+  });
+
+  /* 科属 */
+  ks.forEach(k => {
+    const others = pickN(ks.filter(x => x !== k), 3);
+    const opts = shuffle([k].concat(others));
+    pool.push({ q:`${HERBS[k].name}属于哪个科？`, opts: opts.map(x => CODEX[x].family),
+      ans: opts.indexOf(k), why:`${HERBS[k].name}属${CODEX[k].family}。` });
+  });
+
+  /* 药性 → 反查香草 */
+  ks.forEach(k => {
+    pool.push(herbQ(`「${CODEX[k].med}」说的是哪一味香草？`, k,
+      `香草志「药性」一栏记：${CODEX[k].med}。`));
+  });
+
+  /* 成分 → 反查香草 */
+  ks.forEach(k => {
+    pool.push(herbQ(`「${CODEX[k].parts}」是哪一味香草的主要成分？`, k,
+      `${HERBS[k].name}含${CODEX[k].parts}。`));
+  });
+
+  /* 引文 → 出处 */
+  ANCIENT_CARDS.forEach(c => {
+    const srcs = ANCIENT_CARDS.map(x => x.src).filter((v, i, a) => a.indexOf(v) === i);
+    const opts = pickN(srcs.filter(s => s !== c.src), 3).concat([c.src]);
+    const o = shuffle(opts);
+    pool.push({ q:`「${c.quote}」出自哪一部典籍？`, opts: o,
+      ans: o.indexOf(c.src), why:`此句出自 ${c.src}。${c.desc}` });
+  });
+
+  /* 引文 → 所咏香草 */
+  ANCIENT_CARDS.forEach(c => {
+    pool.push(herbQ(`「${c.quote}」所咏的是哪一味香草？`, c.herb,
+      `此句出自 ${c.src}，写的是${HERBS[c.herb].name}。`));
+  });
+
+  /* 香气取向极值 */
+  AROMA_AXES.forEach(a => {
+    const max = ks.reduce((best, k) => HERBS[k].aroma[a] > HERBS[best].aroma[a] ? k : best, ks[0]);
+    if(HERBS[max].aroma[a] < 4) return;
+    pool.push(herbQ(`香气取向中「${a}」最强的是哪一味？`, max,
+      `${HERBS[max].name}的「${a}」为 ${HERBS[max].aroma[a]}（0–10），四味中最高。`));
+  });
+
+  /* 功效 → 反查香草 */
+  ks.forEach(k => {
+    pool.push(herbQ(`功效为「${HERBS[k].efficacy.join('、')}」的是哪一味香草？`, k,
+      `${HERBS[k].name}功效：${HERBS[k].efficacy.join('、')}。`));
+  });
+
+  return pool;
+}
+
+const QUIZ_LEN = 5;
+const QUIZ_REWARD = 5;      // 每题答对得钱
+const QUIZ_PERFECT = 20;    // 全对额外奖励
+/* quizRun 是 state.quiz 的活对象：刷新页面不会丢失本轮进度 */
+let quizRun = state.quiz || null;
+function persistQuiz(){ state.quiz = quizRun; save(); }
+
+function startQuiz(){
+  if(!quizLeftToday()) return toast('今日已答过一轮，过一日再来');
+  const pool = buildQuizPool();
+  const qs = pickN(pool, QUIZ_LEN).map(item => {
+    const order = shuffle(item.opts.map((_, i) => i));
+    return { q: item.q, why: item.why,
+      opts: order.map(i => item.opts[i]), ans: order.indexOf(item.ans) };
+  });
+  quizRun = { qs, i:0, picked:[], done:false };
+  mutate(s => { s.quizDay = s.day; s.quiz = quizRun; });
+}
+/* 一日一轮，免得反复刷钱冲垮种药合香的主循环 */
+function quizLeftToday(){ return state.quizDay !== state.day; }
+
+/* ============================================================
    =5 UI 工具
    ============================================================ */
 const $ = id => document.getElementById(id);
@@ -752,13 +1122,24 @@ function toast(t){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.display = 'none'; }, 1900);
 }
+/* 成就弹报：多条合并，避免连续 toast 互相覆盖 */
+let achTimer = null;
+function achPop(list){
+  const el = $('achPop');
+  el.innerHTML = `<div class="ach-pop-t">成就达成</div>` +
+    list.map(a => `<div class="ach-pop-i">${esc(a.name)}<span>· ${esc(a.desc)}</span>
+      <b>${a.reward.money ? '+' + a.reward.money + ' 钱' : ''}</b></div>`).join('');
+  el.style.display = 'block';
+  clearTimeout(achTimer);
+  achTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
 
 /* ============================================================
    路由
    ============================================================ */
-const SCREENS = ['hub','study','garden','blend','codex'];
-const HASH_OF = { hub:'#/shuzhai', study:'#/guji', garden:'#/yaopu', blend:'#/xiangshi', codex:'#/caozhi' };
-const SCREEN_OF = { '#/shuzhai':'hub', '#/guji':'study', '#/yaopu':'garden', '#/xiangshi':'blend', '#/caozhi':'codex' };
+const SCREENS = ['hub','study','garden','blend','codex','quiz'];
+const HASH_OF = { hub:'#/shuzhai', study:'#/guji', garden:'#/yaopu', blend:'#/xiangshi', codex:'#/caozhi', quiz:'#/wenda' };
+const SCREEN_OF = { '#/shuzhai':'hub', '#/guji':'study', '#/yaopu':'garden', '#/xiangshi':'blend', '#/caozhi':'codex', '#/wenda':'quiz' };
 
 let blendOrderId = null;
 let blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
@@ -794,6 +1175,7 @@ function render(){
   if(state.screen === 'garden') renderGarden();
   if(state.screen === 'blend') renderBlend();
   if(state.screen === 'codex') renderCodex();
+  if(state.screen === 'quiz') renderQuiz();
 }
 
 /* ============================================================
@@ -805,16 +1187,21 @@ function renderHub(){
   const knownCount = Object.keys(state.known).filter(k => state.known[k]).length;
   const doneOrders = Object.keys(state.orders).filter(k => state.orders[k].done > 0).length;
   const royalUnlocked = knownCount >= 4;
+  const achCount = Object.keys(state.ach).length;
+  const wx = wxOf(state.weather);
+  const nx = wxOf(state.weatherNext);
 
   const tiles = [
     { s:'study', t:'读古籍', d:`辨认典籍中的香草，得种子与知识小卡。卡价 ${CARD_COST} 钱。`,
       n: seedTotal === 0 ? '种子已尽' : `种子 ${seedTotal}` },
-    { s:'garden', t:'药圃', d:'把香草种在合适的气候区。选对区域，品质更高。',
+    { s:'garden', t:'药圃', d:'把香草种在合适的气候区。看天时下种，品质更高。',
       n: readyCount ? `${readyCount} 株可收` : (state.plants.length ? `${state.plants.length} 株生长中` : '尚无栽种') },
     { s:'blend', t:'香室', d:'按订单功效配伍君臣佐使，配出香方出售。',
       n: `${doneOrders} 单已交` },
     { s:'codex', t:'香草志', d:'已识香草的形态、产地、成分、药性与典故。有标本者可旋转、AR 查看。',
-      n: `已识 ${knownCount} / 4` }
+      n: `已识 ${knownCount} / 4` },
+    { s:'quiz', t:'香料问答', d:'以香草志与古籍为题的问答，答对得钱。每日一轮五题，全对另有重赏。',
+      n: quizLeftToday() ? (state.stats.quizRight ? `累计答对 ${state.stats.quizRight} 题 · 今日可答` : '今日可答') : '今日已答' }
   ];
 
   $('sc-hub').innerHTML = `
@@ -831,9 +1218,17 @@ function renderHub(){
         先去「读古籍」辨认香草得种子 → 到「药圃」择地种下 → 「过一日」催熟后收获 → 在「香室」配伍出售。
       </div>`}
       <div class="sep"></div>
-      <div class="hint">
-        配伍不必凑满四味：<b>单味也能成方出售</b>，只是分数低、卖价少。缺钱时可先卖一单，再买古籍。
+      <div class="row" style="font-size:13px">
+        <span class="chip">${wx.icon} 今日 <b>${esc(wx.name)}</b></span>
+        <span class="chip">明日 <b>${esc(nx.name)}</b></span>
+        <span class="chip">成就 <b>${achCount}</b> / ${ACHIEVEMENTS.length}</span>
       </div>
+      <div class="hint" style="margin-top:8px">${esc(wx.desc)}——${esc(wx.tip)}</div>
+      ${state.trade ? `
+      <div class="sep"></div>
+      <div class="hint" style="color:var(--seal)">
+        走商仍在：高价收<b>${esc(HERBS[state.trade.herb].name)}</b>，每株 ${tradeUnitPrice(state.trade.herb, state.trade.mult)} 钱，去药圃交易。
+      </div>` : ''}
       ${royalUnlocked && !state.orders.royal.unlocked ? `
       <div class="sep"></div>
       <div class="row">
@@ -851,8 +1246,14 @@ function renderHub(){
         </button>`).join('')}
     </div>
 
-    ${state.history.length ? `
+    ${state.log.length ? `
     <div class="card flat" style="margin-top:14px">
+      <h2>近日纪事</h2>
+      ${state.log.slice(-4).reverse().map(l => `<div class="log-item"><b>第 ${l.day} 日</b> ${esc(l.text)}</div>`).join('')}
+    </div>` : ''}
+
+    ${state.history.length ? `
+    <div class="card flat">
       <h2>成交记录</h2>
       <div class="hint">共 ${state.stats.blends} 次合香，最高 ${state.stats.best} 分，累计 ${state.stats.stars || 0} 星，入账 ${state.stats.earned} 钱。</div>
       <div class="sep"></div>
@@ -1022,13 +1423,24 @@ function qLabel(q){ return q >= 0.85 ? '上品' : (q >= 0.65 ? '中品' : '下�
 function renderGarden(){
   const seeds = Object.keys(state.seeds).filter(k => state.seeds[k] > 0);
   const hasSeeds = seeds.length > 0;
+  const wx = wxOf(state.weather);
+  const nx = wxOf(state.weatherNext);
+  const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
+  const tr = state.trade;
+
+  const zoneTag = z => {
+    const d = wxDelta(z, state.weatherNext);
+    if(d > 0.02) return `<span class="wx-tag q-hi">${z} +${Math.round(d * 100)}%</span>`;
+    if(d < -0.02) return `<span class="wx-tag q-lo">${z} ${Math.round(d * 100)}%</span>`;
+    return `<span class="wx-tag q-mid">${z} 持平</span>`;
+  };
 
   $('sc-garden').innerHTML = `
     <div class="card">
       <h2>药圃</h2>
       <div class="hint">
         三大产区气候不同，同一味香草种在不同区域，长势与品质迥异。<br/>
-        选定区域后种下，次日即可收获。
+        选定区域后种下，次日即可收获——<b>成熟那日的天气</b>会加减品质。
       </div>
       <div class="sep"></div>
       <div class="row" style="margin-bottom:12px">
@@ -1036,6 +1448,20 @@ function renderGarden(){
         <div class="spacer"></div>
         <span class="hint">${hasSeeds ? `可选种子 ${seeds.length} 种` : '暂无种子，先去读古籍'}</span>
       </div>
+
+      <div class="wx">
+        <div class="wx-icon">${nx.icon}</div>
+        <div style="flex:1">
+          <div class="wx-name">明日 · ${esc(nx.name)}<span class="hint" style="font-family:var(--sans);letter-spacing:0"> （今日下种者即于此日成熟）</span></div>
+          <div class="hint">${esc(nx.desc)}——${esc(nx.tip)}</div>
+          <div class="wx-tags">${ZONES.map(z => zoneTag(z.id)).join('')}</div>
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:12px">
+        今日为 <b style="font-family:var(--kai);color:var(--seal)">${wx.icon} ${esc(wx.name)}</b>——${esc(wx.desc)}。
+        明日之数已定，据此择地择种，方得佳品。
+      </div>
+
       <h3>择地而种</h3>
       <div class="zone-grid" id="zoneGrid">
         ${ZONES.map(z => `
@@ -1048,21 +1474,51 @@ function renderGarden(){
       <div id="seedPick" style="margin-top:14px"></div>
     </div>
 
+    ${tr ? `
+    <div class="card trade">
+      <h2>走商 · 高价收购</h2>
+      <div class="hint">
+        一位走商路过，专收<b style="font-family:var(--kai);color:var(--seal)">${esc(HERBS[tr.herb].name)}</b>，
+        每株出价 <b style="font-family:var(--serif);color:var(--seal)">${tradeUnitPrice(tr.herb, tr.mult)}</b> 钱
+        （散卖仅 ${herbUnitPrice(tr.herb)} 钱，高出 ${Math.round((tr.mult - 1) * 100)}%）。过一日即走。
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary sm" id="btnTradeSell">卖出 1 株（${tradeUnitPrice(tr.herb, tr.mult)} 钱）</button>
+        ${(state.inventory[tr.herb] || 0) > 1 ? `<button class="btn sm" id="btnTradeAll">全部卖出 ${state.inventory[tr.herb]} 株（${tradeUnitPrice(tr.herb, tr.mult) * state.inventory[tr.herb]} 钱）</button>` : ''}
+        <span class="hint">库存 ${state.inventory[tr.herb] || 0} 株</span>
+      </div>
+    </div>` : ''}
+
     <div class="card flat">
       <h2>圃中</h2>
       ${state.plants.length ? state.plants.map(p => `
         <div class="plot">
           <span class="pn">${esc(HERBS[p.herb].name)}</span>
-          <span class="pm">种于 ${esc(p.zone)}区 · 第 ${p.plantedDay} 日下种${p.ready ? ' · 已可收获' : ' · 生长中'}</span>
+          <span class="pm">种于 ${esc(p.zone)}区 · 第 ${p.plantedDay} 日下种${p.ready ? ' · 已可收获' : ' · 生长中'}${
+            p.ready && p.wxDelta ? ` · 天气 ${p.wxDelta > 0 ? '+' : ''}${Math.round(p.wxDelta * 100)}%` : ''}</span>
           <span class="q-tag ${p.ready ? qClass(p.quality) : 'q-mid'}">${p.ready ? qLabel(p.quality) + ' ' + Math.round(p.quality * 100) + '%' : '生长中'}</span>
           ${p.ready ? `<button class="btn primary sm" data-harvest="${p.id}">收获</button>` : ''}
         </div>`).join('') : '<div class="hint">圃中空空。先去「读古籍」得种子。</div>'}
       <div class="sep"></div>
       <div class="row">
-        <button class="btn" id="btnNextDay" ${state.plants.some(p => !p.ready) ? '' : 'disabled'}>过一日（催熟）</button>
-        <span class="hint">过一日所有未熟香草即成熟</span>
+        <button class="btn" id="btnNextDay">过一日（催熟 · 看天时）</button>
+        <span class="hint">过一日香草成熟，并按明日天气加减品质；天气不佳时可空等一日再下种</span>
       </div>
     </div>
+
+    ${inv.length ? `
+    <div class="card flat">
+      <h2>香草存货</h2>
+      <div class="hint">无走商时可按散卖平价出手，用来周转买古籍的钱。</div>
+      <div class="sep"></div>
+      ${inv.map(k => `
+        <div class="plot">
+          <span class="pn">${esc(HERBS[k].name)}</span>
+          <span class="pm">${state.inventory[k]} 株 · 品质 ${Math.round(qOf(k) * 100)}%</span>
+          <button class="btn sm" data-sell="${k}">散卖 1 株（${herbUnitPrice(k)} 钱）</button>
+        </div>`).join('')}
+    </div>` : ''}
   `;
 
   $('btnBackGarden').onclick = () => go('hub');
@@ -1078,8 +1534,13 @@ function renderGarden(){
   });
 
   function renderSeedPick(zone){
+    const nd = wxDelta(zone, state.weatherNext);
     $('seedPick').innerHTML = `
       <h3>选种（种于 ${esc(zone)}区）</h3>
+      <div class="hint" style="margin-bottom:8px">
+        此区明日（成熟时）天气加成
+        <b class="${nd > 0.02 ? 'q-hi' : (nd < -0.02 ? 'q-lo' : 'q-mid')}">${nd > 0 ? '+' : ''}${Math.round(nd * 100)}%</b>
+      </div>
       <div class="inv" id="seedRow">
         ${seeds.map(k => `<button class="inv-item" data-seed="${k}">${esc(HERBS[k].name)} <span class="q">×${state.seeds[k]}</span></button>`).join('')}
       </div>
@@ -1099,7 +1560,8 @@ function renderGarden(){
     const quality = +Math.min(1, base).toFixed(2);
     mutate(s => {
       s.seeds[herbId] -= 1;
-      s.plants.push({ id:'p' + Date.now(), herb:herbId, zone, plantedDay:s.day, ready:false, quality });
+      s.plants.push({ id:'p' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                      herb:herbId, zone, plantedDay:s.day, ready:false, quality });
     });
     if(good) toast(`${h.name}种于${zone}区，正得其宜`);
     else toast(`${h.name}宜种于${h.zone}区——此区不合，品质将受损`);
@@ -1111,24 +1573,63 @@ function renderGarden(){
       const id = b.dataset.harvest;
       const p = state.plants.find(x => x.id === id);
       if(!p) return;
+      const isTop = p.quality >= 0.85;
       mutate(s => {
         s.plants = s.plants.filter(x => x.id !== id);
         s.inventory[p.herb] = (s.inventory[p.herb] || 0) + 1;
         const prev = s.quality[p.herb];
         s.quality[p.herb] = (typeof prev === 'number') ? +((prev + p.quality) / 2).toFixed(2) : p.quality;
+        s.stats.harvest = (s.stats.harvest || 0) + 1;
+        if(isTop) s.stats.topGrade = (s.stats.topGrade || 0) + 1;
       });
       toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
       renderGarden();
     };
   });
 
+  $('sc-garden').querySelectorAll('[data-sell]').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.sell;
+      if((state.inventory[k] || 0) <= 0) return;
+      const unit = herbUnitPrice(k);
+      mutate(s => {
+        s.inventory[k] -= 1;
+        if(s.inventory[k] <= 0) delete s.inventory[k];
+        s.money += unit;
+        s.stats.earned += unit;
+      });
+      toast(`散卖 ${HERBS[k].name} 1 株，得钱 ${unit}`);
+      renderGarden();
+    };
+  });
+
+  const ts = $('btnTradeSell'), ta = $('btnTradeAll');
+  function doTrade(n){
+    if(!state.trade) return;
+    const k = state.trade.herb;
+    const avail = state.inventory[k] || 0;
+    const cnt = Math.min(n, avail);
+    if(cnt <= 0) return toast('此味已无存货');
+    const unit = tradeUnitPrice(k, state.trade.mult);
+    const total = unit * cnt;
+    mutate(s => {
+      s.inventory[k] -= cnt;
+      if(s.inventory[k] <= 0) delete s.inventory[k];
+      s.money += total;
+      s.stats.earned += total;
+      if((s.inventory[k] || 0) <= 0) s.trade = null;
+    });
+    toast(`卖给走商 ${HERBS[k].name} ${cnt} 株，得钱 ${total}`);
+    renderGarden();
+  }
+  if(ts) ts.onclick = () => doTrade(1);
+  if(ta) ta.onclick = () => { if(state.trade) doTrade(state.inventory[state.trade.herb] || 0); };
+
   const nd = $('btnNextDay');
   if(nd) nd.onclick = () => {
-    mutate(s => {
-      s.day += 1;
-      s.plants.forEach(p => { if(!p.ready) p.ready = true; });
-    });
-    toast('一日过去，圃中香草已熟');
+    let lines = [];
+    mutate(s => { lines = nextDay(); });
+    toast(lines[0] || '一日过去');
     renderGarden();
   };
 }
@@ -1365,6 +1866,7 @@ function sell(orderId, res){
     s.stats.stars = (s.stats.stars || 0) + res.stars;
     s.stats.earned += pay;
     if(s.historyCards.indexOf(orderId) < 0) s.historyCards.push(orderId);
+    addLog(`售出「${order.buyer}·${order.title}」，${res.total} 分，得钱 ${pay}。`);
   });
   blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
   blendSel = '君'; ledgerAll = false;
@@ -1468,6 +1970,8 @@ function renderCodex(){
       <h2>尚未识得</h2>
       <div class="hint">去「读古籍」辨出这味香草，即可解锁它的形态、产地、成分、药性与典故。</div>
     </div>`}
+
+    ${achCard()}
   `;
 
   $('btnBackCodex').onclick = () => go('hub');
@@ -1476,6 +1980,188 @@ function renderCodex(){
   });
 
   if(known && hasModel) initModelViewer(h);
+}
+
+/* 成就列表：已达成者列于前，未达成者给进度提示 */
+function achCard(){
+  const got = ACHIEVEMENTS.filter(a => state.ach[a.id]);
+  const rest = ACHIEVEMENTS.filter(a => !state.ach[a.id]);
+  const item = (a, on) => `
+    <div class="ach ${on ? 'on' : 'off'}">
+      <div class="an">${on ? '❖' : '○'} ${esc(a.name)}</div>
+      <div class="ad">${esc(a.desc)}</div>
+      <div class="ar ${on ? 'q-hi' : ''}" style="color:${on ? 'var(--seal)' : 'var(--muted)'}">
+        ${on ? `已得 ${a.reward.money} 钱` : `奖励 ${a.reward.money} 钱`}
+      </div>
+    </div>`;
+  const seedTotal = Object.keys(state.seeds).reduce((s, k) => s + state.seeds[k], 0);
+  return `
+    <div class="card">
+      <h2>成就 · ${got.length} / ${ACHIEVEMENTS.length}</h2>
+      <div class="bar" style="margin-bottom:12px"><i style="width:${Math.round(got.length / ACHIEVEMENTS.length * 100)}%"></i></div>
+      <div class="hint" style="margin-bottom:12px">
+        识草、种药、合香、读经、答题皆有成就，达成即得赏钱。
+        当前：识 ${Object.keys(state.known).filter(k => state.known[k]).length} 味 ·
+        收获 ${state.stats.harvest || 0} 株 · 合香 ${state.stats.blends} 次 ·
+        读经 ${state.readCards.length} 张 · 答对 ${state.stats.quizRight || 0} 题 · 种子 ${seedTotal} 枚
+      </div>
+      <div class="ach-grid">
+        ${got.map(a => item(a, true)).join('')}
+        ${rest.map(a => item(a, false)).join('')}
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   =10.5 SCREEN · quiz 香料问答
+   ============================================================ */
+function renderQuiz(){
+  if(!quizRun) quizRun = { qs:[], i:0, picked:[], done:false };
+  const left = quizLeftToday();
+
+  if(!quizRun.qs.length){
+    const st = state.stats;
+    const acc = (st.quizRight || 0) + (st.quizWrong || 0);
+    $('sc-quiz').innerHTML = `
+      <div class="card flat" style="padding:12px 16px">
+        <div class="row">
+          <button class="btn sm ghost" id="btnBackQuiz">← 回到书斋</button>
+          <div class="spacer"></div>
+          <span class="hint">香料问答</span>
+        </div>
+      </div>
+
+      ${quizRun.done ? `
+      <div class="gj-card">
+        <div style="font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:6px">本轮结束</div>
+        <div style="font-size:22px;letter-spacing:4px;margin-bottom:4px">${starHtml(quizRun.right >= 5 ? 3 : (quizRun.right >= 4 ? 2 : (quizRun.right >= 3 ? 1 : 0)))}</div>
+        <div style="font-family:var(--serif);color:var(--seal);font-size:15px">答对 ${quizRun.right} / ${QUIZ_LEN} 题</div>
+        <div class="hint">得钱 <b style="color:var(--seal);font-family:var(--serif);font-size:16px">${quizRun.pay}</b> 钱${quizRun.right === QUIZ_LEN ? `（含全对重赏 ${QUIZ_PERFECT} 钱）` : ''}。</div>
+        <div class="sep"></div>
+        <div class="row">
+          <button class="btn ghost" id="btnQuizHub">回书斋</button>
+        </div>
+      </div>` : ''}
+
+      <div class="card">
+        <h2>香料问答</h2>
+        <div class="hint">
+          题目皆出自「香草志」与「读古籍」中已见的记载——生境、学名、成分、药性、典籍出处。<br/>
+          一轮 ${QUIZ_LEN} 题，每题四选一；答对得 ${QUIZ_REWARD} 钱，全对另赏 ${QUIZ_PERFECT} 钱。
+        </div>
+        <div class="sep"></div>
+        <div class="row" style="font-size:13px">
+          <span class="chip">累计答对 <b>${st.quizRight || 0}</b> 题</span>
+          <span class="chip">正确率 <b>${acc ? Math.round((st.quizRight || 0) / acc * 100) : 0}%</b></span>
+          <span class="chip">全对 <b>${st.quizPerfect || 0}</b> 轮</span>
+        </div>
+        <div class="sep"></div>
+        ${left
+          ? `<button class="btn primary" id="btnQuizStart">开始答题（${QUIZ_LEN} 题）</button>`
+          : `<div class="hint">今日已答过一轮。去药圃「过一日」，明日再来。</div>
+             <div class="row" style="margin-top:10px">
+               <button class="btn primary sm" id="btnQuizGarden">去药圃过一日</button>
+             </div>`}
+      </div>
+    `;
+    $('btnBackQuiz').onclick = () => go('hub');
+    const bs = $('btnQuizStart'); if(bs) bs.onclick = () => startQuiz();
+    const bh = $('btnQuizHub'); if(bh) bh.onclick = () => go('hub');
+    const bg = $('btnQuizGarden'); if(bg) bg.onclick = () => go('garden');
+    return;
+  }
+
+  const cur = quizRun.qs[quizRun.i];
+  const pickedIdx = quizRun.picked[quizRun.i];
+  const answered = typeof pickedIdx === 'number';
+  const keys = ['甲','乙','丙','丁'];
+
+  $('sc-quiz').innerHTML = `
+    <div class="card flat" style="padding:12px 16px">
+      <div class="row">
+        <button class="btn sm ghost" id="btnBackQuizQ">← 回到书斋</button>
+        <div class="spacer"></div>
+        <span class="hint">第 ${quizRun.i + 1} / ${QUIZ_LEN} 题</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="quiz-head">
+        <span class="chip">已答对 <b>${quizRun.picked.filter((p, k) => p === quizRun.qs[k].ans).length}</b> 题</span>
+        <span class="chip">每题 ${QUIZ_REWARD} 钱</span>
+      </div>
+      <div class="quiz-dots">
+        ${quizRun.qs.map((q, k) => {
+          const p = quizRun.picked[k];
+          const cls = typeof p !== 'number' ? (k === quizRun.i ? 'cur' : '') : (p === q.ans ? 'ok' : 'no');
+          return `<span class="quiz-dot ${cls}"></span>`;
+        }).join('')}
+      </div>
+      <div class="sep"></div>
+      <div class="quiz-q">${esc(cur.q)}</div>
+      <div class="quiz-opts" id="quizOpts">
+        ${cur.opts.map((o, k) => {
+          let cls = '';
+          if(answered){
+            if(k === cur.ans) cls = 'ok';
+            else if(k === pickedIdx) cls = 'no';
+          }
+          return `<button class="quiz-opt ${cls}" data-k="${k}" ${answered ? 'disabled' : ''}>
+            <span class="k">${keys[k]}</span>${esc(o)}</button>`;
+        }).join('')}
+      </div>
+      <div id="quizFb" style="margin-top:14px"></div>
+    </div>
+  `;
+
+  $('btnBackQuizQ').onclick = () => go('hub');
+  $('quizOpts').querySelectorAll('[data-k]').forEach(b => {
+    b.onclick = () => answerQuiz(+b.dataset.k);
+  });
+
+  if(answered){
+    const ok = pickedIdx === cur.ans;
+    $('quizFb').innerHTML = `
+      <div class="card flat" style="margin:0;border-color:${ok ? 'var(--good)' : 'var(--bad)'}">
+        <div style="font-family:var(--kai);font-size:15px;letter-spacing:1px;color:${ok ? 'var(--good)' : 'var(--bad)'}">
+          ${ok ? `答对了 · 得钱 ${QUIZ_REWARD}` : `答错了 · 正解为「${esc(cur.opts[cur.ans])}」`}
+        </div>
+        <div class="hint" style="margin-top:6px">${esc(cur.why)}</div>
+        <div class="sep"></div>
+        <button class="btn primary sm" id="btnQuizNext">${quizRun.i + 1 >= QUIZ_LEN ? '看本轮结果' : '下一题'}</button>
+      </div>`;
+    $('btnQuizNext').onclick = () => {
+      if(quizRun.i + 1 >= QUIZ_LEN) finishQuiz();
+      else { quizRun.i += 1; persistQuiz(); renderQuiz(); }
+    };
+  }
+}
+
+function answerQuiz(k){
+  const cur = quizRun.qs[quizRun.i];
+  if(typeof quizRun.picked[quizRun.i] === 'number') return;
+  quizRun.picked[quizRun.i] = k;
+  const ok = k === cur.ans;
+  mutate(s => {
+    s.quiz = quizRun;
+    if(ok){ s.money += QUIZ_REWARD; s.stats.earned += QUIZ_REWARD; s.stats.quizRight = (s.stats.quizRight || 0) + 1; }
+    else { s.stats.quizWrong = (s.stats.quizWrong || 0) + 1; }
+  });
+}
+
+function finishQuiz(){
+  const right = quizRun.qs.reduce((n, q, k) => n + (quizRun.picked[k] === q.ans ? 1 : 0), 0);
+  const bonus = right === QUIZ_LEN ? QUIZ_PERFECT : 0;
+  const pay = right * QUIZ_REWARD + bonus;
+  quizRun = { qs:[], i:0, picked:[], done:true, right, pay };
+  mutate(s => {
+    s.quiz = quizRun;
+    if(bonus){
+      s.money += bonus;
+      s.stats.earned += bonus;
+      s.stats.quizPerfect = (s.stats.quizPerfect || 0) + 1;
+    }
+  });
 }
 
 /* 墨线图谱占位（无 3D 模型时） */
@@ -1581,8 +2267,11 @@ $('btnReset').onclick = () => {
   if(!confirm('清空存档，从头开始？')) return;
   try{ localStorage.removeItem(KEY); }catch(e){}
   state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.weather = rollWeather();
+  state.weatherNext = rollWeather();
   blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
   studyCardId = null; studyAnswered = false; ledgerAll = false;
+  quizRun = null;
   go('hub');
 };
 
@@ -1591,8 +2280,9 @@ window.addEventListener('hashchange', () => {
   if(s && s !== state.screen){ state.screen = s; save(); render(); }
 });
 
-/* 首次进入给一句引导 */
+/* 首次进入给一句引导；老存档补上气候字段 */
 if(!state.settings.seenIntro){ state.settings.seenIntro = true; save(); }
+if(!state.weatherNext || !WEATHER_OF[state.weatherNext]) state.weatherNext = rollWeather();
 
 const boot = SCREEN_OF[location.hash] || state.screen || 'hub';
 state.screen = boot;
