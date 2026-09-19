@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f1ead6">
+<title>香料博物馆 · 合香</title>
+<link rel="modulepreload" href="shared/model-viewer.min.js">
+<style>
+/* ============================================================
+   =1 设计令牌 · 古籍插画风（宣纸底 + 墨线 + 淡彩）
+   ============================================================ */
+:root{
+  --paper:#f1ead6;
+  --paper-2:#e9e0c8;
+  --paper-3:#e2d8bd;
+  --ink:#3a2e20;
+  --ink-2:#5a4a36;
+  --muted:#7a6f5b;
+  --seal:#a23e2b;
+  --seal-2:#8c3322;
+  --seal-soft:rgba(162,62,43,.10);
+  --line:rgba(58,46,32,.22);
+  --line-2:rgba(58,46,32,.12);
+  --good:#4a6b3f;
+  --bad:#a23e2b;
+  --warn:#9a7420;
+  --kai:"KaiTi","STKaiti","Kaiti SC",serif;
+  --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
+  --sans:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --r:4px;
+  --shadow:0 2px 0 rgba(58,46,32,.07), 0 8px 24px rgba(58,46,32,.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--paper);
+  line-height:1.7;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* 宣纸底：径向暖光 + 帘纹 + 颗粒 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,252,242,.85), transparent 60%),
+    radial-gradient(90% 70% at 50% 100%, rgba(196,178,142,.22), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(58,46,32,.028) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(58,46,32,.022) 0 1px, transparent 1px 5px);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+  opacity:.035;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap{position:relative;z-index:2;max-width:940px;margin:0 auto;padding:0 18px 90px}
+
+/* ============================================================
+   通用组件
+   ============================================================ */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 0 10px;margin-bottom:14px;
+  background:linear-gradient(180deg, var(--paper) 62%, rgba(241,234,214,0));
+}
+.brand{font-family:var(--kai);font-size:20px;letter-spacing:2px;font-weight:700}
+.brand small{font-family:var(--sans);font-size:11px;color:var(--muted);letter-spacing:1px;margin-left:6px;font-weight:400}
+.spacer{flex:1}
+.chip{
+  font-size:12.5px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;
+  background:rgba(255,253,246,.6);white-space:nowrap;
+}
+.chip b{font-family:var(--serif);color:var(--seal);font-size:14px}
+
+.card{
+  background:linear-gradient(180deg, rgba(255,253,246,.72), rgba(255,253,246,.42));
+  border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);
+  padding:18px 20px;margin-bottom:14px;position:relative;
+}
+.card.flat{box-shadow:none;background:rgba(255,253,246,.42)}
+.card h2{margin:0 0 10px;font-family:var(--kai);font-size:17px;letter-spacing:1.5px}
+.card h3{margin:14px 0 8px;font-family:var(--kai);font-size:15px;letter-spacing:1px;color:var(--ink-2)}
+
+.btn{
+  font-family:var(--sans);font-size:14px;padding:9px 20px;cursor:pointer;
+  border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(255,253,246,.8);color:var(--ink);
+  transition:background .18s, transform .18s, box-shadow .18s;
+}
+.btn:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px);box-shadow:0 3px 0 rgba(58,46,32,.08)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn.primary{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
+.btn.primary:hover:not(:disabled){background:var(--seal-2)}
+.btn.ghost{background:transparent}
+.btn.sm{font-size:12.5px;padding:5px 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.65}
+.sep{height:1px;background:var(--line-2);margin:14px 0}
+
+/* 进度条 */
+.bar{height:8px;background:rgba(58,46,32,.10);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--seal),#c96a4e);border-radius:999px;transition:width .4s}
+
+/* 印章按钮 */
+.seal-btn{
+  font-family:var(--kai);writing-mode:vertical-rl;letter-spacing:3px;
+  width:52px;height:52px;display:flex;align-items:center;justify-content:center;
+  background:var(--seal);color:#f7f1e2;border:none;border-radius:6px;cursor:pointer;
+  box-shadow:inset 0 0 0 2px rgba(247,241,226,.5);transform:rotate(-3deg);
+  font-size:13px;padding:0;transition:transform .18s;
+}
+.seal-btn:hover{transform:rotate(0deg) scale(1.04)}
+
+/* toast */
+#toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+  background:rgba(58,46,32,.93);color:#f7f1e2;font-size:13.5px;
+  padding:10px 20px;border-radius:999px;z-index:200;display:none;max-width:88vw;text-align:center;
+}
+
+/* 弹层（不用 <dialog>，遵循既有约定） */
+.sheet{
+  position:fixed;inset:0;z-index:150;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(58,46,32,.38);backdrop-filter:blur(3px);padding:0;
+}
+.sheet[hidden]{display:none}
+.sheet-inner{
+  background:var(--paper);border:1px solid var(--line);border-bottom:none;
+  border-radius:10px 10px 0 0;width:100%;max-width:560px;
+  padding:20px 22px 26px;box-shadow:0 -6px 30px rgba(58,46,32,.22);
+  max-height:86vh;overflow:auto;
+}
+.sheet h3{margin:0 0 12px;font-family:var(--kai);font-size:16px;letter-spacing:1px}
+.advice{font-size:13.5px;color:var(--ink-2);line-height:1.8;margin-bottom:16px}
+.advice b{color:var(--seal)}
+
+/* ============================================================
+   屏幕与过渡
+   ============================================================ */
+.stage{position:relative;min-height:60vh}
+.screen{display:none;opacity:0;transform:translateY(6px);transition:opacity .22s ease, transform .22s ease}
+.screen.on{display:block;opacity:1;transform:none}
+
+/* ============================================================
+   hub · 书斋
+   ============================================================ */
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.hub-tile{
+  text-align:left;cursor:pointer;padding:16px 16px 14px;
+  background:linear-gradient(180deg, rgba(255,253,246,.75), rgba(255,253,246,.45));
+  border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);transition:transform .18s, box-shadow .18s;
+  font-family:inherit;color:inherit;
+}
+.hub-tile:hover{transform:translateY(-2px);box-shadow:0 4px 0 rgba(58,46,32,.09),0 12px 28px rgba(58,46,32,.10)}
+.hub-tile .t{font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:4px}
+.hub-tile .d{font-size:12.5px;color:var(--muted);line-height:1.6}
+.hub-tile .n{position:absolute}
+.badge{
+  display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;
+  background:var(--seal-soft);color:var(--seal);border:1px solid rgba(162,62,43,.24);margin-left:6px;
+}
+
+/* ============================================================
+   study · 读古籍
+   ============================================================ */
+.gj-card{
+  background:linear-gradient(180deg, rgba(255,253,246,.85), rgba(250,245,230,.6));
+  border:1px solid var(--line);outline:1px solid var(--line-2);outline-offset:5px;
+  border-radius:2px;padding:24px 24px 20px;margin-bottom:16px;
+}
+.gj-quote{
+  font-family:var(--serif);font-size:17px;line-height:2.1;color:var(--ink);
+  letter-spacing:.5px;text-align:justify;
+}
+.gj-quote::before{content:"「";color:var(--seal);font-size:22px}
+.gj-quote::after{content:"」";color:var(--seal);font-size:22px}
+.gj-src{font-family:var(--kai);font-size:13px;color:var(--muted);text-align:right;margin-top:10px;letter-spacing:1px}
+.gj-desc{font-size:13.5px;color:var(--ink-2);line-height:1.85;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.opt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
+.opt{
+  padding:12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.6);text-align:center;font-family:var(--kai);font-size:15px;letter-spacing:1px;
+  transition:background .18s, border-color .18s, transform .18s;
+}
+.opt:hover{background:#fffdf6;transform:translateY(-1px)}
+.opt.ok{border-color:var(--good);background:rgba(74,107,63,.10);color:var(--good)}
+.opt.no{border-color:var(--bad);background:var(--seal-soft);color:var(--bad)}
+.opt:disabled{cursor:default;transform:none}
+
+/* ============================================================
+   garden · 药圃
+   ============================================================ */
+.zone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.zone{
+  padding:16px 10px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.6);text-align:center;font-family:inherit;color:inherit;
+  transition:background .18s, border-color .18s, transform .18s;
+}
+.zone:hover{background:#fffdf6;transform:translateY(-1px)}
+.zone.sel{border-color:var(--seal);background:var(--seal-soft)}
+.zone .zi{font-size:22px;display:block;margin-bottom:4px}
+.zone .zn{font-family:var(--kai);font-size:15px;letter-spacing:1.5px;display:block}
+.zone .zd{font-size:11.5px;color:var(--muted);display:block;margin-top:3px}
+.plot{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:var(--r);background:rgba(255,253,246,.5);margin-bottom:8px;
+}
+.plot .pn{font-family:var(--kai);font-size:15px;letter-spacing:1px;min-width:56px}
+.plot .pm{flex:1;font-size:12.5px;color:var(--muted)}
+.q-tag{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.q-hi{color:var(--good)}.q-mid{color:var(--warn)}.q-lo{color:var(--bad)}
+
+/* ============================================================
+   blend · 香室（核心）
+   ============================================================ */
+.blend-top{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.slot{
+  border:1px dashed var(--line);border-radius:var(--r);padding:10px 8px;text-align:center;
+  background:rgba(255,253,246,.42);min-height:86px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  cursor:pointer;transition:background .18s,border-color .18s;
+}
+.slot:hover{background:rgba(255,253,246,.8)}
+.slot.filled{border-style:solid;border-color:var(--line);background:linear-gradient(180deg,rgba(255,253,246,.85),rgba(250,245,230,.6))}
+.slot .sr{font-family:var(--kai);font-size:11.5px;color:var(--muted);letter-spacing:2px}
+.slot .sh{font-family:var(--kai);font-size:15px;letter-spacing:1px}
+.slot .sq{font-size:10.5px;color:var(--muted)}
+.slot.sel{border-color:var(--seal);box-shadow:0 0 0 2px var(--seal-soft)}
+.inv{display:flex;gap:8px;flex-wrap:wrap}
+.inv-item{
+  padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.6);font-family:inherit;color:inherit;font-size:13px;
+  transition:background .18s,transform .18s;
+}
+.inv-item:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px)}
+.inv-item:disabled{opacity:.35;cursor:not-allowed}
+.inv-item .q{font-size:11px;color:var(--muted);margin-left:4px}
+
+.wheel-box{text-align:center}
+#wheel{width:100%;max-width:300px;height:auto;display:block;margin:0 auto}
+.wheel-layer{transition:opacity .18s ease}
+.wheel-pt{transition:cx .2s ease, cy .2s ease, r .2s ease}
+.wheel-center{font-family:var(--kai)}
+.score-num{font-family:var(--serif);font-size:38px;line-height:1;color:var(--seal)}
+.score-grade{font-family:var(--kai);font-size:15px;letter-spacing:2px;color:var(--ink-2);margin-top:2px}
+
+.ledger{margin-top:12px}
+.lg-item{
+  display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line-2);font-size:13px;
+}
+.lg-item:last-child{border-bottom:none}
+.lg-bar{width:54px;flex:none;text-align:right;font-family:var(--serif);font-size:13.5px}
+.lg-bar.good{color:var(--good)}.lg-bar.bad{color:var(--bad)}.lg-bar.mid{color:var(--warn)}
+.lg-body{flex:1}
+.lg-label{font-family:var(--kai);letter-spacing:1px;color:var(--ink-2);font-size:12.5px}
+.lg-text{color:var(--ink);line-height:1.7}
+.lg-more{font-size:12.5px;color:var(--muted);cursor:pointer;margin-top:8px;user-select:none}
+.lg-more:hover{color:var(--seal)}
+
+/* ============================================================
+   codex · 香草志（卷轴 + 3D）
+   ============================================================ */
+.scroll-frame{
+  position:relative;background:var(--paper-2);
+  border:1px solid rgba(58,46,32,.28);outline:1px solid rgba(58,46,32,.16);outline-offset:6px;
+  border-radius:2px;padding:22px 20px;margin:16px 0;
+  box-shadow:0 2px 0 rgba(58,46,32,.08), inset 0 0 0 1px rgba(255,255,255,.5);
+}
+.scroll-frame::before,.scroll-frame::after{
+  content:"";position:absolute;left:-6px;right:-6px;height:10px;border-radius:5px;
+  background:linear-gradient(180deg,#8a6a45,#6b4f31);
+}
+.scroll-frame::before{top:-14px}
+.scroll-frame::after{bottom:-14px}
+.model-stage{
+  position:relative;aspect-ratio:4/3;width:100%;
+  background:radial-gradient(60% 55% at 50% 78%, rgba(58,46,32,.10), transparent 70%);
+  border-radius:2px;overflow:hidden;
+}
+.model-stage model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
+.model-stage model-viewer::part(default-progress-bar){display:none}
+.model-stage model-viewer::part(ar-button){display:none !important}
+.paper-cast{
+  position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
+  background:linear-gradient(160deg,rgba(241,234,214,.10),rgba(162,62,43,.05));
+}
+.load-bar{width:200px;height:3px;background:rgba(58,46,32,.14);margin:14px auto 6px}
+.load-bar i{display:block;height:100%;width:0;background:var(--seal);transition:width .25s ease}
+.load-txt{font-family:var(--kai);font-size:12.5px;color:var(--muted);text-align:center;letter-spacing:1px}
+.ar-slot{position:absolute;right:12px;bottom:12px;z-index:5}
+.ar-slot[hidden]{display:none}
+.plate{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.plate svg{width:56%;max-width:220px;height:auto;opacity:.72}
+.plate .tag{
+  font-family:var(--kai);font-size:12px;letter-spacing:2px;color:var(--muted);
+  border:1px solid var(--line);padding:2px 10px;border-radius:2px;
+}
+.codex-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.codex-tab{
+  padding:7px 14px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.55);font-family:var(--kai);font-size:14px;letter-spacing:1px;color:inherit;
+  transition:background .18s,border-color .18s;
+}
+.codex-tab:hover{background:#fffdf6}
+.codex-tab.on{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
+.codex-tab:disabled{opacity:.38;cursor:not-allowed}
+.kv{display:grid;grid-template-columns:76px 1fr;gap:6px 12px;font-size:13.5px;margin-top:12px}
+.kv dt{font-family:var(--kai);color:var(--muted);letter-spacing:1px}
+.kv dd{margin:0;color:var(--ink);line-height:1.75}
+.camAR{position:fixed;inset:0;z-index:180;background:#000}
+.camAR[hidden]{display:none}
+.camAR video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.camAR #camStage{position:absolute;inset:0}
+.camAR #camStage model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
+.camAR .exit{
+  position:absolute;top:16px;right:16px;z-index:5;
+  background:rgba(58,46,32,.72);color:#f7f1e2;border:none;border-radius:999px;
+  padding:8px 18px;font-size:13.5px;cursor:pointer;font-family:inherit;
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width:760px){
+  .wrap{padding:0 12px 80px}
+  .blend-top{grid-template-columns:1fr}
+  .wheel-box{order:-1}
+  #wheel{max-width:236px}
+  .slots{grid-template-columns:repeat(2,1fr)}
+  .zone-grid{grid-template-columns:1fr}
+  .model-stage{aspect-ratio:1/1}
+  .brand small{display:none}
+  .card{padding:15px 15px}
+  .gj-card{padding:18px 16px}
+  .gj-quote{font-size:15.5px;line-height:2}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">合香<small>香料博物馆</small></div>
+    <div class="spacer"></div>
+    <div class="chip">钱 <b id="uiMoney">0</b></div>
+    <div class="chip">第 <b id="uiDay">1</b> 日</div>
+    <button class="btn sm ghost" id="btnReset" title="清空存档">重开</button>
+  </header>
+
+  <div class="stage">
+    <section class="screen" id="sc-hub"></section>
+    <section class="screen" id="sc-study"></section>
+    <section class="screen" id="sc-garden"></section>
+    <section class="screen" id="sc-blend"></section>
+    <section class="screen" id="sc-codex"></section>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- AR 说明弹层 -->
+<div class="sheet" id="arSheet" hidden>
+  <div class="sheet-inner">
+    <h3>实景 AR · 香草标本</h3>
+    <div class="advice" id="arBrowser"></div>
+    <div class="advice" id="arAdvice"></div>
+    <div class="row">
+      <button class="btn primary" id="arLaunch">启动</button>
+      <button class="btn ghost" id="arScene" style="display:none">用谷歌 Scene Viewer 打开</button>
+      <button class="btn ghost" id="arCopy">复制链接</button>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="arClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 摄像头实景模式 -->
+<div class="camAR" id="camAR" hidden>
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div id="camStage"></div>
+  <button class="exit" id="camExit">退出实景</button>
+</div>
+
+<script type="module">
+/* ============================================================
+   =2 DATA
+   ============================================================ */
+const AROMA_AXES = ['辛','苦','甘','温','凉','香'];
+
+const ZONES = [
+  { id:'干燥', icon:'☀', desc:'日照足、土爽' },
+  { id:'湿润', icon:'☂', desc:'近水、气润' },
+  { id:'半阴', icon:'☾', desc:'林下、散射光' }
+];
+
+const HERBS = {
+  aicao:  { name:'艾草', efficacy:['辟秽','祛风'], potency:1.00, zone:'干燥',
+            aroma:{辛:6,苦:3,甘:2,温:9,凉:0,香:9}, model:'aicao' },
+  peilan: { name:'佩兰', efficacy:['辟秽','和胃'], potency:0.80, zone:'湿润',
+            aroma:{辛:4,苦:2,甘:4,温:3,凉:3,香:8}, model:null },
+  baizhi: { name:'白芷', efficacy:['祛风','辟秽'], potency:1.15, zone:'半阴',
+            aroma:{辛:9,苦:3,甘:1,温:6,凉:1,香:7}, model:null },
+  bohe:   { name:'薄荷', efficacy:['疏肝','清凉'], potency:0.85, zone:'湿润',
+            aroma:{辛:8,苦:1,甘:2,温:0,凉:10,香:6}, model:'bohe' }
+};
+
+const ORDERS = {
+  folk:    { buyer:'民间', title:'端午辟秽香囊', need:{辟秽:1.0}, ideal:{君:1,臣:1,佐:1},
+             price:30, target:{辛:6,苦:2,甘:3,温:7,凉:2,香:9},
+             ref:{君:'aicao',臣:'peilan',佐:'baizhi'},
+             intro:'端午将近，乡人要一批辟秽香囊，悬于门首。' },
+  clinic:  { buyer:'医馆', title:'祛风方', need:{祛风:1.0, 清凉:0.4}, ideal:{君:1,臣:1},
+             price:45, target:{辛:8,苦:3,甘:1,温:4,凉:5,香:7},
+             ref:{君:'baizhi',臣:'bohe'},
+             intro:'医馆坐堂，来了个风邪上攻、头痛目胀的病人。' },
+  scholar: { buyer:'文人', title:'疏肝解郁香', need:{疏肝:1.0, 和胃:0.4}, ideal:{君:1,臣:1,佐:1},
+             price:60, target:{辛:5,苦:2,甘:4,温:1,凉:9,香:8},
+             ref:{君:'bohe',臣:'peilan',佐:'baizhi'},
+             intro:'一位文人郁郁不舒，想要一味能疏肝解郁的香。' },
+  royal:   { buyer:'御用', title:'辟秽清凉御香', need:{辟秽:1.0, 清凉:0.5}, ideal:{君:1,臣:1,佐:1,使:1},
+             price:120, target:{辛:7,苦:3,甘:3,温:3,凉:6,香:9}, hidden:true,
+             ref:{君:'baizhi',臣:'bohe',佐:'aicao',使:'peilan'},
+             intro:'宫中传旨，需一味辟秽兼清凉的御用合香，四味俱全。' }
+};
+
+/* 古籍卡：引文均经查证，出处可核对 */
+const ANCIENT_CARDS = [
+  { id:'gj1', herb:'aicao', src:'《诗经·王风·采葛》',
+    quote:'彼采艾兮，一日不见，如三岁兮。',
+    desc:'采艾是先秦常见的农事。艾生于原野田埂，喜向阳爽土，茎叶有浓烈香气，古人采而悬之、灸之。' },
+  { id:'gj2', herb:'peilan', src:'《黄帝内经·素问·奇病论》',
+    quote:'治之以兰，除陈气也。',
+    desc:'此处的「兰」即兰草，今之佩兰。生于水边泽畔，气香而性平，能化湿醒脾、去除陈积之气。' },
+  { id:'gj3', herb:'baizhi', src:'《离骚》',
+    quote:'扈江离与辟芷兮，纫秋兰以为佩。',
+    desc:'「辟芷」即白芷。生于川谷，根粗而气芳香，先秦时已作香囊佩身之用，是香药同源的早期见证。' },
+  { id:'gj4', herb:'bohe', src:'《本草纲目》',
+    quote:'薄荷，辛能发散，凉能清利，专于消风散热。',
+    desc:'薄荷多生于潮湿的河边沟畔，方茎对生叶。入口先辛后凉，辛可透表、凉能清热，故为风热要药。' },
+  { id:'gj5', herb:'aicao', src:'《孟子·离娄上》',
+    quote:'今之欲王者，犹七年之病，求三年之艾也。',
+    desc:'艾以陈久者为良。此句以「三年之艾」喻凡事须平时蓄积——也道出艾草入药需陈放、灸用需陈艾的讲究。' },
+  { id:'gj6', herb:'baizhi', src:'《神农本草经》',
+    quote:'白芷，味辛温……长肌肤，润泽，可作面脂。一名芳香。',
+    desc:'白芷被《本经》列为中品，别名「芳香」。既能祛风止痛，又可润泽肌肤，自古兼作香料与美容之用。' }
+];
+
+const HISTORY_CARDS = {
+  folk:'宋代文人雅集，常佩香牌、香囊于身，行走间暗香浮动。端午赠香囊，是「以香辟秽」最日常的实践。',
+  clinic:'李时珍在《本草纲目》中记薄荷「故头痛、头风、眼目、咽喉、口齿诸病为要药」——一味清凉，专走头面。',
+  scholar:'屈原《离骚》以香草自喻：「纫秋兰以为佩」。佩香不只是风雅，更是士人标举品格的方式。',
+  royal:'唐代宫廷用香极盛，合香讲求「君臣佐使」配伍，与方剂同理——香药同源，此之谓也。'
+};
+
+/* 香草志词条 */
+const CODEX = {
+  aicao:{ latin:'Artemisia argyi', family:'菊科蒿属',
+    habitat:'生于荒野、田埂、路旁，喜向阳爽土',
+    parts:'含挥发油（桉叶素、樟脑等）、黄酮类',
+    med:'性温，味辛、苦；辟秽祛风，温经止血，可灸百病',
+    lore:'端午悬艾于门，是延续千年的辟秽习俗。孟子以「三年之艾」喻蓄积，可见古人早已识其陈放之妙。' },
+  peilan:{ latin:'Eupatorium fortunei', family:'菊科泽兰属',
+    habitat:'生于溪边、泽畔、湿草地，喜湿润',
+    parts:'含挥发油（对伞花烃、麝香草酚甲醚等）',
+    med:'性平，味辛；辟秽化湿，醒脾开胃',
+    lore:'《素问》「治之以兰，除陈气也」——「兰」即兰草。古时以兰汤沐浴，取其芳香除秽之意。' },
+  baizhi:{ latin:'Angelica dahurica', family:'伞形科当归属',
+    habitat:'生于川谷、林下，喜半阴散射光',
+    parts:'含香豆素类（欧前胡素、异欧前胡素）、挥发油',
+    med:'性温，味辛；祛风止痛，宣通鼻窍，燥湿止带',
+    lore:'《离骚》「扈江离与辟芷兮」，「辟芷」即白芷。《神农本草经》别名「芳香」，可作面脂。' },
+  bohe:{ latin:'Mentha haplocalyx', family:'唇形科薄荷属',
+    habitat:'生于河边、沟畔、湿地，喜湿润',
+    parts:'含挥发油（薄荷醇、薄荷酮）',
+    med:'性凉，味辛；疏散风热，清利头目，疏肝行气',
+    lore:'《本草纲目》称其「辛能发散，凉能清利」。名方逍遥散中用之极少，却能疏肝解郁。' }
+};
+
+const SLOT_NAMES = ['君','臣','佐','使'];
+const SLOT_W = { 君:1.0, 臣:0.75, 佐:0.5, 使:0.3 };
+const CARD_COST = 8;
+
+/* ============================================================
+   =3 STORE
+   ============================================================ */
+const KEY = 'spiceGame_v1';
+
+const DEFAULT_STATE = {
+  v:1, money:15, day:1, screen:'hub',
+  seeds:{ aicao:1, peilan:0, baizhi:0, bohe:0 },
+  plants:[],
+  inventory:{},
+  quality:{},
+  known:{ aicao:false, peilan:false, baizhi:false, bohe:false },
+  readCards:[],
+  orders:{ folk:{done:0}, clinic:{done:0}, scholar:{done:0}, royal:{unlocked:false} },
+  history:[],
+  historyCards:[],
+  stats:{ blends:0, best:0, earned:0 },
+  settings:{ seenIntro:false }
+};
+
+let state = load();
+
+function load(){
+  try{
+    const p = JSON.parse(localStorage.getItem(KEY));
+    if(!p || p.v !== 1) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    const s = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), p);
+    s.seeds = Object.assign({}, DEFAULT_STATE.seeds, p.seeds || {});
+    s.orders = Object.assign({}, DEFAULT_STATE.orders, p.orders || {});
+    s.stats = Object.assign({}, DEFAULT_STATE.stats, p.stats || {});
+    return s;
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+/* 单一变异入口：改状态 → 存盘 → 重绘 */
+function mutate(fn){ fn(state); save(); render(); }
+
+/* ============================================================
+   =4 SCORE —— 纯函数，不碰 DOM
+   ============================================================ */
+const SCORE_CFG = {
+  eff:{ maxPrimary:45, maxSynergy:15, fitHit:1.0, fitMiss:0.15, junQualityBias:[0.85,0.15] },
+  bal:{ maxStructure:20, maxPrimary:12, maxHarmony:8,
+        roleFit:{ 君:[1.0,0.15], 臣:[1.0,0.4], 佐:[1.0,0.5], 使:[1.0,1.0] },
+        extraSlotPenalty:4, maxExtraPenalty:8, invertRatio:1.2,
+        aromaGap:2, aromaAxes:2, overlapThreshold:3, overlapPenalty:3,
+        invertPrimaryFactor:0.2, invertHarmonyFactor:0.7 },
+  quality:{ floor:0.75, span:0.25 },
+  caps:{ noHerb:0, noJun:45, oneHerb:70 },
+  grade:[[90,'神品'],[75,'佳品'],[60,'中品'],[40,'下品'],[0,'不入流']],
+  payout:{ base:0.4, span:0.6, refuseBelow:40, refuseFactor:0.5 },
+  repeatDecay:0.85, feedbackShowTop:3
+};
+
+function qOf(id){ const q = state.quality[id]; return (typeof q === 'number') ? q : 0.9; }
+function powerOf(id){ return HERBS[id].potency * qOf(id); }
+
+/* 香气轮盘：槽位权重 × 品质 加权平均，空槽不进分母 */
+function buildAroma(slots){
+  const out = {}, den = {};
+  AROMA_AXES.forEach(a => { out[a] = 0; den[a] = 0; });
+  SLOT_NAMES.forEach(r => {
+    const id = slots[r];
+    if(!id) return;
+    const w = SLOT_W[r] * qOf(id);
+    AROMA_AXES.forEach(a => { out[a] += w * HERBS[id].aroma[a]; den[a] += w; });
+  });
+  AROMA_AXES.forEach(a => { out[a] = den[a] ? +(out[a]/den[a]).toFixed(2) : 0; });
+  return out;
+}
+
+/* 佐药「补君之偏」：在君药取值 ≤2 的轴上高出 ≥2，且此类轴 ≥2 条 */
+function supplementsJun(junId, zuoId){
+  if(!junId || !zuoId) return false;
+  const j = HERBS[junId].aroma, z = HERBS[zuoId].aroma;
+  let n = 0;
+  AROMA_AXES.forEach(a => { if(j[a] <= 2 && (z[a] - j[a]) >= SCORE_CFG.bal.aromaGap) n++; });
+  return n >= SCORE_CFG.bal.aromaAxes;
+}
+function sharesTag(aId, bId){
+  if(!aId || !bId || !HERBS[aId] || !HERBS[bId]) return false;
+  const A = HERBS[aId].efficacy, B = HERBS[bId].efficacy;
+  return A.some(t => B.indexOf(t) >= 0);
+}
+
+function gradeOf(total){
+  for(const [min, name] of SCORE_CFG.grade){ if(total >= min) return name; }
+  return '不入流';
+}
+
+/**
+ * 合香评分。返回 { total, grade, factor, items[] }
+ * items 为判语账本，UI 按 |Δ| 排序后展示。
+ */
+function scoreFormula(slots, order){
+  const cfg = SCORE_CFG;
+  const filled = SLOT_NAMES.filter(r => slots[r]);
+  const items = [];
+  const needTags = Object.keys(order.need);
+  const primaryTag = needTags[0];
+
+  if(filled.length === 0){
+    return { total:0, grade:'不入流', factor:1, aroma: buildAroma(slots), items:[
+      { key:'empty', label:'空方', got:0, max:0, level:'bad', text:'槽位空空，还谈不上合香。' }] };
+  }
+
+  const junId = slots['君'];
+  const junHasPrimary = junId ? HERBS[junId].efficacy.indexOf(primaryTag) >= 0 : false;
+
+  /* --- 功效分 60 --- */
+  const [biasLo, biasHi] = cfg.eff.junQualityBias;
+  const primary = junId
+    ? cfg.eff.maxPrimary * (junHasPrimary ? cfg.eff.fitHit : cfg.eff.fitMiss) * (biasLo + biasHi * qOf(junId))
+    : 0;
+  if(junId && junHasPrimary){
+    items.push({ key:'eff.primary', label:'君药立主调', got:primary, max:cfg.eff.maxPrimary, level:'good',
+      text:`君药「${HERBS[junId].name}」主${primaryTag}，与订单「${order.title}」相合，主调立得住。` });
+  } else if(junId){
+    items.push({ key:'eff.primary', label:'君药不合主治', got:primary, max:cfg.eff.maxPrimary, level:'bad',
+      text:`${HERBS[junId].name}不主${primaryTag}，君药与订单主治不合，主调立不起来。` });
+  } else {
+    items.push({ key:'eff.primary', label:'君位空缺', got:0, max:cfg.eff.maxPrimary, level:'bad',
+      text:`君位空着，方无主脑——把最能对应「${primaryTag}」的那味放到君位。` });
+  }
+
+  const contributors = filled.filter(r => HERBS[slots[r]].efficacy.some(t => needTags.indexOf(t) >= 0));
+  const idealSlots = Object.keys(order.ideal).length;
+  const synergy = cfg.eff.maxSynergy * Math.min(1, contributors.length / idealSlots);
+  items.push({ key:'eff.synergy', label:'臣佐协同', got:synergy, max:cfg.eff.maxSynergy,
+    level: contributors.length >= idealSlots ? 'good' : (contributors.length >= 2 ? 'mid' : 'bad'),
+    text: contributors.length >= 2
+      ? `${contributors.map(r => HERBS[slots[r]].name).join('、')}共主${primaryTag}，功效${contributors.length >= idealSlots ? '稳固不孤' : '尚可，但仍有单薄之嫌'}。`
+      : `只有一味承担${primaryTag}，功效孤悬，缺少呼应。` });
+
+  /* --- 配伍分 40 --- */
+  let roleFitSum = 0;
+  SLOT_NAMES.forEach(r => {
+    const id = slots[r];
+    if(!id) return;
+    const [hit, miss] = cfg.bal.roleFit[r];
+    let fit;
+    if(r === '君') fit = HERBS[id].efficacy.indexOf(primaryTag) >= 0 ? hit : miss;
+    else if(r === '臣') fit = HERBS[id].efficacy.some(t => needTags.indexOf(t) >= 0) ? hit : miss;
+    else if(r === '佐') fit = (sharesTag(id, slots['君']) || sharesTag(id, slots['臣']) || supplementsJun(slots['君'], id)) ? hit : miss;
+    else fit = hit;
+    roleFitSum += fit;
+  });
+  const filledIdeal = filled.filter(r => order.ideal[r]).length;
+  const extra = filled.length - filledIdeal;
+  const extraPenalty = extra > 0 ? Math.min(cfg.bal.maxExtraPenalty, extra * cfg.bal.extraSlotPenalty) : 0;
+  let structure = cfg.bal.maxStructure * (filled.length ? roleFitSum / filled.length : 0) * (filledIdeal / idealSlots) - extraPenalty;
+  structure = Math.max(0, structure);
+  items.push({ key:'bal.structure', label:'结构周圆', got:structure, max:cfg.bal.maxStructure,
+    level: filledIdeal >= idealSlots ? 'good' : (filledIdeal >= idealSlots - 1 ? 'mid' : 'bad'),
+    text: filledIdeal >= idealSlots
+      ? `君臣佐使各安其位，方剂结构周圆。`
+      : `方中只填了 ${filledIdeal} 个当用之位（理想 ${idealSlots} 个），${idealSlots - filledIdeal > 1 ? '佐药空缺，方剂欠周圆' : '尚缺一味，稍显单薄'}。` });
+
+  const junP = junId ? powerOf(junId) : 0;
+  const chenId = slots['臣'];
+  const inverted = junId && chenId && powerOf(chenId) > junP * cfg.bal.invertRatio;
+  let balPrimary = junHasPrimary ? cfg.bal.maxPrimary : 0;
+  if(inverted) balPrimary *= cfg.bal.invertPrimaryFactor;
+  if(inverted){
+    items.push({ key:'bal.invert', label:'君臣倒置', got:balPrimary - cfg.bal.maxPrimary, max:0, level:'bad',
+      text:`臣药「${HERBS[chenId].name}」药力胜于君药「${HERBS[junId].name}」，主次倒置，香气失了主脑。` });
+  } else if(junHasPrimary){
+    items.push({ key:'bal.primary', label:'主次分明', got:balPrimary, max:cfg.bal.maxPrimary, level:'good',
+      text:'君药居主位，臣药辅之，主次分明。' });
+  }
+
+  const zuoId = slots['佐'];
+  let harmony = cfg.bal.maxHarmony;
+  if(zuoId){
+    const zfit = sharesTag(zuoId, slots['君']) || sharesTag(zuoId, slots['臣']) || supplementsJun(slots['君'], zuoId);
+    harmony = zfit ? cfg.bal.maxHarmony : cfg.bal.maxHarmony * 0.5;
+  } else if(order.ideal['佐']){
+    harmony = cfg.bal.maxHarmony * 0.5;
+  }
+  if(inverted) harmony *= cfg.bal.invertHarmonyFactor;
+
+  const tagCount = {};
+  filled.forEach(r => HERBS[slots[r]].efficacy.forEach(t => { tagCount[t] = (tagCount[t] || 0) + 1; }));
+  /* 只罚「与订单无关」的功效堆叠：订单正好要的功效叠得多，本是方剂该有的样子 */
+  const overlap = Object.keys(tagCount).filter(t => tagCount[t] >= cfg.bal.overlapThreshold && !(t in order.need));
+  if(overlap.length){
+    harmony -= cfg.bal.overlapPenalty;
+    items.push({ key:'bal.overlap', label:'功效旁溢', got:-cfg.bal.overlapPenalty, max:0, level:'bad',
+      text:`方中「${overlap[0]}」一味上有 ${tagCount[overlap[0]]} 味同功，而订单并不求此效，香调反而旁溢单薄。` });
+  }
+  harmony = Math.max(0, harmony);
+  if(zuoId && !overlap.length){
+    items.push({ key:'bal.harmony', label:'佐药调和', got:harmony, max:cfg.bal.maxHarmony,
+      level: harmony >= cfg.bal.maxHarmony ? 'good' : 'mid',
+      text: harmony >= cfg.bal.maxHarmony
+        ? `佐药「${HERBS[zuoId].name}」${supplementsJun(slots['君'], zuoId) ? '补君药之偏' : '与君臣呼应'}，药性得调。`
+        : `佐药「${HERBS[zuoId].name}」与君臣不相统属，调和不力。` });
+  }
+
+  /* --- 合计 --- */
+  const effScore = primary + synergy;
+  const balScore = structure + balPrimary + harmony;
+  const avgQ = filled.reduce((s, r) => s + qOf(slots[r]), 0) / filled.length;
+  const factor = cfg.quality.floor + cfg.quality.span * avgQ;
+  let total = Math.round((effScore + balScore) * factor);
+  total = Math.max(0, Math.min(100, total));
+
+  /* 硬上限 */
+  let cap = 100, capMsg = '';
+  if(!junId){ cap = cfg.caps.noJun; capMsg = '无君药，方无主脑——香气没有方向，买家只当是一堆散香。'; }
+  else if(filled.length === 1){ cap = cfg.caps.oneHerb; capMsg = '单味独香，谈不上合香。'; }
+  if(total > cap){
+    total = cap;
+    if(capMsg) items.push({ key:'cap', label:'方剂上限', got:cap - 100, max:0, level:'bad', text:capMsg });
+  }
+
+  return { total, grade: gradeOf(total), factor:+factor.toFixed(3), items, aroma: buildAroma(slots) };
+}
+
+function payoutOf(orderId, total){
+  const o = ORDERS[orderId];
+  const cfg = SCORE_CFG.payout;
+  const ratio = total / 100;
+  let pay = Math.round(o.price * (cfg.base + cfg.span * ratio));
+  if(total < cfg.refuseBelow){ pay = Math.round(pay * cfg.refuseFactor); }
+  const done = state.orders[orderId].done || 0;
+  if(done > 0) pay = Math.round(pay * Math.pow(SCORE_CFG.repeatDecay, done));
+  return Math.max(1, pay);
+}
+
+/* ============================================================
+   =5 UI 工具
+   ============================================================ */
+const $ = id => document.getElementById(id);
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+let toastTimer = null;
+function toast(t){
+  const el = $('toast');
+  el.textContent = t;
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 1900);
+}
+
+/* ============================================================
+   路由
+   ============================================================ */
+const SCREENS = ['hub','study','garden','blend','codex'];
+const HASH_OF = { hub:'#/shuzhai', study:'#/guji', garden:'#/yaopu', blend:'#/xiangshi', codex:'#/caozhi' };
+const SCREEN_OF = { '#/shuzhai':'hub', '#/guji':'study', '#/yaopu':'garden', '#/xiangshi':'blend', '#/caozhi':'codex' };
+
+let blendOrderId = null;
+let blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
+let blendSel = '君';
+let studyCardId = null;
+let studyAnswered = false;
+let codexHerb = null;
+let ledgerAll = false;
+
+function go(screen){
+  if(SCREENS.indexOf(screen) < 0) screen = 'hub';
+  state.screen = screen;
+  if(location.hash !== HASH_OF[screen]) location.hash = HASH_OF[screen];
+  save();
+  render();
+}
+
+/* ============================================================
+   渲染入口
+   ============================================================ */
+function render(){
+  $('uiMoney').textContent = state.money;
+  $('uiDay').textContent = state.day;
+  SCREENS.forEach(s => {
+    const el = $('sc-' + s);
+    el.classList.toggle('on', s === state.screen);
+  });
+  if(state.screen === 'hub') renderHub();
+  if(state.screen === 'study') renderStudy();
+  if(state.screen === 'garden') renderGarden();
+  if(state.screen === 'blend') renderBlend();
+  if(state.screen === 'codex') renderCodex();
+}
+
+/* ============================================================
+   =6 SCREEN · hub 书斋
+   ============================================================ */
+function renderHub(){
+  const seedTotal = Object.keys(state.seeds).reduce((s,k) => s + state.seeds[k], 0);
+  const readyCount = state.plants.filter(p => p.ready).length;
+  const knownCount = Object.keys(state.known).filter(k => state.known[k]).length;
+  const doneOrders = Object.keys(state.orders).filter(k => state.orders[k].done > 0).length;
+  const royalUnlocked = knownCount >= 4;
+
+  const tiles = [
+    { s:'study', t:'读古籍', d:`辨认典籍中的香草，得种子与知识小卡。卡价 ${CARD_COST} 钱。`,
+      n: seedTotal === 0 ? '种子已尽' : `种子 ${seedTotal}` },
+    { s:'garden', t:'药圃', d:'把香草种在合适的气候区。选对区域，品质更高。',
+      n: readyCount ? `${readyCount} 株可收` : (state.plants.length ? `${state.plants.length} 株生长中` : '尚无栽种') },
+    { s:'blend', t:'香室', d:'按订单功效配伍君臣佐使，配出香方出售。',
+      n: `${doneOrders} 单已交` },
+    { s:'codex', t:'香草志', d:'已识香草的形态、产地、成分、药性与典故。有标本者可旋转、AR 查看。',
+      n: `已识 ${knownCount} / 4` }
+  ];
+
+  $('sc-hub').innerHTML = `
+    <div class="card">
+      <h2>书斋</h2>
+      <div class="hint">
+        读古籍得种子，种于药圃，再入香室按订单配伍出售。<br/>
+        每卖出一方，便得一枚历史小卡与一笔钱——钱可再买古籍，循环往复。
+      </div>
+      ${state.settings.seenIntro ? '' : `
+      <div class="sep"></div>
+      <div class="hint" style="color:var(--seal)">
+        开局提示：先去「读古籍」，辨出香草即得种子；种子入「药圃」种下，成熟后可在「香室」配伍。
+      </div>`}
+      ${royalUnlocked && !state.orders.royal.unlocked ? `
+      <div class="sep"></div>
+      <div class="row">
+        <span class="hint" style="flex:1;color:var(--seal)">四味香草皆已识得，宫中传来一笔御用合香的差事。</span>
+        <button class="btn primary sm" id="btnRoyal">接下御用订单</button>
+      </div>` : ''}
+    </div>
+
+    <div class="hub-grid">
+      ${tiles.map(t => `
+        <button class="hub-tile" data-go="${t.s}">
+          <div class="t">${t.t}</div>
+          <div class="d">${t.d}</div>
+          <div class="d" style="margin-top:8px;color:var(--seal)">${t.n}</div>
+        </button>`).join('')}
+    </div>
+
+    ${state.history.length ? `
+    <div class="card flat" style="margin-top:14px">
+      <h2>成交记录</h2>
+      <div class="hint">共 ${state.stats.blends} 次合香，最高 ${state.stats.best} 分，累计入账 ${state.stats.earned} 钱。</div>
+      <div class="sep"></div>
+      ${state.history.slice(-5).reverse().map(h => `
+        <div class="row" style="font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line-2)">
+          <span style="font-family:var(--kai);min-width:96px">${esc(ORDERS[h.orderId].buyer)}·${esc(ORDERS[h.orderId].title)}</span>
+          <span class="hint">第 ${h.day} 日</span>
+          <div class="spacer"></div>
+          <span style="color:var(--seal);font-family:var(--serif)">${h.score} 分 · ${esc(h.grade)}</span>
+          <span class="hint">+${h.payout} 钱</span>
+        </div>`).join('')}
+    </div>` : ''}
+  `;
+
+  $('sc-hub').querySelectorAll('[data-go]').forEach(b => {
+    b.onclick = () => go(b.dataset.go);
+  });
+  const rb = $('btnRoyal');
+  if(rb) rb.onclick = () => mutate(s => { s.orders.royal.unlocked = true; go('blend'); blendOrderId = 'royal'; });
+}
+
+/* ============================================================
+   =7 SCREEN · study 读古籍
+   ============================================================ */
+function renderStudy(){
+  const remain = ANCIENT_CARDS.filter(c => state.readCards.indexOf(c.id) < 0);
+  const card = studyCardId ? ANCIENT_CARDS.find(c => c.id === studyCardId) : null;
+
+  if(!card){
+    $('sc-study').innerHTML = `
+      <div class="card">
+        <h2>读古籍</h2>
+        <div class="hint">
+          每张古籍卡摘抄一段典籍，描述香草的习性、生境或药性。<br/>
+          辨出是哪一味香草，即得种子一枚与知识小卡。购卡需 ${CARD_COST} 钱。
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <button class="btn primary" id="btnBuy" ${state.money < CARD_COST || !remain.length ? 'disabled' : ''}>购一张古籍卡（${CARD_COST} 钱）</button>
+          <span class="hint">${remain.length ? `尚有 ${remain.length} 张未读` : '古籍已尽数读过'} · 现有 ${state.money} 钱</span>
+        </div>
+      </div>
+      ${state.readCards.length ? `
+      <div class="card flat">
+        <h2>已读古籍</h2>
+        ${state.readCards.map(id => {
+          const c = ANCIENT_CARDS.find(x => x.id === id);
+          return `<div style="padding:7px 0;border-bottom:1px dashed var(--line-2);font-size:13px">
+            <span style="font-family:var(--kai)">${esc(HERBS[c.herb].name)}</span>
+            <span class="hint"> · ${esc(c.src)}</span>
+            <div class="hint" style="font-family:var(--serif);color:var(--ink-2)">${esc(c.quote)}</div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    `;
+    const bb = $('btnBuy');
+    if(bb) bb.onclick = () => {
+      if(state.money < CARD_COST) return toast('钱不够了，先去香室卖一方香');
+      if(!remain.length) return toast('古籍已尽数读过');
+      const pick = remain[Math.floor(Math.random() * remain.length)];
+      mutate(s => { s.money -= CARD_COST; });
+      studyCardId = pick.id; studyAnswered = false;
+      renderStudy();
+    };
+    return;
+  }
+
+  const opts = Object.keys(HERBS).sort(() => Math.random() - 0.5);
+  $('sc-study').innerHTML = `
+    <div class="card flat" style="padding:14px 16px">
+      <div class="row">
+        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <div class="spacer"></div>
+        <span class="hint">${esc(card.src)}</span>
+      </div>
+    </div>
+
+    <div class="gj-card">
+      <div class="gj-quote">${esc(card.quote)}</div>
+      <div class="gj-src">—— ${esc(card.src)}</div>
+      <div class="gj-desc">${esc(card.desc)}</div>
+    </div>
+
+    <div class="card">
+      <h2>此为何草？</h2>
+      <div class="opt-grid" id="optGrid">
+        ${opts.map(id => `<button class="opt" data-h="${id}">${esc(HERBS[id].name)}</button>`).join('')}
+      </div>
+      <div id="studyFb" style="margin-top:12px"></div>
+    </div>
+  `;
+
+  $('btnBack').onclick = () => { studyCardId = null; go('hub'); };
+  $('optGrid').querySelectorAll('[data-h]').forEach(b => {
+    b.onclick = () => answerStudy(card, b.dataset.h);
+  });
+}
+
+function answerStudy(card, pick){
+  if(studyAnswered) return;
+  studyAnswered = true;
+  const grid = $('optGrid');
+  const correct = card.herb;
+  grid.querySelectorAll('[data-h]').forEach(b => {
+    b.disabled = true;
+    if(b.dataset.h === correct) b.classList.add('ok');
+    else if(b.dataset.h === pick) b.classList.add('no');
+  });
+  const ok = pick === correct;
+  const h = HERBS[correct];
+
+  mutate(s => {
+    if(s.readCards.indexOf(card.id) < 0) s.readCards.push(card.id);
+    if(ok){
+      s.seeds[correct] = (s.seeds[correct] || 0) + 1;
+      s.known[correct] = true;
+    }
+  });
+
+  $('studyFb').innerHTML = ok ? `
+    <div class="card flat" style="margin:0;border-color:var(--good)">
+      <div style="font-family:var(--kai);font-size:15px;color:var(--good);letter-spacing:1px">辨对了 · 得种子一枚</div>
+      <div class="hint" style="margin-top:6px">
+        <b>${esc(h.name)}</b>：功效 ${h.efficacy.join('、')}；宜种于<b>${esc(h.zone)}区</b>。
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary sm" id="btnToGarden">去药圃种下</button>
+        <button class="btn ghost sm" id="btnAgain">再读一张</button>
+      </div>
+    </div>` : `
+    <div class="card flat" style="margin:0;border-color:var(--bad)">
+      <div style="font-family:var(--kai);font-size:15px;color:var(--bad);letter-spacing:1px">辨错了</div>
+      <div class="hint" style="margin-top:6px">
+        此段出自 ${esc(card.src)}，写的是<b>${esc(h.name)}</b>——功效 ${h.efficacy.join('、')}。
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn sm" id="btnAgain">再读一张</button>
+      </div>
+    </div>`;
+
+  const g = $('btnToGarden'); if(g) g.onclick = () => { studyCardId = null; go('garden'); };
+  const a = $('btnAgain'); if(a) a.onclick = () => { studyCardId = null; renderStudy(); };
+}
+
+/* ============================================================
+   =8 SCREEN · garden 药圃
+   ============================================================ */
+function qClass(q){ return q >= 0.85 ? 'q-hi' : (q >= 0.65 ? 'q-mid' : 'q-lo'); }
+function qLabel(q){ return q >= 0.85 ? '上品' : (q >= 0.65 ? '中品' : '下品'); }
+
+function renderGarden(){
+  const seeds = Object.keys(state.seeds).filter(k => state.seeds[k] > 0);
+  const hasSeeds = seeds.length > 0;
+
+  $('sc-garden').innerHTML = `
+    <div class="card">
+      <h2>药圃</h2>
+      <div class="hint">
+        三大产区气候不同，同一味香草种在不同区域，长势与品质迥异。<br/>
+        选定区域后种下，次日即可收获。
+      </div>
+      <div class="sep"></div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <div class="spacer"></div>
+        <span class="hint">${hasSeeds ? `可选种子 ${seeds.length} 种` : '暂无种子，先去读古籍'}</span>
+      </div>
+      <h3>择地而种</h3>
+      <div class="zone-grid" id="zoneGrid">
+        ${ZONES.map(z => `
+          <button class="zone" data-z="${z.id}">
+            <span class="zi">${z.icon}</span>
+            <span class="zn">${esc(z.id)}区</span>
+            <span class="zd">${esc(z.desc)}</span>
+          </button>`).join('')}
+      </div>
+      <div id="seedPick" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card flat">
+      <h2>圃中</h2>
+      ${state.plants.length ? state.plants.map(p => `
+        <div class="plot">
+          <span class="pn">${esc(HERBS[p.herb].name)}</span>
+          <span class="pm">种于 ${esc(p.zone)}区 · 第 ${p.plantedDay} 日下种${p.ready ? ' · 已可收获' : ' · 生长中'}</span>
+          <span class="q-tag ${p.ready ? qClass(p.quality) : 'q-mid'}">${p.ready ? qLabel(p.quality) + ' ' + Math.round(p.quality * 100) + '%' : '生长中'}</span>
+          ${p.ready ? `<button class="btn primary sm" data-harvest="${p.id}">收获</button>` : ''}
+        </div>`).join('') : '<div class="hint">圃中空空。先去「读古籍」得种子。</div>'}
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn" id="btnNextDay" ${state.plants.some(p => !p.ready) ? '' : 'disabled'}>过一日（催熟）</button>
+        <span class="hint">过一日所有未熟香草即成熟</span>
+      </div>
+    </div>
+  `;
+
+  $('btnBack').onclick = () => go('hub');
+
+  let selZone = null;
+  $('zoneGrid').querySelectorAll('[data-z]').forEach(b => {
+    b.onclick = () => {
+      $('zoneGrid').querySelectorAll('[data-z]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      selZone = b.dataset.z;
+      renderSeedPick(selZone);
+    };
+  });
+
+  function renderSeedPick(zone){
+    $('seedPick').innerHTML = `
+      <h3>选种（种于 ${esc(zone)}区）</h3>
+      <div class="inv" id="seedRow">
+        ${seeds.map(k => `<button class="inv-item" data-seed="${k}">${esc(HERBS[k].name)} <span class="q">×${state.seeds[k]}</span></button>`).join('')}
+      </div>`;
+    $('seedRow').querySelectorAll('[data-seed]').forEach(b => {
+      b.onclick = () => plant(b.dataset.seed, zone);
+    });
+  }
+
+  function plant(herbId, zone){
+    const h = HERBS[herbId];
+    const good = h.zone === zone;
+    const base = good ? 0.88 + Math.random() * 0.12 : 0.5 + Math.random() * 0.22;
+    const quality = +Math.min(1, base).toFixed(2);
+    mutate(s => {
+      s.seeds[herbId] -= 1;
+      s.plants.push({ id:'p' + Date.now(), herb:herbId, zone, plantedDay:s.day, ready:false, quality });
+    });
+    if(good) toast(`${h.name}种于${zone}区，正得其宜`);
+    else toast(`${h.name}宜种于${h.zone}区——此区不合，品质将受损`);
+    renderGarden();
+  }
+
+  $('sc-garden').querySelectorAll('[data-harvest]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.harvest;
+      const p = state.plants.find(x => x.id === id);
+      if(!p) return;
+      mutate(s => {
+        s.plants = s.plants.filter(x => x.id !== id);
+        s.inventory[p.herb] = (s.inventory[p.herb] || 0) + 1;
+        const prev = s.quality[p.herb];
+        s.quality[p.herb] = (typeof prev === 'number') ? +((prev + p.quality) / 2).toFixed(2) : p.quality;
+      });
+      toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
+      renderGarden();
+    };
+  });
+
+  const nd = $('btnNextDay');
+  if(nd) nd.onclick = () => {
+    mutate(s => {
+      s.day += 1;
+      s.plants.forEach(p => { if(!p.ready) p.ready = true; });
+    });
+    toast('一日过去，圃中香草已熟');
+    renderGarden();
+  };
+}
+
+/* ============================================================
+   =9 SCREEN · blend 香室（核心）
+   ============================================================ */
+function availableOrders(){
+  return Object.keys(ORDERS).filter(id => {
+    const o = ORDERS[id];
+    if(o.hidden) return !!state.orders[id].unlocked;
+    return true;
+  });
+}
+
+function renderBlend(){
+  const ids = availableOrders();
+  if(!blendOrderId || ids.indexOf(blendOrderId) < 0) blendOrderId = ids[0];
+  const order = ORDERS[blendOrderId];
+  const res = scoreFormula(blendDraft, order);
+  const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
+
+  $('sc-blend').innerHTML = `
+    <div class="card flat" style="padding:12px 16px">
+      <div class="row">
+        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <div class="spacer"></div>
+        <span class="hint">合香台 · 君臣佐使</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>订单</h2>
+      <div class="row" style="margin-bottom:10px">
+        ${ids.map(id => {
+          const o = ORDERS[id];
+          const done = state.orders[id].done || 0;
+          return `<button class="btn sm ${id === blendOrderId ? 'primary' : 'ghost'}" data-order="${id}">
+            ${esc(o.buyer)}·${esc(o.title)}${done ? ` <span style="opacity:.7">×${done}</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+      <div class="hint" style="margin-bottom:6px">${esc(order.intro)}</div>
+      <div class="row" style="font-size:13.5px">
+        <span class="chip">需求 ${Object.keys(order.need).map(t => `${t}${order.need[t] < 1 ? '(次)' : ''}`).join(' + ')}</span>
+        <span class="chip">底价 <b>${order.price}</b> 钱</span>
+        <span class="chip">预计可得 <b>${payoutOf(blendOrderId, res.total)}</b> 钱</span>
+      </div>
+      ${order.ref ? `
+      <div class="hint" style="margin-top:10px">
+        <span id="refToggle" style="cursor:pointer;color:var(--seal);user-select:none">查看参考配方 ▾</span>
+        <div id="refBox" style="display:none;margin-top:7px;font-family:var(--kai);font-size:14px;letter-spacing:1px;color:var(--ink-2)">
+          ${SLOT_NAMES.filter(r => order.ref[r]).map(r => `${r}：${esc(HERBS[order.ref[r]].name)}`).join('　')}
+        </div>
+      </div>` : ''}
+    </div>
+
+    <div class="blend-top">
+      <div>
+        <div class="card">
+          <h2>配伍</h2>
+          <div class="slots" id="slotRow">
+            ${SLOT_NAMES.map(r => {
+              const id = blendDraft[r];
+              const q = id ? Math.round(qOf(id) * 100) : 0;
+              return `<div class="slot ${id ? 'filled' : ''} ${blendSel === r ? 'sel' : ''}" data-slot="${r}">
+                <span class="sr">${r}</span>
+                ${id ? `<span class="sh">${esc(HERBS[id].name)}</span><span class="sq">品质 ${q}%</span>` : '<span class="sq">点击选中此位</span>'}
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="row" style="margin-bottom:8px">
+            <span class="hint">当前选中：<b style="font-family:var(--kai);color:var(--seal)">${blendSel}位</b></span>
+            <div class="spacer"></div>
+            <button class="btn sm ghost" id="btnClear">清空配方</button>
+          </div>
+          <div class="inv" id="invRow">
+            ${inv.length ? inv.map(k => `
+              <button class="inv-item" data-inv="${k}">${esc(HERBS[k].name)} <span class="q">×${state.inventory[k]}</span></button>
+            `).join('') : '<span class="hint">库存空空，先去药圃收获。</span>'}
+          </div>
+          <div class="hint" style="margin-top:10px">
+            点香草放入「${blendSel}位」；同一味不可重复入方。再点已占用的槽位可替换。
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>判语</h2>
+          <div class="ledger" id="ledger"></div>
+        </div>
+      </div>
+
+      <div class="card wheel-box">
+        <svg id="wheel" viewBox="0 0 220 220" role="img" aria-label="香气轮盘"></svg>
+        <div class="sep"></div>
+        <div class="score-num" id="scoreNum">0</div>
+        <div class="score-grade" id="scoreGrade">不入流</div>
+        <div class="hint" id="scoreHint" style="margin-top:6px"></div>
+        <div class="sep"></div>
+        <button class="btn primary" id="btnSell" style="width:100%">确认出售</button>
+      </div>
+    </div>
+  `;
+
+  $('btnBack').onclick = () => go('hub');
+  $('sc-blend').querySelectorAll('[data-order]').forEach(b => {
+    b.onclick = () => { blendOrderId = b.dataset.order; ledgerAll = false; renderBlend(); };
+  });
+  $('slotRow').querySelectorAll('[data-slot]').forEach(b => {
+    b.onclick = () => {
+      const r = b.dataset.slot;
+      if(blendSel === r){ blendDraft[r] = null; }
+      blendSel = r;
+      renderBlend();
+    };
+  });
+  $('invRow').querySelectorAll('[data-inv]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.inv;
+      const used = SLOT_NAMES.some(r => blendDraft[r] === id);
+      if(used) return toast('此味已入方，不可重复');
+      blendDraft[blendSel] = id;
+      const next = SLOT_NAMES[SLOT_NAMES.indexOf(blendSel) + 1];
+      if(next) blendSel = next;
+      renderBlend();
+    };
+  });
+  $('btnClear').onclick = () => {
+    blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
+    blendSel = '君'; ledgerAll = false; renderBlend();
+  };
+  $('btnSell').onclick = () => sell(blendOrderId, res);
+
+  const refT = $('refToggle');
+  if(refT) refT.onclick = () => {
+    const box = $('refBox');
+    const open = box.style.display === 'block';
+    box.style.display = open ? 'none' : 'block';
+    refT.textContent = open ? '查看参考配方 ▾' : '收起参考配方 ▴';
+  };
+
+  drawWheel(res.aroma, order.target);
+  drawLedger(res);
+  $('scoreNum').textContent = res.total;
+  $('scoreGrade').textContent = res.grade;
+  $('scoreHint').textContent = `品质系数 ${res.factor}`;
+  $('btnSell').disabled = SLOT_NAMES.every(r => !blendDraft[r]);
+}
+
+function drawWheel(aroma, target){
+  const cx = 110, cy = 110, R = 88;
+  const n = AROMA_AXES.length;
+  const pt = (i, v) => {
+    const ang = (-90 + i * (360 / n)) * Math.PI / 180;
+    return [cx + R * v * Math.cos(ang), cy + R * v * Math.sin(ang)];
+  };
+  const poly = arr => arr.map(v => v.join(',')).join(' ');
+
+  let g = '';
+  [0.25, 0.5, 0.75, 1].forEach(k => {
+    g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, k)))}" fill="none" stroke="rgba(58,46,32,.13)" stroke-width="1"/>`;
+  });
+  AROMA_AXES.forEach((_, i) => {
+    const [x, y] = pt(i, 1);
+    g += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(58,46,32,.13)" stroke-width="1"/>`;
+  });
+
+  const tVals = AROMA_AXES.map(a => Math.min(1, (target[a] || 0) / 10));
+  g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, tVals[i])))}" fill="none" stroke="rgba(122,111,91,.55)" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+
+  const vals = AROMA_AXES.map(a => Math.min(1, (aroma[a] || 0) / 10));
+  const anyAroma = vals.some(v => v > 0);
+  g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, vals[i])))}" fill="rgba(162,62,43,.16)" stroke="var(--seal)" stroke-width="1.8"/>`;
+
+  AROMA_AXES.forEach((a, i) => {
+    const [x, y] = pt(i, vals[i]);
+    g += `<circle class="wheel-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${anyAroma && vals[i] > 0 ? 4 : 2.4}" fill="var(--seal)"/>`;
+    const [lx, ly] = pt(i, 1.16);
+    g += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-family="KaiTi,STKaiti,serif" fill="rgba(58,46,32,.72)">${a}</text>`;
+  });
+
+  let centerTxt = '', centerSub = '';
+  if(anyAroma){
+    let mi = 0;
+    vals.forEach((v, i) => { if(v > vals[mi]) mi = i; });
+    const sum = vals.reduce((s, v) => s + v, 0) || 1;
+    const purity = vals[mi] / sum;
+    centerTxt = AROMA_AXES[mi];
+    centerSub = purity > 0.45 ? '一味独大' : '尚匀';
+    g += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(255,253,246,.72)" stroke="${purity > 0.45 ? 'var(--seal)' : 'rgba(58,46,32,.2)'}" stroke-width="1.2"/>`;
+  }
+  g += `<text class="wheel-center" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="20" fill="${anyAroma ? 'var(--seal)' : 'rgba(58,46,32,.3)'}">${centerTxt || '—'}</text>`;
+  if(centerSub) g += `<text x="${cx}" y="${cy + 17}" text-anchor="middle" font-size="10.5" fill="rgba(58,46,32,.6)">${centerSub}</text>`;
+
+  g = `<g class="wheel-layer">${g}</g>`;
+  $('wheel').innerHTML = g;
+}
+
+function drawLedger(res){
+  const items = res.items.slice().sort((a, b) => Math.abs(b.got) - Math.abs(a.got));
+  const shown = ledgerAll ? items : items.slice(0, SCORE_CFG.feedbackShowTop);
+  $('ledger').innerHTML = shown.map(it => {
+    const cls = it.level === 'good' ? 'good' : (it.level === 'bad' ? 'bad' : 'mid');
+    const sign = it.got > 0 ? '+' : '';
+    const delta = (it.max > 0) ? `${sign}${it.got.toFixed(1)}` : (it.got < 0 ? it.got.toFixed(1) : '—');
+    return `<div class="lg-item">
+      <div class="lg-bar ${cls}">${delta}</div>
+      <div class="lg-body">
+        <div class="lg-label">${esc(it.label)}</div>
+        <div class="lg-text">${esc(it.text)}</div>
+      </div>
+    </div>`;
+  }).join('') + (items.length > SCORE_CFG.feedbackShowTop
+    ? `<div class="lg-more" id="lgMore">${ledgerAll ? '收起' : `查看全部判语（共 ${items.length} 条）`}</div>` : '');
+
+  const lm = $('lgMore');
+  if(lm) lm.onclick = () => { ledgerAll = !ledgerAll; drawLedger(res); };
+}
+
+function sell(orderId, res){
+  const pay = payoutOf(orderId, res.total);
+  const order = ORDERS[orderId];
+  mutate(s => {
+    SLOT_NAMES.forEach(r => {
+      const id = blendDraft[r];
+      if(id){ s.inventory[id] = (s.inventory[id] || 0) - 1; if(s.inventory[id] <= 0) delete s.inventory[id]; }
+    });
+    s.money += pay;
+    s.day += 1;
+    s.orders[orderId].done = (s.orders[orderId].done || 0) + 1;
+    s.history.push({ id:'h' + Date.now(), orderId, score:res.total, grade:res.grade, day:s.day, payout:pay });
+    s.stats.blends += 1;
+    s.stats.best = Math.max(s.stats.best, res.total);
+    s.stats.earned += pay;
+    if(s.historyCards.indexOf(orderId) < 0) s.historyCards.push(orderId);
+  });
+  blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
+  blendSel = '君'; ledgerAll = false;
+
+  const hc = HISTORY_CARDS[orderId];
+  const ref = order.ideal;
+  $('sc-blend').innerHTML = `
+    <div class="gj-card">
+      <div style="font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:10px">
+        ${esc(order.buyer)}收下香方 · <span style="color:var(--seal)">${res.total} 分 ${esc(res.grade)}</span>
+      </div>
+      <div class="hint">得钱 <b style="color:var(--seal);font-family:var(--serif);font-size:16px">${pay}</b> 钱${res.total < SCORE_CFG.payout.refuseBelow ? '（买家勉强收下，只肯给半价）' : ''}。</div>
+      <div class="sep"></div>
+      <h3 style="margin-top:0">历史小卡</h3>
+      <div class="hint" style="color:var(--ink-2);line-height:1.85">${esc(hc)}</div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary" id="btnNext">继续接单</button>
+        <button class="btn ghost" id="btnCodex">看标本（香草志）</button>
+        <button class="btn ghost" id="btnHub">回书斋</button>
+      </div>
+    </div>
+  `;
+  $('btnNext').onclick = () => { renderBlend(); };
+  $('btnHub').onclick = () => go('hub');
+  $('btnCodex').onclick = () => {
+    const first = SLOT_NAMES.map(r => null)[0];
+    const id = Object.keys(state.known).find(k => state.known[k]);
+    codexHerb = id || null;
+    go('codex');
+  };
+}
+
+/* ============================================================
+   =10 SCREEN · codex 香草志
+   ============================================================ */
+function renderCodex(){
+  const ids = Object.keys(HERBS);
+  if(!codexHerb || ids.indexOf(codexHerb) < 0) codexHerb = ids[0];
+  const h = HERBS[codexHerb];
+  const c = CODEX[codexHerb];
+  const known = !!state.known[codexHerb];
+  const hasModel = !!h.model;
+
+  $('sc-codex').innerHTML = `
+    <div class="card flat" style="padding:12px 16px">
+      <div class="row">
+        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <div class="spacer"></div>
+        <span class="hint">香草志 · 已识 ${Object.keys(state.known).filter(k => state.known[k]).length} / 4</span>
+      </div>
+    </div>
+
+    <div class="codex-tabs" id="codexTabs">
+      ${ids.map(id => `<button class="codex-tab ${id === codexHerb ? 'on' : ''}" data-h="${id}" ${state.known[id] ? '' : 'disabled'}>
+        ${esc(HERBS[id].name)}${state.known[id] ? '' : ' · 未识'}
+      </button>`).join('')}
+    </div>
+
+    ${known ? `
+    <div class="scroll-frame">
+      <div class="model-stage" id="modelStage">
+        ${hasModel
+          ? `<model-viewer id="mv" alt="${esc(h.name)}标本"
+                camera-controls ar ar-modes="webxr quick-look"
+                ios-src="models/${h.model}.usdz"
+                ar-scale="auto" environment-image="neutral" tone-mapping="neutral"
+                exposure="1.12" shadow-intensity="0.35" shadow-softness="1"
+                camera-orbit="0deg 78deg auto" min-camera-orbit="auto 45deg auto"
+                max-camera-orbit="auto 100deg auto" min-field-of-view="18deg" max-field-of-view="45deg"
+                interaction-prompt="none" touch-action="pan-y" loading="lazy"></model-viewer>
+             <div class="paper-cast"></div>
+             <div class="ar-slot" hidden><button class="seal-btn" id="btnAR">实景 AR</button></div>`
+          : `<div class="plate">
+               ${inkPlate(codexHerb)}
+               <span class="tag">墨线图谱</span>
+             </div>
+             <div class="paper-cast"></div>`}
+      </div>
+      <div class="load-bar" id="loadBar" ${hasModel ? '' : 'hidden'}><i id="loadFill"></i></div>
+      <div class="load-txt" id="loadTxt">${hasModel ? '正在展开图页…' : '此味暂无 3D 标本，以墨线图谱代之'}</div>
+    </div>
+
+    <div class="card">
+      <h2>${esc(h.name)}</h2>
+      <div class="hint" style="font-style:italic">${esc(c.latin)} · ${esc(c.family)}</div>
+      <dl class="kv">
+        <dt>功效</dt><dd>${h.efficacy.join('、')}</dd>
+        <dt>宜种</dt><dd>${esc(h.zone)}区</dd>
+        <dt>生境</dt><dd>${esc(c.habitat)}</dd>
+        <dt>成分</dt><dd>${esc(c.parts)}</dd>
+        <dt>药性</dt><dd>${esc(c.med)}</dd>
+        <dt>典故</dt><dd>${esc(c.lore)}</dd>
+      </dl>
+      <div class="sep"></div>
+      <div class="hint">香气取向（0–10）：${AROMA_AXES.map(a => `${a} ${h.aroma[a]}`).join(' · ')}</div>
+    </div>` : `
+    <div class="card">
+      <h2>尚未识得</h2>
+      <div class="hint">去「读古籍」辨出这味香草，即可解锁它的形态、产地、成分、药性与典故。</div>
+    </div>`}
+  `;
+
+  $('btnBack').onclick = () => go('hub');
+  $('codexTabs').querySelectorAll('[data-h]').forEach(b => {
+    b.onclick = () => { codexHerb = b.dataset.h; renderCodex(); };
+  });
+
+  if(known && hasModel) initModelViewer(h);
+}
+
+/* 墨线图谱占位（无 3D 模型时） */
+function inkPlate(herbId){
+  const shapes = {
+    peilan:`<svg viewBox="0 0 200 200" fill="none" stroke="#5a4a36" stroke-width="1.6">
+      <path d="M100 170 C100 130 100 90 100 46"/>
+      <path d="M100 132 C78 122 62 104 56 84 C80 86 96 100 100 118"/>
+      <path d="M100 132 C122 122 138 104 144 84 C120 86 104 100 100 118"/>
+      <path d="M100 100 C80 92 66 76 62 58 C84 60 98 72 100 88"/>
+      <path d="M100 100 C120 92 134 76 138 58 C116 60 102 72 100 88"/>
+      <circle cx="100" cy="40" r="7"/>
+    </svg>`,
+    baizhi:`<svg viewBox="0 0 200 200" fill="none" stroke="#5a4a36" stroke-width="1.6">
+      <path d="M100 172 C96 140 96 110 100 82"/>
+      <path d="M100 82 C74 74 56 54 50 30 C78 36 94 54 100 72"/>
+      <path d="M100 82 C126 74 144 54 150 30 C122 36 106 54 100 72"/>
+      <path d="M100 118 C80 112 64 96 58 78 C80 82 94 96 100 110"/>
+      <path d="M100 118 C120 112 136 96 142 78 C120 82 106 96 100 110"/>
+      <ellipse cx="100" cy="180" rx="16" ry="7"/>
+    </svg>`
+  };
+  return shapes[herbId] || `<svg viewBox="0 0 200 200" fill="none" stroke="#5a4a36" stroke-width="1.6">
+    <path d="M100 170 C100 130 100 90 100 50"/><circle cx="100" cy="44" r="7"/></svg>`;
+}
+
+async function initModelViewer(h){
+  const mv = $('mv');
+  if(!mv) return;
+  try{
+    const MV = await import('./shared/model-viewer.min.js');
+    const MVE = MV.ModelViewerElement || MV.default;
+    if(MVE) MVE.dracoDecoderLocation = 'shared/draco/';
+  }catch(e){ toast('3D 组件加载失败'); return; }
+
+  const PRIMARY = `models/${h.model}.glb`;
+  const FALLBACK = `https://cdn.jsdelivr.net/gh/ruijiangyoumeile/spice3d@main/${h.model}/models/${h.model}.glb`;
+  const fill = $('loadFill'), txt = $('loadTxt');
+  let switched = false;
+  let loaded = false;
+
+  mv.addEventListener('progress', e => {
+    if(!fill || loaded) return;   // 已加载完成后不再被 progress 覆盖文案
+    const p = e.detail && e.detail.totalProgress;
+    if(typeof p === 'number' && p > 0){
+      fill.style.width = Math.round(p * 100) + '%';
+      if(txt) txt.textContent = `正在展开图页… 已展 ${Math.round(p * 100)}%`;
+    }
+  });
+  mv.addEventListener('load', () => {
+    loaded = true;
+    if(fill) fill.style.width = '100%';
+    if(txt) txt.textContent = '图页已展 · 可拖动旋转';
+    const slot = document.querySelector('.ar-slot');
+    if(slot) slot.hidden = false;
+  });
+  mv.addEventListener('error', () => {
+    if(!switched){ switched = true; mv.setAttribute('src', FALLBACK); return; }
+    if(txt) txt.textContent = '图页加载失败，请检查 models 目录';
+    toast('3D 标本加载失败');
+  });
+
+  mv.setAttribute('src', PRIMARY);
+
+  /* 4 秒无进度则切备用通道 */
+  const watchdog = setTimeout(() => {
+    const w = parseFloat(fill && fill.style.width) || 0;
+    if(w < 8){ switched = true; mv.setAttribute('src', FALLBACK); }
+  }, 4000);
+  mv.addEventListener('load', () => clearTimeout(watchdog), { once:true });
+
+  if(window.initSpiceAR){
+    window.initSpiceAR({
+      viewer: mv,
+      primary: PRIMARY,
+      usdz: `models/${h.model}.usdz`,
+      restoreShadow: '0.35',
+      toast: toast,
+      host: $('modelStage'),
+      els:{
+        btnAR: $('btnAR'), arSheet: $('arSheet'), arBrowser: $('arBrowser'),
+        arLaunch: $('arLaunch'), arAdvice: $('arAdvice'), arCopy: $('arCopy'),
+        arClose: $('arClose'), arScene: $('arScene'),
+        camAR: $('camAR'), camVideo: $('camVideo'), camStage: $('camStage'), camExit: $('camExit')
+      }
+    });
+  }
+}
+
+/* 离开香草志时释放显存 */
+function releaseViewer(){
+  const mv = $('mv');
+  if(mv){ mv.removeAttribute('src'); }
+}
+
+/* ============================================================
+   =11 BOOT
+   ============================================================ */
+$('btnReset').onclick = () => {
+  if(!confirm('清空存档，从头开始？')) return;
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
+  studyCardId = null; studyAnswered = false; ledgerAll = false;
+  go('hub');
+};
+
+window.addEventListener('hashchange', () => {
+  const s = SCREEN_OF[location.hash];
+  if(s && s !== state.screen){ state.screen = s; save(); render(); }
+});
+
+/* 首次进入给一句引导 */
+if(!state.settings.seenIntro){ state.settings.seenIntro = true; save(); }
+
+const boot = SCREEN_OF[location.hash] || state.screen || 'hub';
+state.screen = boot;
+if(location.hash !== HASH_OF[boot]) location.hash = HASH_OF[boot];
+render();
+</script>
+</body>
+</html>
