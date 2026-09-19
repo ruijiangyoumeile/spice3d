@@ -496,7 +496,7 @@ const CARD_COST = 8;
 const KEY = 'spiceGame_v1';
 
 const DEFAULT_STATE = {
-  v:1, money:15, day:1, screen:'hub',
+  v:1, money:32, day:1, screen:'hub',
   seeds:{ aicao:1, peilan:0, baizhi:0, bohe:0 },
   plants:[],
   inventory:{},
@@ -809,8 +809,13 @@ function renderHub(){
       ${state.settings.seenIntro ? '' : `
       <div class="sep"></div>
       <div class="hint" style="color:var(--seal)">
-        开局提示：先去「读古籍」，辨出香草即得种子；种子入「药圃」种下，成熟后可在「香室」配伍。
+        开局提示：开局 32 钱，正好买齐四张古籍卡，集齐四味香草。<br/>
+        先去「读古籍」辨认香草得种子 → 到「药圃」择地种下 → 「过一日」催熟后收获 → 在「香室」配伍出售。
       </div>`}
+      <div class="sep"></div>
+      <div class="hint">
+        配伍不必凑满四味：<b>单味也能成方出售</b>，只是分数低、卖价少。缺钱时可先卖一单，再买古籍。
+      </div>
       ${royalUnlocked && !state.orders.royal.unlocked ? `
       <div class="sep"></div>
       <div class="row">
@@ -856,6 +861,10 @@ function renderHub(){
    ============================================================ */
 function renderStudy(){
   const remain = ANCIENT_CARDS.filter(c => state.readCards.indexOf(c.id) < 0);
+  /* 优先出「尚未识得」香草的卡，保证逐步集齐四味；
+     读尽后允许重读，否则拿不到新种子会锁死循环 */
+  const fresh = remain.filter(c => !state.known[c.herb]);
+  const pool = fresh.length ? fresh : (remain.length ? remain : ANCIENT_CARDS);
   const card = studyCardId ? ANCIENT_CARDS.find(c => c.id === studyCardId) : null;
 
   if(!card){
@@ -868,8 +877,8 @@ function renderStudy(){
         </div>
         <div class="sep"></div>
         <div class="row">
-          <button class="btn primary" id="btnBuy" ${state.money < CARD_COST || !remain.length ? 'disabled' : ''}>购一张古籍卡（${CARD_COST} 钱）</button>
-          <span class="hint">${remain.length ? `尚有 ${remain.length} 张未读` : '古籍已尽数读过'} · 现有 ${state.money} 钱</span>
+          <button class="btn primary" id="btnBuy" ${state.money < CARD_COST ? 'disabled' : ''}>购一张古籍卡（${CARD_COST} 钱）</button>
+          <span class="hint">${remain.length ? `尚有 ${remain.length} 张未读` : '古籍已尽数读过，可重读（同样得种子）'} · 现有 ${state.money} 钱</span>
         </div>
       </div>
       ${state.readCards.length ? `
@@ -888,8 +897,7 @@ function renderStudy(){
     const bb = $('btnBuy');
     if(bb) bb.onclick = () => {
       if(state.money < CARD_COST) return toast('钱不够了，先去香室卖一方香');
-      if(!remain.length) return toast('古籍已尽数读过');
-      const pick = remain[Math.floor(Math.random() * remain.length)];
+      const pick = pool[Math.floor(Math.random() * pool.length)];
       mutate(s => { s.money -= CARD_COST; });
       studyCardId = pick.id; studyAnswered = false;
       renderStudy();
@@ -901,7 +909,7 @@ function renderStudy(){
   $('sc-study').innerHTML = `
     <div class="card flat" style="padding:14px 16px">
       <div class="row">
-        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <button class="btn sm ghost" id="btnBackStudy">← 回到书斋</button>
         <div class="spacer"></div>
         <span class="hint">${esc(card.src)}</span>
       </div>
@@ -922,7 +930,7 @@ function renderStudy(){
     </div>
   `;
 
-  $('btnBack').onclick = () => { studyCardId = null; go('hub'); };
+  $('btnBackStudy').onclick = () => { studyCardId = null; go('hub'); };
   $('optGrid').querySelectorAll('[data-h]').forEach(b => {
     b.onclick = () => answerStudy(card, b.dataset.h);
   });
@@ -958,7 +966,7 @@ function answerStudy(card, pick){
       <div class="sep"></div>
       <div class="row">
         <button class="btn primary sm" id="btnToGarden">去药圃种下</button>
-        <button class="btn ghost sm" id="btnAgain">再读一张</button>
+        <button class="btn ghost sm" data-again>再读一张</button>
       </div>
     </div>` : `
     <div class="card flat" style="margin:0;border-color:var(--bad)">
@@ -968,12 +976,14 @@ function answerStudy(card, pick){
       </div>
       <div class="sep"></div>
       <div class="row">
-        <button class="btn sm" id="btnAgain">再读一张</button>
+        <button class="btn sm" data-again>再读一张</button>
       </div>
     </div>`;
 
   const g = $('btnToGarden'); if(g) g.onclick = () => { studyCardId = null; go('garden'); };
-  const a = $('btnAgain'); if(a) a.onclick = () => { studyCardId = null; renderStudy(); };
+  $('studyFb').querySelectorAll('[data-again]').forEach(b => {
+    b.onclick = () => { studyCardId = null; renderStudy(); };
+  });
 }
 
 /* ============================================================
@@ -995,7 +1005,7 @@ function renderGarden(){
       </div>
       <div class="sep"></div>
       <div class="row" style="margin-bottom:12px">
-        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <button class="btn sm ghost" id="btnBackGarden">← 回到书斋</button>
         <div class="spacer"></div>
         <span class="hint">${hasSeeds ? `可选种子 ${seeds.length} 种` : '暂无种子，先去读古籍'}</span>
       </div>
@@ -1028,7 +1038,7 @@ function renderGarden(){
     </div>
   `;
 
-  $('btnBack').onclick = () => go('hub');
+  $('btnBackGarden').onclick = () => go('hub');
 
   let selZone = null;
   $('zoneGrid').querySelectorAll('[data-z]').forEach(b => {
@@ -1113,7 +1123,7 @@ function renderBlend(){
   $('sc-blend').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
-        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <button class="btn sm ghost" id="btnBackBlend">← 回到书斋</button>
         <div class="spacer"></div>
         <span class="hint">合香台 · 君臣佐使</span>
       </div>
@@ -1167,7 +1177,7 @@ function renderBlend(){
           <div class="inv" id="invRow">
             ${inv.length ? inv.map(k => `
               <button class="inv-item" data-inv="${k}">${esc(HERBS[k].name)} <span class="q">×${state.inventory[k]}</span></button>
-            `).join('') : '<span class="hint">库存空空，先去药圃收获。</span>'}
+            `).join('') : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>'}
           </div>
           <div class="hint" style="margin-top:10px">
             点香草放入「${blendSel}位」；同一味不可重复入方。再点已占用的槽位可替换。
@@ -1192,7 +1202,7 @@ function renderBlend(){
     </div>
   `;
 
-  $('btnBack').onclick = () => go('hub');
+  $('btnBackBlend').onclick = () => go('hub');
   $('sc-blend').querySelectorAll('[data-order]').forEach(b => {
     b.onclick = () => { blendOrderId = b.dataset.order; ledgerAll = false; renderBlend(); };
   });
@@ -1370,7 +1380,7 @@ function renderCodex(){
   $('sc-codex').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
-        <button class="btn sm ghost" id="btnBack">← 回到书斋</button>
+        <button class="btn sm ghost" id="btnBackCodex">← 回到书斋</button>
         <div class="spacer"></div>
         <span class="hint">香草志 · 已识 ${Object.keys(state.known).filter(k => state.known[k]).length} / 4</span>
       </div>
@@ -1426,7 +1436,7 @@ function renderCodex(){
     </div>`}
   `;
 
-  $('btnBack').onclick = () => go('hub');
+  $('btnBackCodex').onclick = () => go('hub');
   $('codexTabs').querySelectorAll('[data-h]').forEach(b => {
     b.onclick = () => { codexHerb = b.dataset.h; renderCodex(); };
   });
