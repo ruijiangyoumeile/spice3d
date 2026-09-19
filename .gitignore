@@ -1,0 +1,5 @@
+# 构建/验证脚本与临时产物，不进站点仓库
+.tools/
+.skills/
+_hunyuan_raw/
+*.ps1
