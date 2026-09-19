@@ -14,16 +14,21 @@
    ============================================================ */
 :root{
   --paper:#f1ead6;
+  --paper-hi:#fffdf6;
   --paper-2:#e9e0c8;
   --paper-3:#e2d8bd;
-  --ink:#3a2e20;
-  --ink-2:#5a4a36;
+  --ink:#332719;
+  --ink-2:#57472f;
   --muted:#6d614d;
   --seal:#a23e2b;
+  --seal-hi:#b84a33;
   --seal-2:#8c3322;
+  --seal-deep:#7c2b1c;
   --seal-soft:rgba(162,62,43,.10);
-  --line:rgba(58,46,32,.22);
-  --line-2:rgba(58,46,32,.12);
+  --gold:#9a7448;
+  --wood:#7d5c34;
+  --line:rgba(51,39,25,.24);
+  --line-2:rgba(51,39,25,.11);
   --good:#4a6b3f;
   --bad:#a23e2b;
   --warn:#83610f;
@@ -31,7 +36,11 @@
   --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
   --sans:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --r:4px;
-  --shadow:0 2px 0 rgba(58,46,32,.07), 0 8px 24px rgba(58,46,32,.07);
+  --ease:cubic-bezier(.22,.8,.3,1);
+  --shadow:0 1px 0 rgba(51,39,25,.05), 0 3px 10px rgba(51,39,25,.06), 0 10px 28px rgba(51,39,25,.08);
+  --shadow-lg:0 2px 0 rgba(51,39,25,.06), 0 8px 18px rgba(51,39,25,.08), 0 18px 40px rgba(51,39,25,.12);
+  /* 朱砂印泥：主按钮/印章的统一渐变 */
+  --cinnabar:linear-gradient(180deg,var(--seal-hi) 0%,var(--seal) 52%,var(--seal-2) 100%);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -49,8 +58,9 @@ body::before{
   background:
     radial-gradient(120% 90% at 50% 0%, rgba(255,252,242,.85), transparent 60%),
     radial-gradient(90% 70% at 50% 100%, rgba(196,178,142,.22), transparent 70%),
-    repeating-linear-gradient(0deg, rgba(58,46,32,.028) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(90deg, rgba(58,46,32,.022) 0 1px, transparent 1px 5px);
+    repeating-linear-gradient(0deg, rgba(51,39,25,.028) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(51,39,25,.022) 0 1px, transparent 1px 5px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ctext x='102' y='152' font-size='168' text-anchor='middle' fill='%23332719' fill-opacity='.045' font-family='KaiTi,STKaiti,serif'%3E%E9%A6%99%3C/text%3E%3C/svg%3E") right -3vmin bottom 0 / 44vmin 44vmin no-repeat;
 }
 body::after{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
@@ -64,11 +74,11 @@ body::after{
 body{caret-color:var(--seal)}
 :focus{outline:none}
 :focus-visible{outline:2px solid var(--seal);outline-offset:2px;border-radius:2px}
-html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
+html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(58,46,32,.26);border-radius:999px;border:3px solid var(--paper);background-clip:content-box}
-::-webkit-scrollbar-thumb:hover{background:rgba(58,46,32,.42);border:3px solid var(--paper);background-clip:content-box}
+::-webkit-scrollbar-thumb{background:rgba(51,39,25,.26);border-radius:999px;border:3px solid var(--paper);background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(51,39,25,.42);border:3px solid var(--paper);background-clip:content-box}
 /* 表格化数字：钱、日、分数、品质跳动时不再左右抖 */
 .chip b,.score-num,.q-tag,.lg-bar,.plot .pm,#uiMoney,#uiDay{font-variant-numeric:tabular-nums}
 
@@ -78,77 +88,115 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
 .topbar{
   position:sticky;top:0;z-index:20;
   display:flex;align-items:center;gap:10px;
-  padding:12px 0 10px;margin-bottom:14px;
-  background:linear-gradient(180deg, var(--paper) 62%, rgba(241,234,214,0));
+  padding:11px 0 9px;margin-bottom:16px;
+  background:linear-gradient(180deg, rgba(241,234,214,.96) 56%, rgba(241,234,214,.78) 78%, rgba(241,234,214,0));
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  border-bottom:1px solid var(--line-2);
 }
-.brand{font-family:var(--kai);font-size:20px;letter-spacing:2px;font-weight:700}
-.brand small{font-family:var(--sans);font-size:11px;color:var(--muted);letter-spacing:1px;margin-left:6px;font-weight:400}
+.brand{font-family:var(--kai);font-size:20px;letter-spacing:2px;font-weight:700;display:flex;align-items:center;gap:9px}
+.brand::before{
+  content:"香";font-family:var(--kai);font-size:15px;color:var(--paper-hi);
+  width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--cinnabar);border-radius:5px;letter-spacing:0;line-height:1;
+  box-shadow:inset 0 0 0 1.5px rgba(247,241,226,.55), 0 2px 5px rgba(124,43,28,.3);
+  transform:rotate(-2.5deg);
+}
+.brand small{font-family:var(--sans);font-size:11px;color:var(--muted);letter-spacing:1px;font-weight:400}
 .spacer{flex:1}
 .chip{
-  font-size:12.5px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;
-  background:rgba(255,253,246,.6);white-space:nowrap;
+  font-size:12.5px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,253,246,.92),rgba(250,245,231,.7));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);white-space:nowrap;
 }
-.chip b{font-family:var(--serif);color:var(--seal);font-size:14px}
+.chip b{font-family:var(--serif);color:var(--seal);font-size:14px;margin-left:2px}
 
 .card{
-  background:linear-gradient(180deg, rgba(255,253,246,.72), rgba(255,253,246,.42));
+  background:
+    linear-gradient(180deg, rgba(255,253,246,.78), rgba(255,253,246,.46));
   border:1px solid var(--line);border-radius:var(--r);
   box-shadow:var(--shadow);
   padding:18px 20px;margin-bottom:14px;position:relative;
 }
+/* 古籍版框：外粗内细双线 */
+.card::after{
+  content:"";position:absolute;inset:4px;border:1px solid var(--line-2);
+  border-radius:2px;pointer-events:none;
+}
 .card.flat{box-shadow:none;background:rgba(255,253,246,.42)}
-.card h2{margin:0 0 10px;font-family:var(--kai);font-size:17px;letter-spacing:1.5px}
-.card h3{margin:14px 0 8px;font-family:var(--kai);font-size:15px;letter-spacing:1px;color:var(--ink-2)}
+.card.flat::after{display:none}
+.card h2{margin:0 0 11px;font-family:var(--kai);font-size:17.5px;letter-spacing:2px;display:flex;align-items:center}
+.card h2::before{
+  content:"";flex:none;width:5px;height:17px;margin-right:10px;border-radius:1px;
+  background:var(--cinnabar);box-shadow:0 1px 2px rgba(124,43,28,.3);
+}
+.card h3{margin:14px 0 8px;font-family:var(--kai);font-size:15px;letter-spacing:1.5px;color:var(--ink-2)}
 
 .btn{
   font-family:var(--sans);font-size:14px;padding:9px 20px;cursor:pointer;
   border:1px solid var(--line);border-radius:var(--r);
-  background:rgba(255,253,246,.8);color:var(--ink);
-  transition:background .18s, transform .18s, box-shadow .18s;
+  background:linear-gradient(180deg,rgba(255,253,246,.95),rgba(247,241,228,.82));color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+  transition:background .18s, transform .18s, box-shadow .18s, border-color .18s;
 }
-.btn:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px);box-shadow:0 3px 0 rgba(58,46,32,.08)}
-.btn:active:not(:disabled){transform:translateY(0);box-shadow:none;background:#f6efdd}
+.btn:hover:not(:disabled){background:var(--paper-hi);transform:translateY(-1px);border-color:rgba(51,39,25,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 0 rgba(51,39,25,.08)}
+.btn:active:not(:disabled){transform:translateY(0);box-shadow:inset 0 1px 3px rgba(51,39,25,.14);background:#f6efdd}
 .btn:disabled{opacity:.42;cursor:not-allowed}
-.btn.primary{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
-.btn.primary:hover:not(:disabled){background:var(--seal-2)}
-.btn.primary:active:not(:disabled){transform:translateY(0);box-shadow:none}
-.btn.ghost{background:transparent}
-.btn.sm{font-size:12.5px;padding:5px 12px}
+.btn.primary{
+  background:var(--cinnabar);border-color:var(--seal-deep);color:#faf3e6;
+  letter-spacing:2px;text-indent:2px;
+  box-shadow:inset 0 1px 0 rgba(255,238,222,.32), inset 0 0 0 1px rgba(124,43,28,.25), 0 3px 8px rgba(124,43,28,.28);
+}
+.btn.primary:hover:not(:disabled){
+  background:linear-gradient(180deg,#c0553d,#a94530 55%,#83301f);
+  box-shadow:inset 0 1px 0 rgba(255,238,222,.38), 0 5px 12px rgba(124,43,28,.32);
+}
+.btn.primary:active:not(:disabled){transform:translateY(0);box-shadow:inset 0 2px 5px rgba(70,22,14,.45)}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.ghost:hover:not(:disabled){box-shadow:0 3px 0 rgba(51,39,25,.08)}
+.btn.sm{font-size:12.5px;padding:6px 13px;letter-spacing:1px}
+.btn.sm.primary{letter-spacing:1px;text-indent:1px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .hint{font-size:12.5px;color:var(--muted);line-height:1.65}
 .sep{height:1px;background:var(--line-2);margin:14px 0}
 
-/* 进度条 */
-.bar{height:8px;background:rgba(58,46,32,.10);border-radius:999px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--seal),#c96a4e);border-radius:999px;transition:width .4s}
+/* 进度条：朱砂色带一道润光 */
+.bar{height:8px;background:rgba(51,39,25,.10);border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(51,39,25,.14)}
+.bar i{display:block;height:100%;width:0;border-radius:999px;transition:width .4s var(--ease);
+  background:linear-gradient(90deg,var(--seal-deep),var(--seal) 45%,#c96a4e);
+  box-shadow:inset 0 1px 0 rgba(255,225,205,.35)}
 
 /* 印章按钮 */
 .seal-btn{
   font-family:var(--kai);writing-mode:vertical-rl;letter-spacing:3px;
   width:52px;height:52px;display:flex;align-items:center;justify-content:center;
-  background:var(--seal);color:#f7f1e2;border:none;border-radius:6px;cursor:pointer;
-  box-shadow:inset 0 0 0 2px rgba(247,241,226,.5);transform:rotate(-3deg);
-  font-size:13px;padding:0;transition:transform .18s;
+  background:var(--cinnabar);color:#f7f1e2;border:1px solid var(--seal-deep);border-radius:6px;cursor:pointer;
+  box-shadow:inset 0 0 0 2px rgba(247,241,226,.5), 0 3px 8px rgba(80,30,18,.3);transform:rotate(-3deg);
+  font-size:13px;padding:0;transition:transform .18s, box-shadow .18s;
 }
-.seal-btn:hover{transform:rotate(0deg) scale(1.04)}
+.seal-btn:hover{transform:rotate(0deg) scale(1.05);box-shadow:inset 0 0 0 2px rgba(247,241,226,.55),0 5px 14px rgba(80,30,18,.38)}
 
-/* toast */
+/* toast：墨底衔朱印 */
 #toast{
   position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
-  background:rgba(58,46,32,.93);color:#f7f1e2;font-size:13.5px;
-  padding:10px 20px;border-radius:999px;z-index:200;display:none;max-width:88vw;text-align:center;
+  background:linear-gradient(180deg,rgba(62,48,32,.96),rgba(44,33,21,.96));color:#f7f1e2;font-size:13.5px;
+  padding:10px 20px 10px 16px;border-radius:999px;z-index:200;display:none;max-width:88vw;text-align:center;
+  box-shadow:0 8px 26px rgba(40,28,15,.32), inset 0 1px 0 rgba(255,244,228,.12);
+}
+#toast::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:1px;background:var(--seal-hi);
+  margin-right:9px;vertical-align:1px;transform:rotate(45deg);
 }
 
 /* 弹层（不用 <dialog>，遵循既有约定） */
 .sheet{
   position:fixed;inset:0;z-index:150;display:flex;align-items:flex-end;justify-content:center;
-  background:rgba(58,46,32,.38);backdrop-filter:blur(3px);padding:0;
+  background:rgba(51,39,25,.38);backdrop-filter:blur(3px);padding:0;
 }
 .sheet[hidden]{display:none}
 .sheet-inner{
   background:var(--paper);border:1px solid var(--line);border-bottom:none;
   border-radius:10px 10px 0 0;width:100%;max-width:560px;
-  padding:20px 22px 26px;box-shadow:0 -6px 30px rgba(58,46,32,.22);
+  padding:20px 22px 26px;box-shadow:0 -6px 30px rgba(51,39,25,.22);
   max-height:86vh;overflow:auto;
 }
 .sheet h3{margin:0 0 12px;font-family:var(--kai);font-size:16px;letter-spacing:1px}
@@ -160,55 +208,106 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
    ============================================================ */
 .stage{position:relative;min-height:60vh}
 .screen{display:none}
-.screen.on{display:block;animation:screenIn .24s ease both}
+.screen.on{display:block;animation:screenIn .28s var(--ease) both}
 @keyframes screenIn{
-  from{opacity:0;transform:translateY(6px)}
+  from{opacity:0;transform:translateY(8px)}
   to{opacity:1;transform:none}
 }
 
 /* ============================================================
    hub · 书斋
    ============================================================ */
-.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:13px;counter-reset:tile}
 .hub-tile{
-  text-align:left;cursor:pointer;padding:16px 16px 14px;
-  background:linear-gradient(180deg, rgba(255,253,246,.75), rgba(255,253,246,.45));
+  position:relative;text-align:left;cursor:pointer;padding:17px 17px 15px;
+  background:
+    linear-gradient(180deg, rgba(255,253,246,.82), rgba(252,246,231,.5));
   border:1px solid var(--line);border-radius:var(--r);
-  box-shadow:var(--shadow);transition:transform .18s, box-shadow .18s;
-  font-family:inherit;color:inherit;
+  box-shadow:var(--shadow);
+  transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s;
+  font-family:inherit;color:inherit;overflow:hidden;
+  animation:tileIn .3s var(--ease) both;
 }
-.hub-tile:hover{transform:translateY(-2px);box-shadow:0 4px 0 rgba(58,46,32,.09),0 12px 28px rgba(58,46,32,.10)}
+/* 内细框：木刻版页感 */
+.hub-tile::before{
+  content:"";position:absolute;inset:4px;border:1px solid var(--line-2);
+  border-radius:2px;pointer-events:none;transition:border-color .2s;
+}
+/* 落印：悬停时右上角钤下一枚小朱印 */
+.hub-tile::after{
+  content:"";position:absolute;top:8px;right:8px;width:11px;height:11px;
+  border:1.5px solid var(--seal);border-radius:2px;background:var(--seal-soft);
+  opacity:0;transform:rotate(-45deg) scale(.5);
+  transition:opacity .22s var(--ease), transform .22s var(--ease);pointer-events:none;
+}
+.hub-tile:hover{transform:translateY(-2px);border-color:rgba(162,62,43,.4);box-shadow:var(--shadow-lg)}
+.hub-tile:hover::before{border-color:rgba(162,62,43,.28)}
+.hub-tile:hover::after{opacity:.85;transform:rotate(0) scale(1)}
 .hub-tile:active{transform:translateY(0);box-shadow:var(--shadow)}
-.hub-tile .t{font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:4px}
-.hub-tile .d{font-size:12.5px;color:var(--muted);line-height:1.6}
+.hub-tile .t{
+  counter-increment:tile;font-family:var(--kai);font-size:16.5px;letter-spacing:2px;
+  margin-bottom:6px;display:flex;align-items:center;
+}
+/* 卷次：壹贰叁… 朱圈小字 */
+.hub-tile .t::before{
+  content:counter(tile,cjk-decimal);flex:none;width:23px;height:23px;margin-right:9px;
+  border:1px solid rgba(162,62,43,.45);border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--seal);background:rgba(255,253,246,.75);letter-spacing:0;
+}
+.hub-tile .d{font-size:12.5px;color:var(--muted);line-height:1.65}
+.hub-tile:nth-child(2){animation-delay:.035s}
+.hub-tile:nth-child(3){animation-delay:.07s}
+.hub-tile:nth-child(4){animation-delay:.105s}
+.hub-tile:nth-child(5){animation-delay:.14s}
+.hub-tile:nth-child(6){animation-delay:.175s}
+@keyframes tileIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
 
 /* ============================================================
    study · 读古籍
    ============================================================ */
 .gj-card{
-  background:linear-gradient(180deg, rgba(255,253,246,.85), rgba(250,245,230,.6));
+  position:relative;overflow:hidden;
+  background:
+    linear-gradient(180deg, rgba(255,253,246,.9), rgba(250,245,230,.62));
   border:1px solid var(--line);outline:1px solid var(--line-2);outline-offset:5px;
-  border-radius:2px;padding:24px 24px 20px;margin-bottom:16px;
+  border-radius:2px;padding:26px 26px 22px;margin-bottom:16px;
+  animation:scrollUnroll .46s var(--ease) both;
+}
+@keyframes scrollUnroll{
+  from{clip-path:inset(0 0 100% 0)}
+  to{clip-path:inset(0 0 0 0)}
+}
+/* 隐于右上角的「典」字水印，如古籍页角暗纹 */
+.gj-card::before{
+  content:"典";position:absolute;top:-14px;right:8px;
+  font-family:var(--kai);font-size:104px;line-height:1;color:var(--ink);
+  opacity:.045;pointer-events:none;user-select:none;
 }
 .gj-quote{
+  position:relative;
   font-family:var(--serif);font-size:17px;line-height:2.1;color:var(--ink);
   letter-spacing:.5px;text-align:justify;
 }
-.gj-quote::before{content:"「";color:var(--seal);font-size:22px}
-.gj-quote::after{content:"」";color:var(--seal);font-size:22px}
+.gj-quote::before{content:"「";color:var(--seal);font-size:23px;font-weight:700;margin-right:2px}
+.gj-quote::after{content:"」";color:var(--seal);font-size:23px;font-weight:700;margin-left:2px}
 .gj-src{font-family:var(--kai);font-size:13px;color:var(--muted);text-align:right;margin-top:10px;letter-spacing:1px}
 .gj-desc{font-size:13.5px;color:var(--ink-2);line-height:1.85;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .opt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
 .opt{
   padding:12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
-  background:rgba(255,253,246,.6);text-align:center;font-family:var(--kai);font-size:15px;letter-spacing:1px;
-  transition:background .18s, border-color .18s, transform .18s;
+  background:linear-gradient(180deg,rgba(255,253,246,.75),rgba(250,245,230,.5));text-align:center;font-family:var(--kai);font-size:15px;letter-spacing:1px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+  transition:background .18s, border-color .18s, transform .18s, box-shadow .18s;
 }
-.opt:hover{background:#fffdf6;transform:translateY(-1px)}
+.opt:hover{background:#fffdf6;transform:translateY(-1px);border-color:rgba(51,39,25,.36);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 3px 0 rgba(51,39,25,.07)}
 .opt:active{transform:translateY(0)}
 .opt.ok{border-color:var(--good);background:rgba(74,107,63,.10);color:var(--good)}
 .opt.no{border-color:var(--bad);background:var(--seal-soft);color:var(--bad)}
-.opt:disabled{cursor:default;transform:none}
+.opt:disabled{cursor:default;transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
 
 /* ============================================================
    garden · 药圃
@@ -291,9 +390,9 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
    ============================================================ */
 .scroll-frame{
   position:relative;background:var(--paper-2);
-  border:1px solid rgba(58,46,32,.28);outline:1px solid rgba(58,46,32,.16);outline-offset:6px;
+  border:1px solid rgba(51,39,25,.28);outline:1px solid rgba(51,39,25,.16);outline-offset:6px;
   border-radius:2px;padding:22px 20px;margin:16px 0;
-  box-shadow:0 2px 0 rgba(58,46,32,.08), inset 0 0 0 1px rgba(255,255,255,.5);
+  box-shadow:0 2px 0 rgba(51,39,25,.08), inset 0 0 0 1px rgba(255,255,255,.5);
 }
 .scroll-frame::before,.scroll-frame::after{
   content:"";position:absolute;left:-6px;right:-6px;height:10px;border-radius:5px;
@@ -303,7 +402,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
 .scroll-frame::after{bottom:-14px}
 .model-stage{
   position:relative;aspect-ratio:4/3;width:100%;
-  background:radial-gradient(60% 55% at 50% 78%, rgba(58,46,32,.10), transparent 70%);
+  background:radial-gradient(60% 55% at 50% 78%, rgba(51,39,25,.10), transparent 70%);
   border-radius:2px;overflow:hidden;
 }
 .model-stage model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
@@ -313,7 +412,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
   position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
   background:linear-gradient(160deg,rgba(241,234,214,.10),rgba(162,62,43,.05));
 }
-.load-bar{width:200px;height:3px;background:rgba(58,46,32,.14);margin:14px auto 6px}
+.load-bar{width:200px;height:3px;background:rgba(51,39,25,.14);margin:14px auto 6px}
 .load-bar i{display:block;height:100%;width:0;background:var(--seal);transition:width .25s ease}
 .load-txt{font-family:var(--kai);font-size:12.5px;color:var(--muted);text-align:center;letter-spacing:1px}
 .ar-slot{position:absolute;right:12px;bottom:12px;z-index:5}
@@ -332,9 +431,13 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
   background:rgba(255,253,246,.55);font-family:var(--kai);font-size:14px;letter-spacing:1px;color:inherit;
   transition:background .18s,border-color .18s;
 }
-.codex-tab:hover{background:#fffdf6}
+.codex-tab{box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.codex-tab:hover{background:#fffdf6;border-color:rgba(51,39,25,.34)}
 .codex-tab:active{transform:translateY(0)}
-.codex-tab.on{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
+.codex-tab.on{
+  background:var(--cinnabar);border-color:var(--seal-deep);color:#faf3e6;letter-spacing:1.5px;
+  box-shadow:inset 0 1px 0 rgba(255,238,222,.3), 0 2px 6px rgba(124,43,28,.26);
+}
 .codex-tab:disabled{opacity:.5;cursor:not-allowed}
 .kv{display:grid;grid-template-columns:76px 1fr;gap:6px 12px;font-size:13.5px;margin-top:12px}
 .kv dt{font-family:var(--kai);color:var(--muted);letter-spacing:1px}
@@ -346,7 +449,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
 .camAR #camStage model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
 .camAR .exit{
   position:absolute;top:16px;right:16px;z-index:5;
-  background:rgba(58,46,32,.72);color:#f7f1e2;border:none;border-radius:999px;
+  background:rgba(51,39,25,.72);color:#f7f1e2;border:none;border-radius:999px;
   padding:8px 18px;font-size:13.5px;cursor:pointer;font-family:inherit;
 }
 
@@ -401,11 +504,16 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
    quiz · 香料问答
    ============================================================ */
 .quiz-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.quiz-dots{display:flex;gap:5px;margin:12px 0 4px}
-.quiz-dot{width:22px;height:5px;border-radius:999px;background:rgba(58,46,32,.14)}
-.quiz-dot.ok{background:var(--good)}
-.quiz-dot.no{background:var(--bad)}
-.quiz-dot.cur{background:var(--seal)}
+.quiz-dots{display:flex;gap:7px;margin:12px 0 4px}
+/* 朱笔圈点：未答为墨圈，当前为朱圈含珠，对错为实心 */
+.quiz-dot{
+  width:13px;height:13px;border-radius:50%;
+  border:1.5px solid rgba(51,39,25,.32);background:transparent;
+  transition:background .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease);
+}
+.quiz-dot.cur{border-color:var(--seal);background:radial-gradient(circle,var(--seal) 0 3.4px,transparent 4px);transform:scale(1.12)}
+.quiz-dot.ok{border-color:var(--good);background:var(--good)}
+.quiz-dot.no{border-color:var(--bad);background:var(--bad)}
 .quiz-q{
   font-family:var(--serif);font-size:16.5px;line-height:2;color:var(--ink);text-align:justify;
 }
@@ -427,7 +535,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
   position:fixed;right:18px;bottom:24px;z-index:190;display:none;max-width:300px;
   background:linear-gradient(180deg,#fffdf6,#f5eeda);
   border:1px solid rgba(162,62,43,.34);border-radius:var(--r);
-  box-shadow:0 6px 26px rgba(58,46,32,.22);padding:12px 15px;
+  box-shadow:0 6px 26px rgba(51,39,25,.22);padding:12px 15px;
 }
 #achPop .ach-pop-t{
   font-family:var(--kai);font-size:13px;letter-spacing:2px;color:var(--seal);margin-bottom:6px;
@@ -544,9 +652,9 @@ const HERBS = {
   aicao:  { name:'艾草', efficacy:['辟秽','祛风'], potency:1.00, zone:'干燥',
             aroma:{辛:6,苦:3,甘:2,温:9,凉:0,香:9}, model:'aicao' },
   peilan: { name:'佩兰', efficacy:['辟秽','和胃'], potency:0.80, zone:'湿润',
-            aroma:{辛:4,苦:2,甘:4,温:3,凉:3,香:8}, model:null },
+            aroma:{辛:4,苦:2,甘:4,温:3,凉:3,香:8}, model:'peilan' },
   baizhi: { name:'白芷', efficacy:['祛风','辟秽'], potency:1.15, zone:'半阴',
-            aroma:{辛:9,苦:3,甘:1,温:6,凉:1,香:7}, model:null },
+            aroma:{辛:9,苦:3,甘:1,温:6,凉:1,香:7}, model:'baizhi' },
   bohe:   { name:'薄荷', efficacy:['疏肝','清凉'], potency:0.85, zone:'湿润',
             aroma:{辛:8,苦:1,甘:2,温:0,凉:10,香:6}, model:'bohe' }
 };
@@ -677,7 +785,7 @@ const SLOT_NAMES = ['君','臣','佐','使'];
 const SLOT_W = { 君:1.0, 臣:0.75, 佐:0.5, 使:0.3 };
 const CARD_COST = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '1.5';
+const BUILD = '1.6';
 
 /* ============================================================
    =3 STORE
@@ -829,7 +937,7 @@ function starsOf(total){
 }
 function starHtml(n){
   let s = '';
-  for(let i = 0; i < 3; i++) s += `<span style="color:${i < n ? 'var(--seal)' : 'rgba(58,46,32,.18)'}">★</span>`;
+  for(let i = 0; i < 3; i++) s += `<span style="color:${i < n ? 'var(--seal)' : 'rgba(51,39,25,.18)'}">★</span>`;
   return s;
 }
 
@@ -1883,11 +1991,18 @@ function drawWheel(aroma, target){
 
   let g = '';
   [0.25, 0.5, 0.75, 1].forEach(k => {
-    g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, k)))}" fill="none" stroke="rgba(58,46,32,.13)" stroke-width="1"/>`;
+    g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, k)))}" fill="none" stroke="rgba(51,39,25,.13)" stroke-width="1"/>`;
   });
   AROMA_AXES.forEach((_, i) => {
     const [x, y] = pt(i, 1);
-    g += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(58,46,32,.13)" stroke-width="1"/>`;
+    g += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(51,39,25,.13)" stroke-width="1"/>`;
+  });
+  /* 罗盘式外框：双环 + 六向轴点 */
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(51,39,25,.3)" stroke-width="1.2"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R + 5.5}" fill="none" stroke="rgba(51,39,25,.10)" stroke-width="1"/>`;
+  AROMA_AXES.forEach((_, i) => {
+    const [x, y] = pt(i, 1);
+    g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.1" fill="#a23e2b" fill-opacity=".5"/>`;
   });
 
   const tVals = AROMA_AXES.map(a => Math.min(1, (target[a] || 0) / 10));
@@ -1901,7 +2016,7 @@ function drawWheel(aroma, target){
     const [x, y] = pt(i, vals[i]);
     g += `<circle class="wheel-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${anyAroma && vals[i] > 0 ? 4 : 2.4}" fill="#a23e2b"/>`;
     const [lx, ly] = pt(i, 1.16);
-    g += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-family="KaiTi,STKaiti,serif" fill="rgba(58,46,32,.72)">${a}</text>`;
+    g += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-family="KaiTi,STKaiti,serif" fill="rgba(51,39,25,.72)">${a}</text>`;
   });
 
   let centerTxt = '', centerSub = '';
@@ -1912,10 +2027,10 @@ function drawWheel(aroma, target){
     const purity = vals[mi] / sum;
     centerTxt = AROMA_AXES[mi];
     centerSub = purity > 0.45 ? '一味独大' : '尚匀';
-    g += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(255,253,246,.72)" stroke="${purity > 0.45 ? '#a23e2b' : 'rgba(58,46,32,.2)'}" stroke-width="1.2"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(255,253,246,.72)" stroke="${purity > 0.45 ? '#a23e2b' : 'rgba(51,39,25,.2)'}" stroke-width="1.2"/>`;
   }
-  g += `<text class="wheel-center" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="20" fill="${anyAroma ? '#a23e2b' : 'rgba(58,46,32,.3)'}">${centerTxt || '—'}</text>`;
-  if(centerSub) g += `<text x="${cx}" y="${cy + 17}" text-anchor="middle" font-size="10.5" fill="rgba(58,46,32,.6)">${centerSub}</text>`;
+  g += `<text class="wheel-center" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="20" fill="${anyAroma ? '#a23e2b' : 'rgba(51,39,25,.3)'}">${centerTxt || '—'}</text>`;
+  if(centerSub) g += `<text x="${cx}" y="${cy + 17}" text-anchor="middle" font-size="10.5" fill="rgba(51,39,25,.6)">${centerSub}</text>`;
 
   g = `<g class="wheel-layer">${g}</g>`;
   $('wheel').innerHTML = g;
