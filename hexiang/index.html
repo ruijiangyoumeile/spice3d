@@ -767,6 +767,8 @@ function go(screen){
 function render(){
   $('uiMoney').textContent = state.money;
   $('uiDay').textContent = state.day;
+  /* 离开香草志时释放 3D 显存 */
+  if(state.screen !== 'codex') releaseViewer();
   SCREENS.forEach(s => {
     const el = $('sc-' + s);
     el.classList.toggle('on', s === state.screen);
@@ -1484,7 +1486,7 @@ async function initModelViewer(h){
   let loaded = false;
 
   mv.addEventListener('progress', e => {
-    if(!fill || loaded) return;   // 已加载完成后不再被 progress 覆盖文案
+    if(!fill || loaded || mv.dataset.released) return;   // 已加载完成或已释放时不再更新
     const p = e.detail && e.detail.totalProgress;
     if(typeof p === 'number' && p > 0){
       fill.style.width = Math.round(p * 100) + '%';
@@ -1492,13 +1494,15 @@ async function initModelViewer(h){
     }
   });
   mv.addEventListener('load', () => {
+    if(mv.dataset.released) return;
     loaded = true;
     if(fill) fill.style.width = '100%';
     if(txt) txt.textContent = '图页已展 · 可拖动旋转';
-    const slot = document.querySelector('.ar-slot');
+    const slot = $('modelStage')?.querySelector('.ar-slot');
     if(slot) slot.hidden = false;
   });
   mv.addEventListener('error', () => {
+    if(mv.dataset.released) return;   // 主动释放导致的 error，不切备用通道
     if(!switched){ switched = true; mv.setAttribute('src', FALLBACK); return; }
     if(txt) txt.textContent = '图页加载失败，请检查 models 目录';
     toast('3D 标本加载失败');
@@ -1508,6 +1512,7 @@ async function initModelViewer(h){
 
   /* 4 秒无进度则切备用通道 */
   const watchdog = setTimeout(() => {
+    if(mv.dataset.released) return;
     const w = parseFloat(fill && fill.style.width) || 0;
     if(w < 8){ switched = true; mv.setAttribute('src', FALLBACK); }
   }, 4000);
@@ -1531,10 +1536,10 @@ async function initModelViewer(h){
   }
 }
 
-/* 离开香草志时释放显存 */
+/* 离开香草志时释放显存。标记 released，避免清 src 触发的 error 又去拉备用通道 */
 function releaseViewer(){
   const mv = $('mv');
-  if(mv){ mv.removeAttribute('src'); }
+  if(mv && mv.getAttribute('src')){ mv.dataset.released = '1'; mv.removeAttribute('src'); }
 }
 
 /* ============================================================
