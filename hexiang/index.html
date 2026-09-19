@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f1ead6">
 <title>香料博物馆 · 合香</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23a23e2b'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23f7f1e2' font-family='KaiTi,STKaiti,serif'%3E%E9%A6%99%3C/text%3E%3C/svg%3E">
 <link rel="modulepreload" href="shared/model-viewer.min.js">
+<script src="shared/ar-launcher.js" defer></script>
 <style>
 /* ============================================================
    =1 设计令牌 · 古籍插画风（宣纸底 + 墨线 + 淡彩）
@@ -16,7 +18,7 @@
   --paper-3:#e2d8bd;
   --ink:#3a2e20;
   --ink-2:#5a4a36;
-  --muted:#7a6f5b;
+  --muted:#6d614d;
   --seal:#a23e2b;
   --seal-2:#8c3322;
   --seal-soft:rgba(162,62,43,.10);
@@ -24,7 +26,7 @@
   --line-2:rgba(58,46,32,.12);
   --good:#4a6b3f;
   --bad:#a23e2b;
-  --warn:#9a7420;
+  --warn:#83610f;
   --kai:"KaiTi","STKaiti","Kaiti SC",serif;
   --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
   --sans:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -56,6 +58,19 @@ body::after{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .wrap{position:relative;z-index:2;max-width:940px;margin:0 auto;padding:0 18px 90px}
+
+/* 浏览器默认面也入设计：选区 / 光标 / 滚动条 / focus */
+::selection{background:rgba(162,62,43,.18);color:var(--ink)}
+body{caret-color:var(--seal)}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--seal);outline-offset:2px;border-radius:2px}
+html{scrollbar-width:thin;scrollbar-color:rgba(58,46,32,.32) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(58,46,32,.26);border-radius:999px;border:3px solid var(--paper);background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(58,46,32,.42);border:3px solid var(--paper);background-clip:content-box}
+/* 表格化数字：钱、日、分数、品质跳动时不再左右抖 */
+.chip b,.score-num,.q-tag,.lg-bar,.plot .pm,#uiMoney,#uiDay{font-variant-numeric:tabular-nums}
 
 /* ============================================================
    通用组件
@@ -92,9 +107,11 @@ body::after{
   transition:background .18s, transform .18s, box-shadow .18s;
 }
 .btn:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px);box-shadow:0 3px 0 rgba(58,46,32,.08)}
+.btn:active:not(:disabled){transform:translateY(0);box-shadow:none;background:#f6efdd}
 .btn:disabled{opacity:.42;cursor:not-allowed}
 .btn.primary{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
 .btn.primary:hover:not(:disabled){background:var(--seal-2)}
+.btn.primary:active:not(:disabled){transform:translateY(0);box-shadow:none}
 .btn.ghost{background:transparent}
 .btn.sm{font-size:12.5px;padding:5px 12px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -142,8 +159,12 @@ body::after{
    屏幕与过渡
    ============================================================ */
 .stage{position:relative;min-height:60vh}
-.screen{display:none;opacity:0;transform:translateY(6px);transition:opacity .22s ease, transform .22s ease}
-.screen.on{display:block;opacity:1;transform:none}
+.screen{display:none}
+.screen.on{display:block;animation:screenIn .24s ease both}
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
 
 /* ============================================================
    hub · 书斋
@@ -157,13 +178,9 @@ body::after{
   font-family:inherit;color:inherit;
 }
 .hub-tile:hover{transform:translateY(-2px);box-shadow:0 4px 0 rgba(58,46,32,.09),0 12px 28px rgba(58,46,32,.10)}
+.hub-tile:active{transform:translateY(0);box-shadow:var(--shadow)}
 .hub-tile .t{font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:4px}
 .hub-tile .d{font-size:12.5px;color:var(--muted);line-height:1.6}
-.hub-tile .n{position:absolute}
-.badge{
-  display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;
-  background:var(--seal-soft);color:var(--seal);border:1px solid rgba(162,62,43,.24);margin-left:6px;
-}
 
 /* ============================================================
    study · 读古籍
@@ -188,6 +205,7 @@ body::after{
   transition:background .18s, border-color .18s, transform .18s;
 }
 .opt:hover{background:#fffdf6;transform:translateY(-1px)}
+.opt:active{transform:translateY(0)}
 .opt.ok{border-color:var(--good);background:rgba(74,107,63,.10);color:var(--good)}
 .opt.no{border-color:var(--bad);background:var(--seal-soft);color:var(--bad)}
 .opt:disabled{cursor:default;transform:none}
@@ -202,8 +220,10 @@ body::after{
   transition:background .18s, border-color .18s, transform .18s;
 }
 .zone:hover{background:#fffdf6;transform:translateY(-1px)}
+.zone:active{transform:translateY(0)}
 .zone.sel{border-color:var(--seal);background:var(--seal-soft)}
-.zone .zi{font-size:22px;display:block;margin-bottom:4px}
+.zone .zi{display:block;margin-bottom:4px;color:var(--ink-2)}
+.zone .zi svg{width:24px;height:24px;display:block;margin:0 auto}
 .zone .zn{font-family:var(--kai);font-size:15px;letter-spacing:1.5px;display:block}
 .zone .zd{font-size:11.5px;color:var(--muted);display:block;margin-top:3px}
 .plot{
@@ -228,9 +248,11 @@ body::after{
 }
 .slot:hover{background:rgba(255,253,246,.8)}
 .slot.filled{border-style:solid;border-color:var(--line);background:linear-gradient(180deg,rgba(255,253,246,.85),rgba(250,245,230,.6))}
+.slot.lack{border-style:solid;border-color:var(--seal);background:var(--seal-soft)}
 .slot .sr{font-family:var(--kai);font-size:11.5px;color:var(--muted);letter-spacing:2px}
 .slot .sh{font-family:var(--kai);font-size:15px;letter-spacing:1px}
-.slot .sq{font-size:10.5px;color:var(--muted)}
+.slot .sq{font-size:11.5px;color:var(--muted)}
+.slot.lack .sq{color:var(--seal)}
 .slot.sel{border-color:var(--seal);box-shadow:0 0 0 2px var(--seal-soft)}
 .inv{display:flex;gap:8px;flex-wrap:wrap}
 .inv-item{
@@ -239,6 +261,7 @@ body::after{
   transition:background .18s,transform .18s;
 }
 .inv-item:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px)}
+.inv-item:active:not(:disabled){transform:translateY(0)}
 .inv-item:disabled{opacity:.35;cursor:not-allowed}
 .inv-item .q{font-size:11px;color:var(--muted);margin-left:4px}
 
@@ -310,8 +333,9 @@ body::after{
   transition:background .18s,border-color .18s;
 }
 .codex-tab:hover{background:#fffdf6}
+.codex-tab:active{transform:translateY(0)}
 .codex-tab.on{background:var(--seal);border-color:var(--seal-2);color:#f7f1e2}
-.codex-tab:disabled{opacity:.38;cursor:not-allowed}
+.codex-tab:disabled{opacity:.5;cursor:not-allowed}
 .kv{display:grid;grid-template-columns:76px 1fr;gap:6px 12px;font-size:13.5px;margin-top:12px}
 .kv dt{font-family:var(--kai);color:var(--muted);letter-spacing:1px}
 .kv dd{margin:0;color:var(--ink);line-height:1.75}
@@ -330,18 +354,28 @@ body::after{
    garden · 气候与走商
    ============================================================ */
 .wx{
-  display:flex;align-items:flex-start;gap:12px;padding:12px 14px;margin-bottom:12px;
-  border:1px solid var(--line);border-left:3px solid var(--seal);border-radius:var(--r);
+  display:flex;align-items:flex-start;gap:12px;padding:13px 15px;margin-bottom:12px;
+  border:1px solid var(--line);border-radius:var(--r);
   background:linear-gradient(180deg, rgba(255,253,246,.8), rgba(255,253,246,.45));
 }
-.wx-icon{font-size:22px;line-height:1.2}
+.wx-ic{
+  flex:none;width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--line-2);background:rgba(255,253,246,.7);
+  display:flex;align-items:center;justify-content:center;color:var(--ink-2);
+}
+.wx-ic svg{width:22px;height:22px;display:block}
+.wx-ic.is-bad{color:var(--seal);border-color:rgba(162,62,43,.35);background:var(--seal-soft)}
+.chip .wx-ic{width:auto;height:auto;border:none;background:none;display:inline-flex;margin-right:3px}
+.chip .wx-ic svg{width:14px;height:14px;vertical-align:-2px}
+.wx-now svg{width:15px;height:15px;vertical-align:-2px;margin-right:1px}
 .wx-name{font-family:var(--kai);font-size:15px;letter-spacing:1.5px}
 .wx-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .wx-tag{
   font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;
+  font-variant-numeric:tabular-nums;
 }
 .trade{
-  border:1px solid rgba(162,62,43,.32);border-left:3px solid var(--seal);
+  border:1px solid rgba(162,62,43,.32);
   background:linear-gradient(180deg, rgba(162,62,43,.07), rgba(255,253,246,.5));
 }
 .log-item{font-size:12.5px;color:var(--ink-2);padding:4px 0;border-bottom:1px dashed var(--line-2)}
@@ -360,7 +394,7 @@ body::after{
 .ach .an{font-family:var(--kai);font-size:14.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px}
 .ach .ad{font-size:12px;color:var(--muted);line-height:1.6;margin-top:3px}
 .ach .ar{font-size:11.5px;margin-top:5px}
-.ach.off{opacity:.55}
+.ach.off{opacity:.85}
 .ach.off .an{color:var(--muted)}
 
 /* ============================================================
@@ -382,6 +416,7 @@ body::after{
   transition:background .18s,border-color .18s,transform .18s;
 }
 .quiz-opt:hover:not(:disabled){background:#fffdf6;transform:translateY(-1px)}
+.quiz-opt:active:not(:disabled){transform:translateY(0)}
 .quiz-opt:disabled{cursor:default;transform:none}
 .quiz-opt.ok{border-color:var(--good);background:rgba(74,107,63,.10);color:var(--good)}
 .quiz-opt.no{border-color:var(--bad);background:var(--seal-soft);color:var(--bad)}
@@ -391,11 +426,15 @@ body::after{
 #achPop{
   position:fixed;right:18px;bottom:24px;z-index:190;display:none;max-width:300px;
   background:linear-gradient(180deg,#fffdf6,#f5eeda);
-  border:1px solid rgba(162,62,43,.34);border-left:3px solid var(--seal);border-radius:var(--r);
+  border:1px solid rgba(162,62,43,.34);border-radius:var(--r);
   box-shadow:0 6px 26px rgba(58,46,32,.22);padding:12px 15px;
 }
 #achPop .ach-pop-t{
   font-family:var(--kai);font-size:13px;letter-spacing:2px;color:var(--seal);margin-bottom:6px;
+}
+#achPop .ach-pop-t::before{
+  content:"";display:inline-block;width:7px;height:7px;border-radius:1px;
+  background:var(--seal);margin-right:8px;vertical-align:1px;
 }
 #achPop .ach-pop-i{font-family:var(--kai);font-size:14px;letter-spacing:1px;padding:3px 0}
 #achPop .ach-pop-i span{font-family:var(--sans);font-size:11.5px;color:var(--muted);margin-left:5px}
@@ -417,6 +456,15 @@ body::after{
   .card{padding:15px 15px}
   .gj-card{padding:18px 16px}
   .gj-quote{font-size:15.5px;line-height:2}
+  .quiz-opt{padding:13px 15px}
+  .btn{padding:10px 18px}
+  .btn.sm{padding:7px 13px}
+}
+@media (max-width:460px){
+  #uiVer{display:none}
+  .brand{font-size:18px;letter-spacing:1px}
+  .topbar{gap:7px}
+  .chip{padding:3px 9px;font-size:12px}
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important}
@@ -444,8 +492,8 @@ body::after{
   </div>
 </div>
 
-<div id="toast"></div>
-<div id="achPop"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="achPop" role="status" aria-live="polite"></div>
 
 <!-- AR 说明弹层 -->
 <div class="sheet" id="arSheet" hidden>
@@ -476,10 +524,20 @@ body::after{
    ============================================================ */
 const AROMA_AXES = ['辛','苦','甘','温','凉','香'];
 
+/* 手绘墨线图标：1.6 圆头笔锋，与墨线图谱、香气轮盘同一笔墨 */
+const INK_ICONS = {
+  wind:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 9h10.2a2.4 2.4 0 1 0-2.4-2.4"/><path d="M3.5 14.5h14.2a2.4 2.4 0 1 1-2.4 2.4"/><path d="M3.5 12h6.3"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.8v2.3M12 18.9v2.3M2.8 12h2.3M18.9 12h2.3M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
+  rain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 14.6a3.8 3.8 0 0 1 .55-7.56 4.75 4.75 0 0 1 9.2 1.4A3.1 3.1 0 0 1 16.8 14.6z"/><path d="M8.2 17.6l-1 2M12 17.6l-1 2M15.8 17.6l-1 2"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 13.6A7.7 7.7 0 1 1 10.4 3.8a6.3 6.3 0 0 0 9.8 9.8z"/></svg>',
+  fire:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.2c.9 2.9-2.9 4.4-2.9 8a2.9 2.9 0 0 0 5.8 0c0-.9-.4-1.8-.4-1.8 1.4 1 2.3 2.4 2.3 4.4a4.8 4.8 0 0 1-9.6 0c0-3.8 4.8-5 4.8-10.6z"/></svg>'
+};
+function inkIcon(name){ return INK_ICONS[name] || ''; }
+
 const ZONES = [
-  { id:'干燥', icon:'☀', desc:'日照足、土爽' },
-  { id:'湿润', icon:'☂', desc:'近水、气润' },
-  { id:'半阴', icon:'☾', desc:'林下、散射光' }
+  { id:'干燥', icon:'sun', desc:'日照足、土爽' },
+  { id:'湿润', icon:'rain', desc:'近水、气润' },
+  { id:'半阴', icon:'moon', desc:'林下、散射光' }
 ];
 
 const HERBS = {
@@ -568,15 +626,15 @@ const CODEX = {
 /* 气候：在「过一日」香草成熟时结算，加到各区香草的品质上。
    明日天气会提前预告，故可据此决定「种哪一味、种在哪个区」。 */
 const WEATHERS = [
-  { id:'mild',   name:'和风', icon:'🍃', desc:'风调雨顺，草木安和', w:3,
+  { id:'mild',   name:'和风', icon:'wind', desc:'风调雨顺，草木安和', w:3,
     zone:{ 干燥:+0.03, 湿润:+0.03, 半阴:+0.03 }, tip:'诸区皆宜，长势平稳' },
-  { id:'clear',  name:'晴爽', icon:'☀', desc:'天高日朗，土爽气清', w:3,
+  { id:'clear',  name:'晴爽', icon:'sun', desc:'天高日朗，土爽气清', w:3,
     zone:{ 干燥:+0.11, 湿润:-0.02, 半阴:+0.01 }, tip:'干燥区得日光之力，最宜艾草' },
-  { id:'plum',   name:'梅雨', icon:'☂', desc:'连日阴雨，水气弥漫', w:3,
+  { id:'plum',   name:'梅雨', icon:'rain', desc:'连日阴雨，水气弥漫', w:3,
     zone:{ 干燥:-0.08, 湿润:+0.11, 半阴:+0.03 }, tip:'湿润区正得其时，最宜薄荷、佩兰' },
-  { id:'shade',  name:'林霭', icon:'☾', desc:'林间雾起，散射光柔', w:2,
+  { id:'shade',  name:'林霭', icon:'moon', desc:'林间雾起，散射光柔', w:2,
     zone:{ 干燥:0, 湿润:+0.04, 半阴:+0.12 }, tip:'半阴区最宜，散射光下白芷香气渐积' },
-  { id:'drought',name:'亢旱', icon:'🔥', desc:'久旱不雨，土燥气烈', w:2,
+  { id:'drought',name:'亢旱', icon:'fire', desc:'久旱不雨，土燥气烈', w:2,
     zone:{ 干燥:-0.12, 湿润:-0.10, 半阴:-0.04 }, tip:'缺水则木质偏燥，诸区品质皆损' }
 ];
 const WEATHER_OF = {};
@@ -619,7 +677,7 @@ const SLOT_NAMES = ['君','臣','佐','使'];
 const SLOT_W = { 君:1.0, 臣:0.75, 佐:0.5, 使:0.3 };
 const CARD_COST = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '1.4';
+const BUILD = '1.5';
 
 /* ============================================================
    =3 STORE
@@ -691,13 +749,23 @@ function grantAchievements(){
   return got;
 }
 
-/* 单一变异入口：改状态 → 结算成就 → 存盘 → 重绘 */
+/* 单一变异入口：改状态 → 跨日收尾 → 结算成就 → 存盘 → 重绘 */
 function mutate(fn){
+  const dayBefore = state.day;
   fn(state);
+  if(state.day !== dayBefore) onDayAdvanced();
   const got = grantAchievements();
   save();
   render();
   if(got.length) achPop(got);
+}
+
+/* 跨日收尾：未答完的问答卷随旧一日作废（只能重开今日的一轮，杜绝隔日双刷） */
+function onDayAdvanced(){
+  if(quizRun && quizRun.qs && quizRun.qs.length && state.quizDay !== state.day){
+    quizRun = { qs:[], i:0, picked:[], done:false, expired:true };
+    state.quiz = quizRun;
+  }
 }
 
 /* ============================================================
@@ -1145,7 +1213,9 @@ let blendOrderId = null;
 let blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
 let blendSel = '君';
 let studyCardId = null;
-let studyAnswered = false;
+let studyPick = null;     // 本轮已选香草；renderStudy 据此还原答后态（防重绘丢高亮）
+let studyOpts = null;     // 本轮四选项的固定顺序（防重绘重排）
+let gardenZone = null;    // 药圃选中区，跨重渲染保留
 let codexHerb = null;
 let ledgerAll = false;
 
@@ -1219,8 +1289,8 @@ function renderHub(){
       </div>`}
       <div class="sep"></div>
       <div class="row" style="font-size:13px">
-        <span class="chip">${wx.icon} 今日 <b>${esc(wx.name)}</b></span>
-        <span class="chip">明日 <b>${esc(nx.name)}</b></span>
+        <span class="chip"><span class="wx-ic${wx.id === 'drought' ? ' is-bad' : ''}">${inkIcon(wx.icon)}</span>今日 <b>${esc(wx.name)}</b></span>
+        <span class="chip"><span class="wx-ic${nx.id === 'drought' ? ' is-bad' : ''}">${inkIcon(nx.icon)}</span>明日 <b>${esc(nx.name)}</b></span>
         <span class="chip">成就 <b>${achCount}</b> / ${ACHIEVEMENTS.length}</span>
       </div>
       <div class="hint" style="margin-top:8px">${esc(wx.desc)}——${esc(wx.tip)}</div>
@@ -1273,12 +1343,20 @@ function renderHub(){
     b.onclick = () => go(b.dataset.go);
   });
   const rb = $('btnRoyal');
-  if(rb) rb.onclick = () => mutate(s => { s.orders.royal.unlocked = true; go('blend'); blendOrderId = 'royal'; });
+  if(rb) rb.onclick = () => {
+    blendOrderId = 'royal';
+    mutate(s => { s.orders.royal.unlocked = true; });
+    go('blend');
+  };
 }
 
 /* ============================================================
    =7 SCREEN · study 读古籍
    ============================================================ */
+function resetStudyCard(){
+  studyCardId = null; studyPick = null; studyOpts = null;
+}
+
 function renderStudy(){
   const remain = ANCIENT_CARDS.filter(c => state.readCards.indexOf(c.id) < 0);
   /* 优先出「尚未识得」香草的卡，保证逐步集齐四味；
@@ -1326,14 +1404,17 @@ function renderStudy(){
       if(state.money < CARD_COST) return toast('钱不够了，先去香室卖一方香');
       const pick = pool[Math.floor(Math.random() * pool.length)];
       mutate(s => { s.money -= CARD_COST; });
-      studyCardId = pick.id; studyAnswered = false;
+      studyCardId = pick.id; studyPick = null; studyOpts = shuffle(Object.keys(HERBS));
       renderStudy();
     };
-    $('btnBackStudyList').onclick = () => { studyCardId = null; go('hub'); };
+    $('btnBackStudyList').onclick = () => { resetStudyCard(); go('hub'); };
     return;
   }
 
-  const opts = Object.keys(HERBS).sort(() => Math.random() - 0.5);
+  /* 选项顺序在开卡时定死，重绘（mutate 会整屏重绘）不再重排 */
+  const opts = studyOpts && studyOpts.length === Object.keys(HERBS).length
+    ? studyOpts : (studyOpts = shuffle(Object.keys(HERBS)));
+  const answered = studyPick !== null;
   $('sc-study').innerHTML = `
     <div class="card flat" style="padding:14px 16px">
       <div class="row">
@@ -1352,39 +1433,31 @@ function renderStudy(){
     <div class="card">
       <h2>此为何草？</h2>
       <div class="opt-grid" id="optGrid">
-        ${opts.map(id => `<button class="opt" data-h="${id}">${esc(HERBS[id].name)}</button>`).join('')}
+        ${opts.map(id => `<button class="opt" data-h="${id}"${answered ? ' disabled' : ''}>${esc(HERBS[id].name)}</button>`).join('')}
       </div>
       <div id="studyFb" style="margin-top:12px"></div>
     </div>
   `;
 
-  $('btnBackStudy').onclick = () => { studyCardId = null; go('hub'); };
+  $('btnBackStudy').onclick = () => { resetStudyCard(); go('hub'); };
   $('optGrid').querySelectorAll('[data-h]').forEach(b => {
     b.onclick = () => answerStudy(card, b.dataset.h);
   });
+
+  /* 答后态由状态还原：对错着色、禁用、反馈卡都在这一处输出 */
+  if(answered){
+    const grid = $('optGrid');
+    grid.querySelectorAll('[data-h]').forEach(b => {
+      if(b.dataset.h === card.herb) b.classList.add('ok');
+      else if(b.dataset.h === studyPick) b.classList.add('no');
+    });
+    fillStudyFeedback(card);
+  }
 }
 
-function answerStudy(card, pick){
-  if(studyAnswered) return;
-  studyAnswered = true;
-  const grid = $('optGrid');
-  const correct = card.herb;
-  grid.querySelectorAll('[data-h]').forEach(b => {
-    b.disabled = true;
-    if(b.dataset.h === correct) b.classList.add('ok');
-    else if(b.dataset.h === pick) b.classList.add('no');
-  });
-  const ok = pick === correct;
-  const h = HERBS[correct];
-
-  mutate(s => {
-    if(s.readCards.indexOf(card.id) < 0) s.readCards.push(card.id);
-    if(ok){
-      s.seeds[correct] = (s.seeds[correct] || 0) + 1;
-      s.known[correct] = true;
-    }
-  });
-
+function fillStudyFeedback(card){
+  const ok = studyPick === card.herb;
+  const h = HERBS[card.herb];
   $('studyFb').innerHTML = ok ? `
     <div class="card flat" style="margin:0;border-color:var(--good)">
       <div style="font-family:var(--kai);font-size:15px;color:var(--good);letter-spacing:1px">辨对了 · 得种子一枚</div>
@@ -1408,9 +1481,23 @@ function answerStudy(card, pick){
       </div>
     </div>`;
 
-  const g = $('btnToGarden'); if(g) g.onclick = () => { studyCardId = null; go('garden'); };
+  const g = $('btnToGarden');
+  if(g) g.onclick = () => { resetStudyCard(); go('garden'); };
   $('studyFb').querySelectorAll('[data-again]').forEach(b => {
-    b.onclick = () => { studyCardId = null; renderStudy(); };
+    b.onclick = () => { resetStudyCard(); renderStudy(); };
+  });
+}
+
+function answerStudy(card, pick){
+  if(studyPick !== null) return;
+  studyPick = pick;
+  const ok = pick === card.herb;
+  mutate(s => {
+    if(s.readCards.indexOf(card.id) < 0) s.readCards.push(card.id);
+    if(ok){
+      s.seeds[card.herb] = (s.seeds[card.herb] || 0) + 1;
+      s.known[card.herb] = true;
+    }
   });
 }
 
@@ -1450,7 +1537,7 @@ function renderGarden(){
       </div>
 
       <div class="wx">
-        <div class="wx-icon">${nx.icon}</div>
+        <div class="wx-ic${nx.id === 'drought' ? ' is-bad' : ''}">${inkIcon(nx.icon)}</div>
         <div style="flex:1">
           <div class="wx-name">明日 · ${esc(nx.name)}<span class="hint" style="font-family:var(--sans);letter-spacing:0"> （今日下种者即于此日成熟）</span></div>
           <div class="hint">${esc(nx.desc)}——${esc(nx.tip)}</div>
@@ -1458,15 +1545,15 @@ function renderGarden(){
         </div>
       </div>
       <div class="hint" style="margin-bottom:12px">
-        今日为 <b style="font-family:var(--kai);color:var(--seal)">${wx.icon} ${esc(wx.name)}</b>——${esc(wx.desc)}。
+        今日为 <b class="wx-now" style="font-family:var(--kai);color:var(--seal)">${inkIcon(wx.icon)} ${esc(wx.name)}</b>——${esc(wx.desc)}。
         明日之数已定，据此择地择种，方得佳品。
       </div>
 
       <h3>择地而种</h3>
       <div class="zone-grid" id="zoneGrid">
         ${ZONES.map(z => `
-          <button class="zone" data-z="${z.id}">
-            <span class="zi">${z.icon}</span>
+          <button class="zone${gardenZone === z.id ? ' sel' : ''}" data-z="${z.id}">
+            <span class="zi">${inkIcon(z.icon)}</span>
             <span class="zn">${esc(z.id)}区</span>
             <span class="zd">${esc(z.desc)}</span>
           </button>`).join('')}
@@ -1523,13 +1610,10 @@ function renderGarden(){
 
   $('btnBackGarden').onclick = () => go('hub');
 
-  let selZone = null;
   $('zoneGrid').querySelectorAll('[data-z]').forEach(b => {
     b.onclick = () => {
-      $('zoneGrid').querySelectorAll('[data-z]').forEach(x => x.classList.remove('sel'));
-      b.classList.add('sel');
-      selZone = b.dataset.z;
-      renderSeedPick(selZone);
+      gardenZone = b.dataset.z;
+      renderGarden();
     };
   });
 
@@ -1565,7 +1649,6 @@ function renderGarden(){
     });
     if(good) toast(`${h.name}种于${zone}区，正得其宜`);
     else toast(`${h.name}宜种于${h.zone}区——此区不合，品质将受损`);
-    renderGarden();
   }
 
   $('sc-garden').querySelectorAll('[data-harvest]').forEach(b => {
@@ -1583,7 +1666,6 @@ function renderGarden(){
         if(isTop) s.stats.topGrade = (s.stats.topGrade || 0) + 1;
       });
       toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
-      renderGarden();
     };
   });
 
@@ -1599,7 +1681,6 @@ function renderGarden(){
         s.stats.earned += unit;
       });
       toast(`散卖 ${HERBS[k].name} 1 株，得钱 ${unit}`);
-      renderGarden();
     };
   });
 
@@ -1620,7 +1701,6 @@ function renderGarden(){
       if((s.inventory[k] || 0) <= 0) s.trade = null;
     });
     toast(`卖给走商 ${HERBS[k].name} ${cnt} 株，得钱 ${total}`);
-    renderGarden();
   }
   if(ts) ts.onclick = () => doTrade(1);
   if(ta) ta.onclick = () => { if(state.trade) doTrade(state.inventory[state.trade.herb] || 0); };
@@ -1630,8 +1710,10 @@ function renderGarden(){
     let lines = [];
     mutate(s => { lines = nextDay(); });
     toast(lines[0] || '一日过去');
-    renderGarden();
   };
+
+  /* 重渲染后自动展开上次选中的区，方便连续播种 */
+  if(gardenZone && ZONES.some(z => z.id === gardenZone)) renderSeedPick(gardenZone);
 }
 
 /* ============================================================
@@ -1695,9 +1777,10 @@ function renderBlend(){
             ${SLOT_NAMES.map(r => {
               const id = blendDraft[r];
               const q = id ? Math.round(qOf(id) * 100) : 0;
-              return `<div class="slot ${id ? 'filled' : ''} ${blendSel === r ? 'sel' : ''}" data-slot="${r}">
+              const lack = id && (state.inventory[id] || 0) <= 0;
+              return `<div class="slot ${id ? 'filled' : ''} ${lack ? 'lack' : ''} ${blendSel === r ? 'sel' : ''}" data-slot="${r}">
                 <span class="sr">${r}</span>
-                ${id ? `<span class="sh">${esc(HERBS[id].name)}</span><span class="sq">品质 ${q}%</span>` : '<span class="sq">点击选中此位</span>'}
+                ${id ? `<span class="sh">${esc(HERBS[id].name)}</span><span class="sq">${lack ? '已无存货' : '品质 ' + q + '%'}</span>` : '<span class="sq">点击选中此位</span>'}
               </div>`;
             }).join('')}
           </div>
@@ -1761,7 +1844,13 @@ function renderBlend(){
     blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
     blendSel = '君'; ledgerAll = false; renderBlend();
   };
-  $('btnSell').onclick = () => sell(blendOrderId, res);
+  $('btnSell').onclick = () => {
+    const missing = SLOT_NAMES
+      .filter(r => blendDraft[r] && (state.inventory[blendDraft[r]] || 0) <= 0)
+      .map(r => HERBS[blendDraft[r]].name);
+    if(missing.length) return toast(`「${missing[0]}」已无存货，请更换或清空此位`);
+    sell(blendOrderId, res);
+  };
 
   const refT = $('refToggle');
   if(refT) refT.onclick = () => {
@@ -1776,7 +1865,11 @@ function renderBlend(){
   $('scoreNum').textContent = res.total;
   $('scoreGrade').textContent = res.grade;
   $('scoreHint').textContent = `品质系数 ${res.factor}`;
-  $('btnSell').disabled = SLOT_NAMES.every(r => !blendDraft[r]);
+  const filledSlots = SLOT_NAMES.filter(r => blendDraft[r]);
+  const missingAny = filledSlots.some(r => (state.inventory[blendDraft[r]] || 0) <= 0);
+  $('btnSell').disabled = !filledSlots.length || missingAny;
+  if(missingAny) $('btnSell').textContent = '槽位中有香草已无存货';
+  else $('btnSell').textContent = '确认出售';
 }
 
 function drawWheel(aroma, target){
@@ -1802,11 +1895,11 @@ function drawWheel(aroma, target){
 
   const vals = AROMA_AXES.map(a => Math.min(1, (aroma[a] || 0) / 10));
   const anyAroma = vals.some(v => v > 0);
-  g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, vals[i])))}" fill="rgba(162,62,43,.16)" stroke="var(--seal)" stroke-width="1.8"/>`;
+  g += `<polygon points="${poly(AROMA_AXES.map((_, i) => pt(i, vals[i])))}" fill="rgba(162,62,43,.16)" stroke="#a23e2b" stroke-width="1.8"/>`;
 
   AROMA_AXES.forEach((a, i) => {
     const [x, y] = pt(i, vals[i]);
-    g += `<circle class="wheel-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${anyAroma && vals[i] > 0 ? 4 : 2.4}" fill="var(--seal)"/>`;
+    g += `<circle class="wheel-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${anyAroma && vals[i] > 0 ? 4 : 2.4}" fill="#a23e2b"/>`;
     const [lx, ly] = pt(i, 1.16);
     g += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-family="KaiTi,STKaiti,serif" fill="rgba(58,46,32,.72)">${a}</text>`;
   });
@@ -1819,9 +1912,9 @@ function drawWheel(aroma, target){
     const purity = vals[mi] / sum;
     centerTxt = AROMA_AXES[mi];
     centerSub = purity > 0.45 ? '一味独大' : '尚匀';
-    g += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(255,253,246,.72)" stroke="${purity > 0.45 ? 'var(--seal)' : 'rgba(58,46,32,.2)'}" stroke-width="1.2"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(255,253,246,.72)" stroke="${purity > 0.45 ? '#a23e2b' : 'rgba(58,46,32,.2)'}" stroke-width="1.2"/>`;
   }
-  g += `<text class="wheel-center" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="20" fill="${anyAroma ? 'var(--seal)' : 'rgba(58,46,32,.3)'}">${centerTxt || '—'}</text>`;
+  g += `<text class="wheel-center" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="20" fill="${anyAroma ? '#a23e2b' : 'rgba(58,46,32,.3)'}">${centerTxt || '—'}</text>`;
   if(centerSub) g += `<text x="${cx}" y="${cy + 17}" text-anchor="middle" font-size="10.5" fill="rgba(58,46,32,.6)">${centerSub}</text>`;
 
   g = `<g class="wheel-layer">${g}</g>`;
@@ -1850,15 +1943,21 @@ function drawLedger(res){
 }
 
 function sell(orderId, res){
+  /* 双重保险：槽位里的香草必须确有存货（页面按钮已拦，此处防异常路径） */
+  if(SLOT_NAMES.some(r => blendDraft[r] && (state.inventory[blendDraft[r]] || 0) <= 0)){
+    return toast('槽位中有香草已无存货，无法出售');
+  }
   const pay = payoutOf(orderId, res.total);
   const order = ORDERS[orderId];
+  let dayLines = [];
   mutate(s => {
     SLOT_NAMES.forEach(r => {
       const id = blendDraft[r];
       if(id){ s.inventory[id] = (s.inventory[id] || 0) - 1; if(s.inventory[id] <= 0) delete s.inventory[id]; }
     });
+    /* 卖一炉香亦费一日光阴：与药圃「过一日」同一套天时结算 */
+    dayLines = nextDay();
     s.money += pay;
-    s.day += 1;
     s.orders[orderId].done = (s.orders[orderId].done || 0) + 1;
     s.history.push({ id:'h' + Date.now(), orderId, score:res.total, grade:res.grade, stars:res.stars, day:s.day, payout:pay });
     s.stats.blends += 1;
@@ -1872,7 +1971,7 @@ function sell(orderId, res){
   blendSel = '君'; ledgerAll = false;
 
   const hc = HISTORY_CARDS[orderId];
-  const ref = order.ideal;
+  const eventText = dayLines.slice(1).join('；');
   $('sc-blend').innerHTML = `
     <div class="gj-card">
       <div style="font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:6px">
@@ -1881,6 +1980,7 @@ function sell(orderId, res){
       <div style="font-size:22px;letter-spacing:4px;margin-bottom:4px">${starHtml(res.stars)}</div>
       <div style="font-family:var(--serif);color:var(--seal);font-size:15px">${res.total} 分 · ${esc(res.grade)}</div>
       <div class="hint">得钱 <b style="color:var(--seal);font-family:var(--serif);font-size:16px">${pay}</b> 钱${res.total < SCORE_CFG.payout.refuseBelow ? '（买家勉强收下，只肯给半价）' : ''}。</div>
+      <div class="hint" style="margin-top:8px">光阴又过一日，已是第 <b>${state.day}</b> 日。${eventText ? esc(eventText) + '。' : ''}</div>
       <div class="sep"></div>
       <h3 style="margin-top:0">历史小卡</h3>
       <div class="hint" style="color:var(--ink-2);line-height:1.85">${esc(hc)}</div>
@@ -1895,7 +1995,6 @@ function sell(orderId, res){
   $('btnNext').onclick = () => { renderBlend(); };
   $('btnHub').onclick = () => go('hub');
   $('btnCodex').onclick = () => {
-    const first = SLOT_NAMES.map(r => null)[0];
     const id = Object.keys(state.known).find(k => state.known[k]);
     codexHerb = id || null;
     go('codex');
@@ -2031,7 +2130,7 @@ function renderQuiz(){
         </div>
       </div>
 
-      ${quizRun.done ? `
+      ${quizRun.done && !left ? `
       <div class="gj-card">
         <div style="font-family:var(--kai);font-size:16px;letter-spacing:1.5px;margin-bottom:6px">本轮结束</div>
         <div style="font-size:22px;letter-spacing:4px;margin-bottom:4px">${starHtml(quizRun.right >= 5 ? 3 : (quizRun.right >= 4 ? 2 : (quizRun.right >= 3 ? 1 : 0)))}</div>
@@ -2041,6 +2140,11 @@ function renderQuiz(){
         <div class="row">
           <button class="btn ghost" id="btnQuizHub">回书斋</button>
         </div>
+      </div>` : ''}
+
+      ${quizRun.expired && left ? `
+      <div class="card flat" style="border-color:var(--warn)">
+        <div class="hint" style="color:var(--warn)">昨日未竟的一卷问答已随旧日历翻篇，今日可重开一轮。</div>
       </div>` : ''}
 
       <div class="card">
@@ -2217,7 +2321,7 @@ async function initModelViewer(h){
     if(fill) fill.style.width = '100%';
     if(txt) txt.textContent = '图页已展 · 可拖动旋转';
     const slot = $('modelStage')?.querySelector('.ar-slot');
-    if(slot) slot.hidden = false;
+    if(slot && window.initSpiceAR) slot.hidden = false;
   });
   mv.addEventListener('error', () => {
     if(mv.dataset.released) return;   // 主动释放导致的 error，不切备用通道
@@ -2270,7 +2374,8 @@ $('btnReset').onclick = () => {
   state.weather = rollWeather();
   state.weatherNext = rollWeather();
   blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
-  studyCardId = null; studyAnswered = false; ledgerAll = false;
+  blendSel = '君'; blendOrderId = null;
+  resetStudyCard(); gardenZone = null; ledgerAll = false;
   quizRun = null;
   go('hub');
 };
