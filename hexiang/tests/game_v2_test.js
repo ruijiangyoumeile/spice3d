@@ -250,6 +250,19 @@ function serve(){
     if(qb) qb.click();
     ok('K5 问答可开卷（题库含新味）', /题|甲|乙/.test(screenHTML('quiz')) && !/待补/.test(screenHTML('quiz')));
 
+    /* ---------- L. 香料视觉表现（图标 / 粒子） ---------- */
+    const g1 = XY.spiceGlyph('moli', 20), g2 = XY.spiceGlyph('tanxiang', 20);
+    ok('L1 香料图标为内联 SVG（零请求）', /^<svg/.test(g1) && !/src=/.test(g1) && g1 !== g2, g1.length);
+    ok('L2 品类异色·品级异边', g1.indexOf('#8a4a7a') > 0 && g2.indexOf('#2f5d8a') > 0);
+    S.screen = 'market'; HX.render();
+    ok('L3 市集列表带图标', (screenHTML('market').match(/xy-glyph/g) || []).length > 5, (screenHTML('market').match(/xy-glyph/g) || []).length);
+    S.known.aicao = true; S.screen = 'codex'; HX.render();
+    ok('L4 香草志含香篆青烟层', !!document.querySelector('#modelStage .codex-smoke'));
+    ok('L5 青烟为纯 CSS 粒子', (() => {
+      const i = document.querySelector('#modelStage .codex-smoke i');
+      return !!i && /xySmoke/.test(getComputedStyle(i).animationName);
+    })());
+
     return { R };
   });
 
