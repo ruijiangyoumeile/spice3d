@@ -237,6 +237,19 @@ function serve(){
     ok('J4 扩展屏可渲染', (() => { S.screen = 'extscreen'; HX.render(); return extRendered >= 1 && /扩展屏/.test(screenHTML('extscreen')); })());
     ok('J5 扩展屏页签已加', document.querySelectorAll('#xyTabs [data-sc="extscreen"]').length === 1);
 
+    /* ---------- K. 香道 × 商道 整合 ---------- */
+    ok('K1 新香方已入谱', ['teahouse','sea','temple'].every(k => !!HX.ORDERS[k]), Object.keys(HX.ORDERS).length);
+    ok('K2 新古籍卡已入册', ['gj22','gj23','gj24','gj25','gj26'].every(id => HX.ANCIENT_CARDS.some(c => c.id === id)), HX.ANCIENT_CARDS.length);
+    ok('K3 引文均标出处', HX.ANCIENT_CARDS.every(c => c.src && c.quote && c.herb && HX.HERBS[c.herb]));
+    S.inventory = Object.assign({}, S.inventory, { moli:3, guihua:3, zhizi:3, hujiao:3, dingxiang:3, tanxiang:3, chenpi:3 });
+    S.known.moli = S.known.guihua = S.known.zhizi = true;
+    S.screen = 'blend'; HX.render();
+    ok('K4 香室含新香方', /窨茶花方|番货合香|斋醮降真香/.test(screenHTML('blend')));
+    S.screen = 'quiz'; HX.render();
+    const qb = document.getElementById('btnQuizStart');
+    if(qb) qb.click();
+    ok('K5 问答可开卷（题库含新味）', /题|甲|乙/.test(screenHTML('quiz')) && !/待补/.test(screenHTML('quiz')));
+
     return { R };
   });
 
