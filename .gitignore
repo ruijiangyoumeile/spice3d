@@ -3,3 +3,7 @@
 .skills/
 _hunyuan_raw/
 *.ps1
+# USDZ（iOS 实景 AR）单件 20MB+，不入仓库；站点照常以 GLB 展示
+*.usdz
+# hexiang 随包三维（站点各味目录已有同名模型，避免仓库双份）
+hexiang/models/*.glb
