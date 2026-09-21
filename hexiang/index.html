@@ -363,6 +363,17 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
 .inv-item:active:not(:disabled){transform:translateY(0)}
 .inv-item:disabled{opacity:.35;cursor:not-allowed}
 .inv-item .q{font-size:11px;color:var(--muted);margin-left:4px}
+.search-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.search-bar input{
+  flex:1;padding:7px 12px;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(255,253,246,.7);font-family:var(--kai);font-size:14px;color:var(--ink);
+  outline:none;transition:border-color .18s;
+}
+.search-bar input:focus{border-color:var(--seal)}
+.search-bar .hint{white-space:nowrap}
+.inv-empty{padding:10px 0;color:var(--muted);font-size:13px}
 
 .wheel-box{text-align:center}
 #wheel{width:100%;max-width:300px;height:auto;display:block;margin:0 auto}
@@ -1520,6 +1531,8 @@ let studyKind = null;     // 读古籍定向：null=随机读 / {axis:'cat'|'nat
 let studyPick = null;     // 本轮已选香草；renderStudy 据此还原答后态（防重绘丢高亮）
 let studyOpts = null;     // 本轮四选项的固定顺序（防重绘重排）
 let gardenZone = null;    // 药圃选中区，跨重渲染保留
+let gardenSearch = '';    // 药圃选种搜索关键字（重绘后恢复）
+let blendSearch = '';     // 香室配香库存搜索关键字（重绘后恢复）
 let dayReport = null;     // 最近一次「过一日」的纪事（含随机事件），在药圃顶部显示
 let codexHerb = null;
 let ledgerAll = false;
@@ -2019,19 +2032,29 @@ function renderGarden(){
 
   function renderSeedPick(zone){
     const nd = wxDelta(zone, state.weatherNext);
+    const kw = gardenSearch.trim();
+    const matched = kw ? seeds.filter(k => HERBS[k].name.indexOf(kw) >= 0) : seeds;
     $('seedPick').innerHTML = `
       <h3>选种（种于 ${esc(zone)}区）</h3>
       <div class="hint" style="margin-bottom:8px">
         此区明日（成熟时）天气加成
         <b class="${nd > 0.02 ? 'q-hi' : (nd < -0.02 ? 'q-lo' : 'q-mid')}">${nd > 0 ? '+' : ''}${Math.round(nd * 100)}%</b>
       </div>
+      <div class="search-bar">
+        <input id="seedSearch" type="search" placeholder="搜种子名，如「艾」「草」「桂」" value="${esc(gardenSearch)}" autocomplete="off"/>
+        <span class="hint">${matched.length} / ${seeds.length}</span>
+      </div>
       <div class="inv" id="seedRow">
-        ${seeds.map(k => `<button class="inv-item" data-seed="${k}">${esc(HERBS[k].name)} <span class="q">×${state.seeds[k]}</span></button>`).join('')}
+        ${matched.length
+          ? matched.map(k => `<button class="inv-item" data-seed="${k}">${esc(HERBS[k].name)} <span class="q">×${state.seeds[k]}</span></button>`).join('')
+          : `<span class="inv-empty">没有含「${esc(kw)}」的种子</span>`}
       </div>
       <div class="hint" style="margin-top:12px;line-height:1.9">
         <b>据生境择地</b>（信息来自古籍与香草志）：<br/>
-        ${seeds.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')}
+        ${matched.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')}
       </div>`;
+    const si = $('seedSearch');
+    si.oninput = () => { gardenSearch = si.value; renderSeedPick(zone); si.focus(); si.setSelectionRange(si.value.length, si.value.length); };
     $('seedRow').querySelectorAll('[data-seed]').forEach(b => {
       b.onclick = () => plant(b.dataset.seed, zone);
     });
@@ -2134,6 +2157,8 @@ function renderBlend(){
   const order = ORDERS[blendOrderId];
   const res = scoreFormula(blendDraft, order);
   const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
+  const kw = blendSearch.trim();
+  const matchedInv = kw ? inv.filter(k => HERBS[k].name.indexOf(kw) >= 0) : inv;
 
   $('sc-blend').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
@@ -2190,10 +2215,14 @@ function renderBlend(){
             <div class="spacer"></div>
             <button class="btn sm ghost" id="btnClear">清空配方</button>
           </div>
+          <div class="search-bar">
+            <input id="invSearch" type="search" placeholder="搜库存香草，如「艾」「草」「桂」" value="${esc(blendSearch)}" autocomplete="off"/>
+            <span class="hint">${kw ? matchedInv.length + ' / ' : ''}${inv.length} 味</span>
+          </div>
           <div class="inv" id="invRow">
-            ${inv.length ? inv.map(k => `
+            ${inv.length ? (matchedInv.length ? matchedInv.map(k => `
               <button class="inv-item" data-inv="${k}">${esc(HERBS[k].name)} <span class="q">×${state.inventory[k]}</span></button>
-            `).join('') : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>'}
+            `).join('') : `<span class="inv-empty">库存中没有含「${esc(kw)}」的香草</span>`) : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>'}
           </div>
           <div class="hint" style="margin-top:10px">
             点香草放入「${blendSel}位」；同一味不可重复入方。再点已占用的槽位可替换。
@@ -2219,6 +2248,8 @@ function renderBlend(){
   `;
 
   $('btnBackBlend').onclick = () => go('hub');
+  const invS = $('invSearch');
+  if(invS){ invS.oninput = () => { blendSearch = invS.value; renderBlend(); }; }
   $('sc-blend').querySelectorAll('[data-order]').forEach(b => {
     b.onclick = () => { blendOrderId = b.dataset.order; ledgerAll = false; renderBlend(); };
   });
@@ -2807,7 +2838,7 @@ $('btnReset').onclick = () => {
   state.weatherNext = rollWeather();
   blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
   blendSel = '君'; blendOrderId = null;
-  resetStudyCard(); studyKind = null; gardenZone = null; ledgerAll = false;
+  resetStudyCard(); studyKind = null; gardenZone = null; gardenSearch = ''; blendSearch = ''; ledgerAll = false;
   quizRun = null;
   go('hub');
   /* 商道层随新档重建（状态树、行价、页签） */

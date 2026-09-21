@@ -438,6 +438,50 @@ function serve(){
     ok('P11 纲目片显示进度', /\d+\/\d+/.test(chipCnt ? chipCnt.textContent : ''), chipCnt && chipCnt.textContent);
     ok('P12 定向不改动金钱口径', typeof S.money === 'number' && S.money > 0, S.money);
 
+    /* ---------- Q. 搜索：药圃选种 & 香室配香库存 ---------- */
+    S.money = 500000;
+    /* 准备：几味库存 + 几味种子 */
+    S.inventory = { aicao: 5, huajiao: 3, mint: 0 };            /* aicao=艾草含「艾」「草」；huajiao=花椒不含 */
+    Object.keys(S.inventory).forEach(k => { if(S.inventory[k] <= 0) delete S.inventory[k]; });
+    S.inventory.baizhi = 2;                                      /* 白芷，不含草 */
+    S.seeds = { aicao: 3, huajiao: 2, bohe: 1, baizhi: 1 };     /* bohe=薄荷含「荷」不含草 */
+
+    /* Q1 香室配香：搜「艾」只出艾草 */
+    S.screen = 'blend'; HX.render();
+    const bSearch = document.getElementById('invSearch');
+    ok('Q1 香室搜索框存在', !!bSearch);
+    if(bSearch){
+      bSearch.value = '艾'; bSearch.dispatchEvent(new Event('input', { bubbles:true }));
+      const names = [...document.querySelectorAll('#invRow [data-inv]')].map(b => b.dataset.inv);
+      ok('Q2 搜「艾」仅匹配含艾字的库存',
+        names.length === 1 && names[0] === 'aicao',
+        names.join(','));
+    }
+    /* Q3 搜不存在的字返回空提示 */
+    if(bSearch){
+      bSearch.value = 'xyz'; bSearch.dispatchEvent(new Event('input', { bubbles:true }));
+      const empty = document.querySelector('#invRow .inv-empty');
+      ok('Q3 无匹配时显示空提示', !!empty && /xyz/.test(empty.textContent), empty && empty.textContent);
+    }
+
+    /* Q4 药圃选种：选一区后搜「草」只出艾草 */
+    S.screen = 'garden'; HX.render();
+    const zoneBtn = document.querySelector('#zoneGrid [data-z]');
+    if(zoneBtn) zoneBtn.click();
+    const gSearch = document.getElementById('seedSearch');
+    ok('Q4 药圃搜索框存在', !!gSearch);
+    if(gSearch){
+      gSearch.value = '草'; gSearch.dispatchEvent(new Event('input', { bubbles:true }));
+      const names = [...document.querySelectorAll('#seedRow [data-seed]')].map(b => b.dataset.seed);
+      ok('Q5 搜「草」仅匹配含草字的种子',
+        names.length === 1 && names[0] === 'aicao',
+        names.join(','));
+      /* 清空搜索后恢复全部种子 */
+      gSearch.value = ''; gSearch.dispatchEvent(new Event('input', { bubbles:true }));
+      const all = [...document.querySelectorAll('#seedRow [data-seed]')].map(b => b.dataset.seed);
+      ok('Q6 清空搜索恢复全部种子', all.length === Object.keys(S.seeds).length, all.length + ' / ' + Object.keys(S.seeds).length);
+    }
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
