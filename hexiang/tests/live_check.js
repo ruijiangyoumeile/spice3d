@@ -46,7 +46,42 @@ const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Ap
   });
   console.log('线上实测 ' + URL);
   console.log(JSON.stringify(r, null, 1));
-  console.log('异常：' + (errs.length ? '\n  ' + errs.slice(0, 6).join('\n  ') : '无'));
+
+  /* ---------- 移动端（390×844）与推进耗时 ---------- */
+  const mp = await browser.newPage();
+  await mp.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+  await mp.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const mErrs = [];
+  mp.on('pageerror', e => mErrs.push(String(e.message).slice(0, 120)));
+  await mp.goto(URL, { waitUntil: 'load', timeout: 90000 });
+  await mp.waitForFunction('window.XiangYe && window.HX && window.HX.state', { timeout: 45000 });
+  const m = await mp.evaluate(async () => {
+    const XY = window.XiangYe, HX = window.HX, S = HX.state, o = {};
+    const dlg = () => { const e = document.getElementById('xyAch'); return !!(e && e.classList.contains('on')); };
+    while(dlg()) document.getElementById('xyAchClose').click();
+    XY.showAch([{ id:'m1', name:'移动端校验', desc:'底部抽屉', reward:{ money:1 } }]);
+    await new Promise(r => setTimeout(r, 600));
+    const card = document.querySelector('#xyAch .xy-ach-card').getBoundingClientRect();
+    const btn = document.getElementById('xyAchOk').getBoundingClientRect();
+    o.dialogIsSheet = card.bottom >= window.innerHeight - 4;      /* 贴底=底部抽屉 */
+    o.btnHeight = Math.round(btn.height);
+    document.getElementById('xyAchClose').click();
+    S.screen = 'market'; HX.render();
+    o.noHScroll = document.documentElement.scrollWidth <= window.innerWidth + 2;   /* 无横向滚动 */
+    const row = document.querySelector('#sc-market .xy-mrow[data-good]');
+    o.rowFits = row ? row.scrollWidth <= row.clientWidth + 2 : true;
+    o.tabsScrollable = (() => { const t = document.getElementById('xyTabs'); return t.scrollWidth > t.clientWidth || t.clientWidth > 300; })();
+    /* 推进十日耗时（性能基线） */
+    S.money = 500000;
+    const t0 = performance.now();
+    XY.commitDays(10);
+    o.commit10ms = Math.round(performance.now() - t0);
+    return o;
+  });
+  console.log('\n移动端实测（390×844）：' + JSON.stringify(m));
+  console.log('移动端异常：' + (mErrs.length ? mErrs.join(' | ') : '无'));
+
+  console.log('\n异常：' + (errs.length ? '\n  ' + errs.slice(0, 6).join('\n  ') : '无'));
   await browser.close();
   process.exit(errs.length ? 1 : 0);
 })().catch(e => { console.error('实测脚本异常：' + e.message); process.exit(2); });
