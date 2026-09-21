@@ -1165,6 +1165,27 @@
       box.appendChild(tag);
     }catch(e){}
   }
+  /* 香料图标：内联 SVG 小印（品类定色 · 品级定边宽 · 取首字），零网络请求 */
+  var CAT_COLOR = { 土产:'#a23e2b', 南货:'#3f6b57', 洋货:'#2f5d8a', 花:'#8a4a7a' };
+  function spiceGlyph(id, size){
+    var sp = SPICES[id];
+    if(!sp) return '';
+    var c = CAT_COLOR[sp.cat] || '#a23e2b', s = size || 20;
+    var ring = (1 + Math.max(0, sp.tier - 1) * 0.35).toFixed(1);
+    return '<svg class="xy-glyph" viewBox="0 0 32 32" width="' + s + '" height="' + s + '" role="img" aria-label="' + esc(sp.zh) + '">' +
+      '<rect x="2.2" y="2.2" width="27.6" height="27.6" rx="7" fill="' + c + '" fill-opacity=".12" stroke="' + c + '" stroke-width="' + ring + '"/>' +
+      '<text x="16" y="22.5" text-anchor="middle" font-family="KaiTi,STKaiti,serif" font-size="17" fill="' + c + '">' + esc(sp.zh.substr(0, 1)) + '</text></svg>';
+  }
+  /* 香篆青烟：纯 CSS 粒子上浮，随卷轴展卷而生（prefers-reduced-motion 下自动停） */
+  function ensureSmoke(){
+    var stage = document.getElementById('modelStage');
+    if(!stage || stage.querySelector('.codex-smoke')) return;
+    var d = document.createElement('div');
+    d.className = 'codex-smoke';
+    d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
+    stage.appendChild(d);
+  }
   root.xyImgFail = imgFail;
   /* 成就图标：≥64×64 的朱印方章，取成就名首字；商道类另加角标 */
   function achIcon(a){
@@ -1307,6 +1328,18 @@
 .xy-icon-ph{position:relative;display:flex;align-items:center;justify-content:center;background:rgba(51,39,25,.04)}\
 .xy-icon-ph svg{width:78%;height:78%}\
 .xy-icon-ph .ph-tag{position:absolute;bottom:2px;right:2px;font-size:9.5px;color:var(--warn);border:1px solid currentColor;border-radius:2px;padding:0 3px}\
+.xy-glyph{flex:none;vertical-align:-4px;margin-right:5px}\
+.codex-smoke{position:absolute;left:0;right:0;bottom:0;height:62%;overflow:hidden;pointer-events:none;z-index:3}\
+.codex-smoke i{position:absolute;bottom:-6%;width:6px;height:34%;border-radius:50%;filter:blur(5px);opacity:0;\
+  background:linear-gradient(180deg,rgba(162,62,43,0),rgba(162,62,43,.18) 42%,rgba(162,62,43,0));\
+  animation:xySmoke 9s linear infinite}\
+.codex-smoke i:nth-child(1){left:34%;animation-delay:0s}\
+.codex-smoke i:nth-child(2){left:44%;height:44%;animation-delay:1.8s}\
+.codex-smoke i:nth-child(3){left:53%;animation-delay:3.4s}\
+.codex-smoke i:nth-child(4){left:62%;height:30%;animation-delay:5.1s}\
+.codex-smoke i:nth-child(5){left:48%;height:52%;animation-delay:6.7s;width:8px}\
+@keyframes xySmoke{0%{transform:translateY(6%) scaleX(1);opacity:0}18%{opacity:.55}\
+  60%{opacity:.32}100%{transform:translateY(-96%) scaleX(2.6);opacity:0}}\
 .xy-goal{display:flex;gap:9px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line-2);font-size:12.5px}\
 .xy-goal:last-child{border-bottom:none}\
 .xy-goal .gk{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}\
@@ -1411,6 +1444,7 @@
   function renderScreen(id){
     if(!HX || !HX.state) return false;
     syncTabs();
+    if(id === 'codex'){ ensureSmoke(); return false; }   /* 香草志：给展卷加一层香篆青烟 */
     if(SCREEN_IDS.indexOf(id) < 0) return false;
     if(EXT_SCREENS[id]){ EXT_SCREENS[id](); syncTabs(); return true; }
     if(id === 'book') renderBook();
@@ -1538,7 +1572,7 @@
         '<div class="xy-seedgrid">' + seeds.map(function(id){
           var cp = SPICES[id].crop;
           return '<button class="xy-seed" data-plant="' + i + ':' + id + '">' +
-            '<span class="sn">' + SPICES[id].zh + '</span>' +
+            '<span class="sn">' + spiceGlyph(id, 18) + SPICES[id].zh + '</span>' +
             '<span class="sd">' + cp.d + '日熟 · 亩收约' + cp.y + '斤 · 苗钱' + fmt(cp.s) + '</span></button>';
         }).join('') + '</div></div>';
     }
@@ -1556,7 +1590,7 @@
     var st = HX.state.co.store[city] || {}, ids = Object.keys(st).filter(function(id){ return st[id] > 0; });
     if(!ids.length) return '<div class="hint">仓中空空。收获田里的香药，或往市集买入。</div>';
     return '<div class="xy-grid">' + ids.map(function(id){
-      return '<div class="xy-plot"><div class="pt"><span class="dot"></span>' + SPICES[id].zh + '</div>' +
+      return '<div class="xy-plot"><div class="pt"><span class="dot"></span>' + spiceGlyph(id, 18) + SPICES[id].zh + '</div>' +
         '<div class="pd">存 ' + st[id] + ' 斤 · 本城行价 ' + priceAt(city, id) + ' 分/斤 · 售价 ' + sellPrice(city, id) + ' 分/斤</div></div>';
     }).join('') + '</div>';
   }
@@ -1603,7 +1637,7 @@
     var canBuyHere = canBuy(city, id);
     var tag = priceTag(city, id), have = store[id] || 0, sp = SPICES[id];
     return '<div class="xy-mrow" data-good="' + id + '">' +
-      '<div class="gname">' + sp.zh + (sp.sea ? '<span class="imp">洋货</span>' : '') + '</div>' +
+      '<div class="gname">' + spiceGlyph(id, 20) + sp.zh + (sp.sea ? '<span class="imp">洋货</span>' : '') + '</div>' +
       '<div class="hint" style="font-size:11.5px">行价 <span class="xy-num">' + priceAt(city, id) + '</span> 分 · 较常价 ' +
         '<span class="' + (tag[0] === 'up' ? 'xy-up' : (tag[0] === 'down' ? 'xy-down' : 'hint')) + '">' + tag[1] + '</span></div>' +
       '<div class="xy-num" style="color:var(--seal)">' + (canBuyHere ? buyPrice(city, id) : '—') + '</div>' +
@@ -1977,7 +2011,7 @@
              initPrices:initPrices, freightNow:freightNow, riskNow:riskNow, yieldNow:yieldNow,
              supplyOf:supplyOf, canFarm:canFarm, canBuy:canBuy, isSea:isSea, ownedCities:ownedCities, edgeOf:edgeOf }
     /*PART2*/
-    ,assetOf:assetOf, registerAsset:registerAsset, spiceOf:spiceOf, spiceIcon:spiceIcon,
+    ,assetOf:assetOf, registerAsset:registerAsset, spiceOf:spiceOf, spiceIcon:spiceIcon, spiceGlyph:spiceGlyph,
     modelPathOf:modelPathOf, supplyOf:supplyOf, SCREEN_IDS:SCREEN_IDS, TABS:TABS,
     renderScreen:renderScreen, syncTabs:syncTabs, mount:mount, PROSE:PROSE,
     /* F · 扩展点 */
