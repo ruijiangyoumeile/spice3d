@@ -283,6 +283,13 @@ function serve(){
     XY.showAch([mkAch(4)]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape' }));
     ok('M6 ESC 可关闭', !dlgOpen());
+    /* 对话框不得压住页签栏（关键操作区）：顶部须在页签栏底边之下 */
+    XY.showAch([mkAch(5)]);
+    await new Promise(r => setTimeout(r, 600));            /* 等入场动画结束再测位置 */
+    const cardRect = document.querySelector('#xyAch .xy-ach-card').getBoundingClientRect();
+    const tabsRect = document.getElementById('xyTabs').getBoundingClientRect();
+    ok('M7 不遮挡页签栏', cardRect.top >= tabsRect.bottom - 2, Math.round(cardRect.top) + ' vs 页签底 ' + Math.round(tabsRect.bottom));
+    document.getElementById('xyAchClose').click();
 
     /* ---------- N. 交互链路（真点 DOM） ---------- */
     S.screen = 'market'; HX.render();
