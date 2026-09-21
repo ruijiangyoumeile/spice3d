@@ -574,6 +574,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
   .topbar{gap:7px}
   .chip{padding:3px 9px;font-size:12px}
 }
+.codex-img{width:100%;height:100%;object-fit:contain;display:block}
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important}
 }
@@ -626,6 +627,10 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
   <button class="exit" id="camExit">退出实景</button>
 </div>
 
+<!-- 商道层（乾隆经营）与香料素材谱：先加载数据与系统，再由下方模块脚本 mount -->
+<script src="./shared/spice-prose.js"></script>
+<script src="./shared/spice-assets.js"></script>
+<script src="./shared/xiangye.js"></script>
 <script type="module">
 /* ============================================================
    =2 DATA
@@ -648,6 +653,7 @@ const ZONES = [
   { id:'半阴', icon:'moon', desc:'林下、散射光' }
 ];
 
+/* 香草谱：前四味为「入门四味」，后十味由古籍与素材库扩充而来 */
 const HERBS = {
   aicao:  { name:'艾草', efficacy:['辟秽','祛风'], potency:1.00, zone:'干燥',
             aroma:{辛:6,苦:3,甘:2,温:9,凉:0,香:9}, model:'aicao' },
@@ -656,7 +662,27 @@ const HERBS = {
   baizhi: { name:'白芷', efficacy:['祛风','辟秽'], potency:1.15, zone:'半阴',
             aroma:{辛:9,苦:3,甘:1,温:6,凉:1,香:7}, model:'baizhi' },
   bohe:   { name:'薄荷', efficacy:['疏肝','清凉'], potency:0.85, zone:'湿润',
-            aroma:{辛:8,苦:1,甘:2,温:0,凉:10,香:6}, model:'bohe' }
+            aroma:{辛:8,苦:1,甘:2,温:0,凉:10,香:6}, model:'bohe' },
+  shengjiang:{ name:'生姜', efficacy:['和胃','解表'], potency:0.90, zone:'半阴',
+            aroma:{辛:8,苦:1,甘:3,温:9,凉:0,香:7}, model:'shengjiang' },
+  xinyi:  { name:'辛夷', efficacy:['祛风','通窍'], potency:1.00, zone:'半阴',
+            aroma:{辛:8,苦:2,甘:2,温:7,凉:1,香:8}, model:'xinyi' },
+  rougui: { name:'肉桂', efficacy:['辟秽','散寒'], potency:1.10, zone:'半阴',
+            aroma:{辛:6,苦:1,甘:5,温:9,凉:0,香:9}, model:'rougui' },
+  midiexiang:{ name:'迷迭香', efficacy:['辟秽','安神'], potency:0.85, zone:'干燥',
+            aroma:{辛:5,苦:4,甘:2,温:5,凉:2,香:9}, model:'midiexiang' },
+  dingxiang:{ name:'丁香', efficacy:['和胃','散寒'], potency:1.05, zone:'湿润',
+            aroma:{辛:9,苦:2,甘:1,温:8,凉:0,香:9}, model:'dingxiang' },
+  chenpi: { name:'陈皮', efficacy:['和胃','理气'], potency:0.90, zone:'干燥',
+            aroma:{辛:5,苦:2,甘:7,温:6,凉:1,香:8}, model:'chenpi' },
+  wuzhuyu:{ name:'吴茱萸', efficacy:['散寒','辟秽'], potency:0.95, zone:'半阴',
+            aroma:{辛:8,苦:4,甘:1,温:8,凉:0,香:6}, model:'wuzhuyu' },
+  hujiao: { name:'胡椒', efficacy:['散寒','和胃'], potency:1.00, zone:'湿润',
+            aroma:{辛:9,苦:1,甘:1,温:8,凉:0,香:6}, model:'hujiao' },
+  jinyinhua:{ name:'金银花', efficacy:['清凉','解毒'], potency:0.85, zone:'干燥',
+            aroma:{辛:2,苦:3,甘:6,温:0,凉:9,香:5}, model:'jinyinhua' },
+  cangzhu:{ name:'苍术', efficacy:['辟秽','祛风'], potency:0.95, zone:'干燥',
+            aroma:{辛:7,苦:5,甘:1,温:7,凉:0,香:8}, model:'cangzhu' }
 };
 
 const ORDERS = {
@@ -672,10 +698,14 @@ const ORDERS = {
              price:60, target:{辛:5,苦:2,甘:4,温:1,凉:9,香:8},
              ref:{君:'bohe',臣:'peilan',佐:'baizhi'},
              intro:'一位文人郁郁不舒，想要一味能疏肝解郁的香。' },
+  winter:  { buyer:'香肆', title:'冬夜暖炉香', need:{散寒:1.0}, ideal:{君:1,臣:1,佐:1},
+             price:42, target:{辛:8,苦:2,甘:4,温:9,凉:1,香:8},
+             ref:{君:'rougui',臣:'dingxiang',佐:'chenpi'},
+             intro:'岁暮天寒，香肆预订一批暖炉香饼，要的是辛温散寒之效。' },
   royal:   { buyer:'御用', title:'辟秽清凉御香', need:{辟秽:1.0, 清凉:0.5}, ideal:{君:1,臣:1,佐:1,使:1},
              price:120, target:{辛:7,苦:3,甘:3,温:3,凉:6,香:9}, hidden:true,
              ref:{君:'baizhi',臣:'bohe',佐:'aicao',使:'peilan'},
-             intro:'宫中传旨，需一味辟秽兼清凉的御用合香，四味俱全。' }
+             intro:'宫中传旨，要一味辟秽兼清凉的御用合香，君臣佐使须配伍周圆。' }
 };
 
 /* 古籍卡：引文均经查证，出处可核对 */
@@ -697,7 +727,52 @@ const ANCIENT_CARDS = [
     desc:'艾以陈久者为良。此句以「三年之艾」喻凡事须平时蓄积——也道出艾草入药需陈放、灸用需陈艾的讲究。' },
   { id:'gj6', herb:'baizhi', src:'《神农本草经》',
     quote:'白芷，味辛温……长肌肤，润泽，可作面脂。一名芳香。',
-    desc:'白芷被《本经》列为中品，别名「芳香」。既能祛风止痛，又可润泽肌肤，自古兼作香料与美容之用。' }
+    desc:'白芷被《本经》列为中品，别名「芳香」。既能祛风止痛，又可润泽肌肤，自古兼作香料与美容之用。' },
+  { id:'gj7', herb:'aicao', src:'《荆楚岁时记》',
+    quote:'采艾以为人，悬门户上，以禳毒气。',
+    desc:'南朝梁宗懔记荆楚岁时风俗：端午采艾扎成人形悬于门上。悬艾辟秽，由此成了延续千年的节令仪式。' },
+  { id:'gj8', herb:'peilan', src:'《九歌·云中君》',
+    quote:'浴兰汤兮沐芳，华采衣兮若英。',
+    desc:'楚人煎兰草为汤沐浴，谓之「浴兰」。此「兰」即佩兰，生于泽畔，气香性平，沐之祛秽醒神。' },
+  { id:'gj9', herb:'peilan', src:'《九歌·湘夫人》',
+    quote:'沅有芷兮澧有兰，思公子兮未敢言。',
+    desc:'沅水之滨有白芷，澧水之畔有兰草——兰草依水而生，正是佩兰的写照。诗人以香草起兴寄情。' },
+  { id:'gj10', herb:'shengjiang', src:'《论语·乡党》',
+    quote:'不撤姜食，不多食。',
+    desc:'孔子每餐不撤姜，却也不多吃。姜辛温开胃，先秦已为日常食药——这是关于姜最早的记载之一。' },
+  { id:'gj11', herb:'shengjiang', src:'《吕氏春秋·本味》',
+    quote:'和之美者：阳朴之姜。',
+    desc:'《本味》历数天下至味，「阳朴之姜」名列其中。姜能调和百味，故称「和之美者」。' },
+  { id:'gj12', herb:'xinyi', src:'《九歌·湘夫人》',
+    quote:'桂栋兮兰橑，辛夷楣兮药房。',
+    desc:'以桂木为栋、兰木为椽、辛夷饰门楣——辛夷即木兰类花蕾，含苞时香气最盛，楚人以其香与美兼得。' },
+  { id:'gj13', herb:'xinyi', src:'《九歌·山鬼》',
+    quote:'乘赤豹兮从文狸，辛夷车兮结桂旗。',
+    desc:'以辛夷为车、桂枝为旗，是《九歌》中最瑰丽的出行图景。香草香木，在楚辞中即是高洁之象。' },
+  { id:'gj14', herb:'rougui', src:'《离骚》',
+    quote:'杂申椒与菌桂兮，岂维纫夫蕙茝。',
+    desc:'申椒即花椒，菌桂即肉桂类的香木。屈原以香木香草自喻——桂皮入香入药，先秦已是珍物。' },
+  { id:'gj15', herb:'midiexiang', src:'曹丕《迷迭香赋·序》',
+    quote:'余种迷迭于中庭，嘉其扬条吐香。',
+    desc:'汉魏之际迷迭香自西域传入，曹丕植于庭院并作赋咏之。这是中原最早吟咏这味异域香草的文献之一。' },
+  { id:'gj16', herb:'dingxiang', src:'李商隐《代赠二首》',
+    quote:'芭蕉不展丁香结，同向春风各自愁。',
+    desc:'丁香花未开时花蕾层叠如结，因称「丁香结」。诗人以之写愁——丁香自此成了诗词中最著名的香药意象。' },
+  { id:'gj17', herb:'chenpi', src:'《九章·橘颂》',
+    quote:'后皇嘉树，橘徕服兮。',
+    desc:'屈原咏橘为天地间的「嘉树」。橘皮入药以陈久者为良，故名陈皮——理气和胃，越陈越香。' },
+  { id:'gj18', herb:'wuzhuyu', src:'王维《九月九日忆山东兄弟》',
+    quote:'遥知兄弟登高处，遍插茱萸少一人。',
+    desc:'重阳登高、遍插茱萸，是唐代相沿的辟秽风俗。吴茱萸辛热气烈，古人在重阳之日佩之以辟邪气。' },
+  { id:'gj19', herb:'hujiao', src:'段成式《酉阳杂俎》',
+    quote:'胡椒，出摩伽陀国，呼为昧履支。',
+    desc:'唐人记胡椒产自摩伽陀国（今印度一带）。此物经西域传入，唐时价贵如金，是外来香料的代表。' },
+  { id:'gj20', herb:'jinyinhua', src:'清·蔡淳《金银花》',
+    quote:'金银赚尽世人忙，花发金银满架香。',
+    desc:'忍冬花初开时色白，一两日后转黄，黄白相间故名金银花。凌冬不凋曰「忍冬」，清热解毒，又号「二宝花」。' },
+  { id:'gj21', herb:'cangzhu', src:'《神农本草经》',
+    quote:'术，味苦温，主风寒湿痹、死肌。',
+    desc:'《本经》只记一味「术」，后世方分苍、白二种。苍术气烈味厚，长于燥湿辟秽，端午常与艾同燃。' }
 ];
 
 const HISTORY_CARDS = {
@@ -728,7 +803,57 @@ const CODEX = {
     habitat:'生于河边、沟畔、湿地，喜湿润',
     parts:'含挥发油（薄荷醇、薄荷酮）',
     med:'性凉，味辛；疏散风热，清利头目，疏肝行气',
-    lore:'《本草纲目》称其「辛能发散，凉能清利」。名方逍遥散中用之极少，却能疏肝解郁。' }
+    lore:'《本草纲目》称其「辛能发散，凉能清利」。名方逍遥散中用之极少，却能疏肝解郁。' },
+  shengjiang:{ latin:'Zingiber officinale', family:'姜科姜属',
+    habitat:'喜温暖湿润，宜半阴砂壤，忌烈日暴晒',
+    parts:'含挥发油（姜醇、姜烯）与姜辣素',
+    med:'性温，味辛；解表散寒，温中止呕，化痰止咳',
+    lore:'《论语》「不撤姜食」——《吕氏春秋》更以「阳朴之姜」为和味之美，姜自古是庖厨与药囊的常客。' },
+  xinyi:{ latin:'Magnolia biondii', family:'木兰科木兰属',
+    habitat:'生于山坡林缘，喜半阴与散射光',
+    parts:'含挥发油（桉叶素、丁香油酚等）',
+    med:'性温，味辛；散风寒，通鼻窍',
+    lore:'《九歌》「辛夷楣兮药房」——以辛夷饰门楣。其花含苞未放时采收入药，苞上密被绒毛，形似毛笔头。' },
+  rougui:{ latin:'Cinnamomum cassia', family:'樟科樟属',
+    habitat:'生于亚热带山林，幼时耐半阴',
+    parts:'含挥发油（桂皮醛）、鞣质',
+    med:'性大热，味辛、甘；补火助阳，散寒止痛，温通经脉',
+    lore:'《离骚》「杂申椒与菌桂兮」，菌桂即肉桂类香木。桂皮自古入香入药，是「香药同源」的又一见证。' },
+  midiexiang:{ latin:'Rosmarinus officinalis', family:'唇形科迷迭香属',
+    habitat:'原产地中海沿岸，耐旱喜阳',
+    parts:'含挥发油（1,8-桉叶素、樟脑、龙脑等）',
+    med:'性温，味辛；健胃安神，发汗止痛',
+    lore:'汉魏时经西域传入，曹丕、王粲皆作《迷迭香赋》。植于中庭、佩于身侧，是当时贵族的新宠香草。' },
+  dingxiang:{ latin:'Syzygium aromaticum', family:'桃金娘科蒲桃属',
+    habitat:'原产南洋群岛，喜高温湿润',
+    parts:'含挥发油（丁香油酚、乙酰丁香油酚）',
+    med:'性温，味辛；温中降逆，散寒止痛，温肾助阳',
+    lore:'未开的花蕾晒干即「丁香」。李商隐「芭蕉不展丁香结」使其成为愁绪的化身；入药则温中降逆，是香料里少见的「花蕾」。' },
+  chenpi:{ latin:'Citrus reticulata', family:'芸香科柑橘属',
+    habitat:'生于温暖向阳的丘陵橘园',
+    parts:'含挥发油（柠檬烯）、橙皮苷',
+    med:'性温，味辛、苦；理气健脾，燥湿化痰',
+    lore:'橘皮入药以陈久者为良，故名「陈皮」——越陈越香，正与合香「陈化」之理相通。《橘颂》咏其为「嘉树」。' },
+  wuzhuyu:{ latin:'Tetradium ruticarpum', family:'芸香科吴茱萸属',
+    habitat:'生于山地林缘、溪边，喜半阴',
+    parts:'含吴茱萸碱、吴茱萸次碱与挥发油',
+    med:'性热，味辛、苦；散寒止痛，降逆止呕，助阳止泻',
+    lore:'王维「遍插茱萸少一人」——重阳佩茱萸是唐代相沿的辟秽风俗，辛热气烈，古人以其御初寒之气。' },
+  hujiao:{ latin:'Piper nigrum', family:'胡椒科胡椒属',
+    habitat:'原产印度南部，喜高温多雨',
+    parts:'含胡椒碱与挥发油',
+    med:'性热，味辛；温中散寒，下气消痰',
+    lore:'段成式《酉阳杂俎》记其「出摩伽陀国，呼为昧履支」。唐时经西域传入，价贵如金，一度可代钱行贿。' },
+  jinyinhua:{ latin:'Lonicera japonica', family:'忍冬科忍冬属',
+    habitat:'生于山坡灌丛、篱旁，耐旱耐寒喜光',
+    parts:'含绿原酸、木犀草苷与挥发油',
+    med:'性寒，味甘；清热解毒，疏散风热',
+    lore:'凌冬不凋故名「忍冬」。花初白后黄，黄白相映如金银，故称金银花——一味清凉，专解热毒。' },
+  cangzhu:{ latin:'Atractylodes lancea', family:'菊科苍术属',
+    habitat:'生于山坡草地、林下，喜向阳爽土',
+    parts:'含挥发油（苍术醇、苍术酮）',
+    med:'性温，味辛、苦；燥湿健脾，祛风散寒，明目',
+    lore:'《神农本草经》只记「术」，后世方分苍、白。苍术气烈，端午与艾同燃，是「辟秽」方中另一员干将。' }
 };
 
 /* 气候：在「过一日」香草成熟时结算，加到各区香草的品质上。
@@ -749,9 +874,12 @@ const WEATHER_OF = {};
 WEATHERS.forEach(w => { WEATHER_OF[w.id] = w; });
 
 /* 走商收购香草的底价（按品质折算），也是「香草换钱」的唯一渠道 */
-const HERB_BASE = { aicao:6, peilan:7, baizhi:8, bohe:7 };
+const HERB_BASE = { aicao:6, peilan:7, baizhi:8, bohe:7,
+  shengjiang:6, xinyi:9, rougui:12, midiexiang:7, dingxiang:13, chenpi:6,
+  wuzhuyu:8, hujiao:10, jinyinhua:8, cangzhu:7 };
 
-/* 成就：check 只读 state，达成后由 grantAchievements 发奖并记录 id */
+/* 成就：check 只读 state，达成后由 grantAchievements 发奖并记录 id
+   读古籍类成就发「种子」而非钱——读书只出识见与种子，不凭空生钱 */
 const ACHIEVEMENTS = [
   { id:'sprout',   name:'初莳草木', desc:'在药圃种下第一株香草',            reward:{ money:6 },
     check:s => s.plants.length > 0 || s.stats.harvest > 0 },
@@ -759,11 +887,13 @@ const ACHIEVEMENTS = [
     check:s => (s.stats.harvest || 0) >= 10 },
   { id:'top3',     name:'上品之选', desc:'收得 3 株品质 85% 以上的香草',    reward:{ money:15 },
     check:s => (s.stats.topGrade || 0) >= 3 },
-  { id:'know2',    name:'略识香草', desc:'辨出两味香草',                    reward:{ money:10 },
+  { id:'know2',    name:'略识香草', desc:'辨出两味香草',                    reward:{ seeds:1 },
     check:s => Object.keys(s.known).filter(k => s.known[k]).length >= 2 },
-  { id:'know4',    name:'四味俱全', desc:'辨出全部四味香草',                reward:{ money:20 },
+  { id:'know4',    name:'四味俱全', desc:'辨出四味香草',                    reward:{ seeds:2 },
     check:s => Object.keys(s.known).filter(k => s.known[k]).length >= 4 },
-  { id:'reader',   name:'博览群书', desc:'读遍全部六张古籍卡',              reward:{ money:12 },
+  { id:'know8',    name:'八味通识', desc:'辨出八味香草',                    reward:{ seeds:3 },
+    check:s => Object.keys(s.known).filter(k => s.known[k]).length >= 8 },
+  { id:'reader',   name:'博览群书', desc:`读遍全部 ${ANCIENT_CARDS.length} 张古籍卡`, reward:{ seeds:3 },
     check:s => s.readCards.length >= ANCIENT_CARDS.length },
   { id:'first',    name:'开张第一单', desc:'首次合香出售',                  reward:{ money:8 },
     check:s => (s.stats.blends || 0) >= 1 },
@@ -784,8 +914,10 @@ const ACHIEVEMENTS = [
 const SLOT_NAMES = ['君','臣','佐','使'];
 const SLOT_W = { 君:1.0, 臣:0.75, 佐:0.5, 使:0.3 };
 const CARD_COST = 8;
+/* 御用订单解锁：识得八味香草后，宫中传旨 */
+const ROYAL_KNOWN = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '1.6';
+const BUILD = '2.0';
 
 /* ============================================================
    =3 STORE
@@ -794,13 +926,16 @@ const KEY = 'spiceGame_v1';
 
 const DEFAULT_STATE = {
   v:1, money:32, day:1, screen:'hub',
-  seeds:{ aicao:1, peilan:0, baizhi:0, bohe:0 },
+  seeds:{ aicao:1, peilan:0, baizhi:0, bohe:0, shengjiang:0, xinyi:0, rougui:0, midiexiang:0,
+          dingxiang:0, chenpi:0, wuzhuyu:0, hujiao:0, jinyinhua:0, cangzhu:0 },
   plants:[],
   inventory:{},
   quality:{},
-  known:{ aicao:false, peilan:false, baizhi:false, bohe:false },
+  known:{ aicao:false, peilan:false, baizhi:false, bohe:false, shengjiang:false, xinyi:false,
+          rougui:false, midiexiang:false, dingxiang:false, chenpi:false, wuzhuyu:false,
+          hujiao:false, jinyinhua:false, cangzhu:false },
   readCards:[],
-  orders:{ folk:{done:0}, clinic:{done:0}, scholar:{done:0}, royal:{unlocked:false} },
+  orders:{ folk:{done:0}, clinic:{done:0}, scholar:{done:0}, winter:{done:0}, royal:{unlocked:false} },
   history:[],
   historyCards:[],
   stats:{ blends:0, best:0, earned:0, stars:0, harvest:0, topGrade:0, quizPerfect:0, quizRight:0, quizWrong:0 },
@@ -821,6 +956,7 @@ function load(){
     if(!p || p.v !== 1) return freshState();
     const s = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), p);
     s.seeds = Object.assign({}, DEFAULT_STATE.seeds, p.seeds || {});
+    s.known = Object.assign({}, DEFAULT_STATE.known, p.known || {});
     s.orders = Object.assign({}, DEFAULT_STATE.orders, p.orders || {});
     s.stats = Object.assign({}, DEFAULT_STATE.stats, p.stats || {});
     s.ach = Object.assign({}, DEFAULT_STATE.ach, p.ach || {});
@@ -841,6 +977,22 @@ function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
 }
 
+/* 成就奖励文案：钱或种子 */
+function rewardText(a){
+  const parts = [];
+  if(a.reward.money) parts.push(`${a.reward.money} 钱`);
+  if(a.reward.seeds) parts.push(`${a.reward.seeds} 枚种子`);
+  if(a.reward.seed) parts.push('种子一枚');
+  return parts.join('与') || '无';
+}
+/* 随机种子：优先给尚未识得的香草，帮助集齐香谱 */
+function randomSeed(){
+  const ks = Object.keys(HERBS);
+  const unk = ks.filter(k => !state.known[k]);
+  const pool = unk.length ? unk : ks;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 /* 成就结算：达成即发奖并记名。返回本轮新达成的成就列表 */
 function grantAchievements(){
   const got = [];
@@ -852,6 +1004,12 @@ function grantAchievements(){
     state.ach[a.id] = true;
     if(a.reward.money) state.money += a.reward.money;
     if(a.reward.seed) state.seeds[a.reward.seed] = (state.seeds[a.reward.seed] || 0) + 1;
+    if(a.reward.seeds){
+      for(let i = 0; i < a.reward.seeds; i++){
+        const k = randomSeed();
+        state.seeds[k] = (state.seeds[k] || 0) + 1;
+      }
+    }
     got.push(a);
   });
   return got;
@@ -865,7 +1023,10 @@ function mutate(fn){
   const got = grantAchievements();
   save();
   render();
-  if(got.length) achPop(got);
+  if(got.length){
+    achPop(got);                                        /* 香道层简报 */
+    if(window.XiangYe) XiangYe.showAch(got);            /* 商道层成就对话（v2） */
+  }
 }
 
 /* 跨日收尾：未答完的问答卷随旧一日作废（只能重开今日的一轮，杜绝隔日双刷） */
@@ -1122,8 +1283,7 @@ const EVENTS = [
       return `走商路过，愿以高价收${HERBS[t.herb].name}（每株 ${tradeUnitPrice(t.herb, t.mult)} 钱）。`;
     } },
   { id:'seedfind', w:2, run(){
-      const ks = Object.keys(HERBS);
-      const k = ks[Math.floor(Math.random() * ks.length)];
+      const k = randomSeed();
       state.seeds[k] = (state.seeds[k] || 0) + 1;
       return `圃边拾得${HERBS[k].name}种子一枚。`;
     } },
@@ -1133,16 +1293,28 @@ const EVENTS = [
       return `邻人以零碎香末求购，得钱 ${n}。`;
     } },
   { id:'dew', w:2, run(){
-      const n = state.plants.filter(p => !p.ready).length;
-      if(!n) return null;
-      state.plants.forEach(p => { if(!p.ready){ p.ready = true; p.quality = +Math.min(1, p.quality + 0.05).toFixed(2); } });
-      return `夜来露重，圃中 ${n} 株香草一夜长成，品质亦增。`;
+      if(!state.plants.length) return null;
+      const growing = state.plants.filter(p => !p.ready);
+      if(growing.length){
+        growing.forEach(p => { p.ready = true; p.quality = +Math.min(1, p.quality + 0.05).toFixed(2); });
+        return `夜来露重，圃中 ${growing.length} 株香草一夜长成，品质亦增。`;
+      }
+      state.plants.forEach(p => { p.quality = +Math.min(1, p.quality + 0.02).toFixed(2); });
+      return `夜来露重，圃中已熟香草得露滋润，品质微增。`;
+    } },
+  { id:'master', w:1, run(){
+      const ks = Object.keys(HERBS).filter(k => state.known[k]);
+      if(!ks.length) return null;
+      const k = ks[Math.floor(Math.random() * ks.length)];
+      const before = typeof state.quality[k] === 'number' ? state.quality[k] : 0.9;
+      state.quality[k] = +Math.min(1, before + 0.05).toFixed(2);
+      return `访得老香师指点炮制之法，手头${HERBS[k].name}品质提至 ${Math.round(state.quality[k] * 100)}%。`;
     } }
 ];
 
 function rollEvent(){
   const total = EVENTS.reduce((s, e) => s + e.w, 0);
-  if(Math.random() * (total + 6) >= total) return null;   // 风平浪静
+  if(Math.random() * (total + 4) >= total) return null;   // 风平浪静
   let r = Math.random() * total;
   for(const e of EVENTS){ r -= e.w; if(r <= 0) return e; }
   return null;
@@ -1174,6 +1346,8 @@ function nextDay(){
   state.weather = state.weatherNext;
   state.weatherNext = rollWeather();
   lines.forEach(addLog);
+  /* 商道层逐日推进：行价浮动、在途商队、编年大事、市面事件 */
+  if(window.XiangYe && state.co) XiangYe.tick();
   return lines;
 }
 
@@ -1191,7 +1365,8 @@ function herbQ(q, correct, why, n){
 }
 
 function buildQuizPool(){
-  const ks = Object.keys(HERBS);
+  /* 只出「词条已备」的香料题：词条待补者不入题库，免得题面出现「待补」字样 */
+  const ks = Object.keys(HERBS).filter(k => CODEX[k] && CODEX[k].latin && CODEX[k].latin.indexOf('待补') < 0);
   const pool = [];
 
   /* 宜种区 */
@@ -1250,7 +1425,7 @@ function buildQuizPool(){
     const max = ks.reduce((best, k) => HERBS[k].aroma[a] > HERBS[best].aroma[a] ? k : best, ks[0]);
     if(HERBS[max].aroma[a] < 4) return;
     pool.push(herbQ(`香气取向中「${a}」最强的是哪一味？`, max,
-      `${HERBS[max].name}的「${a}」为 ${HERBS[max].aroma[a]}（0–10），四味中最高。`));
+      `${HERBS[max].name}的「${a}」为 ${HERBS[max].aroma[a]}（0–10），在全部 ${ks.length} 味中最高。`));
   });
 
   /* 功效 → 反查香草 */
@@ -1304,7 +1479,7 @@ function achPop(list){
   const el = $('achPop');
   el.innerHTML = `<div class="ach-pop-t">成就达成</div>` +
     list.map(a => `<div class="ach-pop-i">${esc(a.name)}<span>· ${esc(a.desc)}</span>
-      <b>${a.reward.money ? '+' + a.reward.money + ' 钱' : ''}</b></div>`).join('');
+      <b>+${rewardText(a)}</b></div>`).join('');
   el.style.display = 'block';
   clearTimeout(achTimer);
   achTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
@@ -1324,11 +1499,13 @@ let studyCardId = null;
 let studyPick = null;     // 本轮已选香草；renderStudy 据此还原答后态（防重绘丢高亮）
 let studyOpts = null;     // 本轮四选项的固定顺序（防重绘重排）
 let gardenZone = null;    // 药圃选中区，跨重渲染保留
+let dayReport = null;     // 最近一次「过一日」的纪事（含随机事件），在药圃顶部显示
 let codexHerb = null;
 let ledgerAll = false;
 
 function go(screen){
   if(SCREENS.indexOf(screen) < 0) screen = 'hub';
+  if(screen !== 'garden') dayReport = null;   // 纪事只在药圃停留期间展示
   state.screen = screen;
   if(location.hash !== HASH_OF[screen]) location.hash = HASH_OF[screen];
   save();
@@ -1354,17 +1531,23 @@ function render(){
   if(state.screen === 'blend') renderBlend();
   if(state.screen === 'codex') renderCodex();
   if(state.screen === 'quiz') renderQuiz();
+  /* 商道层七屏（号簿/田亩/市集/商队/铺面/编年/成就）由 XiangYe 接管渲染 */
+  if(window.XiangYe) XiangYe.renderScreen(state.screen);
 }
 
 /* ============================================================
    =6 SCREEN · hub 书斋
    ============================================================ */
 function renderHub(){
+  /* 商道层状态树（尚未 mount 时给一份空档，避免首帧取不到） */
+  const co = state.co || {};
+  const CITIES_OF = () => (window.XiangYe ? XiangYe.CITY_IDS : []);
   const seedTotal = Object.keys(state.seeds).reduce((s,k) => s + state.seeds[k], 0);
   const readyCount = state.plants.filter(p => p.ready).length;
   const knownCount = Object.keys(state.known).filter(k => state.known[k]).length;
   const doneOrders = Object.keys(state.orders).filter(k => state.orders[k].done > 0).length;
-  const royalUnlocked = knownCount >= 4;
+  const royalUnlocked = knownCount >= ROYAL_KNOWN;
+  const herbTotal = Object.keys(HERBS).length;
   const achCount = Object.keys(state.ach).length;
   const wx = wxOf(state.weather);
   const nx = wxOf(state.weatherNext);
@@ -1377,9 +1560,24 @@ function renderHub(){
     { s:'blend', t:'香室', d:'按订单功效配伍君臣佐使，配出香方出售。',
       n: `${doneOrders} 单已交` },
     { s:'codex', t:'香草志', d:'已识香草的形态、产地、成分、药性与典故。有标本者可旋转、AR 查看。',
-      n: `已识 ${knownCount} / 4` },
+      n: `已识 ${knownCount} / ${herbTotal}` },
     { s:'quiz', t:'香料问答', d:'以香草志与古籍为题的问答，答对得钱。每日一轮五题，全对另有重赏。',
-      n: quizLeftToday() ? (state.stats.quizRight ? `累计答对 ${state.stats.quizRight} 题 · 今日可答` : '今日可答') : '今日已答' }
+      n: quizLeftToday() ? (state.stats.quizRight ? `累计答对 ${state.stats.quizRight} 题 · 今日可答` : '今日可答') : '今日已答' },
+    /* —— 商道层（乾隆经营）：种植 · 行市 · 商队 · 分号 · 编年 —— */
+    { s:'book', t:'号簿', d:'商号概况、目标与大事记。看准行市，赶在大典之前布局。',
+      n: `分号 ${co.shops ? Object.keys(co.shops).length : 1} / 5 · 行程 ${co.trips || 0} 次` },
+    { s:'farm', t:'田亩', d:'按城置产、依农时下种。各地水土不同，宜植之物亦异。',
+      n: (() => { let n = 0; CITIES_OF().forEach(c => { n += ((co.plots || {})[c] || []).length; }); return `田产 ${n} 块`; })() },
+    { s:'market', t:'市集', d:'行价逐日浮动，产地贱、远地贵。买入加利，卖出坐扣行用。',
+      n: `在途 ${(co.transit || []).length} 批` },
+    { s:'cara', t:'商队', d:'驮队、镖车、漕船，按真实里程与脚力发运；抵埠方能入分号仓销售。',
+      n: (co.transit || []).length ? `${(co.transit || []).length} 支在路上` : '暂无商队' },
+    { s:'shop', t:'铺面', d:'在汉口、苏州、杭州、广州开设分号与田庄，各地需求与物产不同。',
+      n: `已开 ${co.shops ? Object.keys(co.shops).length : 1} 处` },
+    { s:'annals', t:'编年', d:'朝野大事按年月必发：庆典则香贵，海疆多事则道险。',
+      n: `已历 ${(co.histSeen || []).length} 事` },
+    { s:'ach', t:'成就', d:'香道与商道成就总录，达成即弹报并给赏。',
+      n: `已得 ${achCount} / ${ACHIEVEMENTS.length + ((window.XiangYe && XiangYe.ACH_EXTRA) ? XiangYe.ACH_EXTRA.length : 0)}` }
   ];
 
   $('sc-hub').innerHTML = `
@@ -1392,8 +1590,8 @@ function renderHub(){
       ${state.settings.seenIntro ? '' : `
       <div class="sep"></div>
       <div class="hint" style="color:var(--seal)">
-        开局提示：开局 32 钱，正好买齐四张古籍卡，集齐四味香草。<br/>
-        先去「读古籍」辨认香草得种子 → 到「药圃」择地种下 → 「过一日」催熟后收获 → 在「香室」配伍出售。
+        开局提示：开局 32 钱，先去「读古籍」辨草识香——每辨对一味，便得一枚种子、入《香草志》一页。<br/>
+        种子种于药圃、香草售于市集；识得八味之后，宫中还有一笔御用香方的差事。
       </div>`}
       <div class="sep"></div>
       <div class="row" style="font-size:13px">
@@ -1410,7 +1608,7 @@ function renderHub(){
       ${royalUnlocked && !state.orders.royal.unlocked ? `
       <div class="sep"></div>
       <div class="row">
-        <span class="hint" style="flex:1;color:var(--seal)">四味香草皆已识得，宫中传来一笔御用合香的差事。</span>
+        <span class="hint" style="flex:1;color:var(--seal)">香草已识 ${ROYAL_KNOWN} 味以上，宫中传来一笔御用合香的差事。</span>
         <button class="btn primary sm" id="btnRoyal">接下御用订单</button>
       </div>` : ''}
     </div>
@@ -1465,9 +1663,20 @@ function resetStudyCard(){
   studyCardId = null; studyPick = null; studyOpts = null;
 }
 
+/* 四选一选项：正解 + 三味「生境相近」的干扰项，随香谱扩充而不乱阵脚 */
+function studyOptionsFor(card){
+  const ks = Object.keys(HERBS).filter(k => k !== card.herb);
+  const zone = HERBS[card.herb].zone;
+  const same = shuffle(ks.filter(k => HERBS[k].zone === zone));
+  const other = shuffle(ks.filter(k => HERBS[k].zone !== zone));
+  const picks = same.slice(0, 3);
+  while(picks.length < 3) picks.push(other.shift());
+  return shuffle([card.herb].concat(picks));
+}
+
 function renderStudy(){
   const remain = ANCIENT_CARDS.filter(c => state.readCards.indexOf(c.id) < 0);
-  /* 优先出「尚未识得」香草的卡，保证逐步集齐四味；
+  /* 优先出「尚未识得」香草的卡，逐步集齐香谱；
      读尽后允许重读，否则拿不到新种子会锁死循环 */
   const fresh = remain.filter(c => !state.known[c.herb]);
   const pool = fresh.length ? fresh : (remain.length ? remain : ANCIENT_CARDS);
@@ -1485,8 +1694,8 @@ function renderStudy(){
       <div class="card">
         <h2>读古籍</h2>
         <div class="hint">
-          每张古籍卡摘抄一段典籍，描述香草的习性、生境或药性。<br/>
-          辨出是哪一味香草，即得种子一枚与知识小卡。购卡需 ${CARD_COST} 钱。
+          每张古籍卡摘抄一段真典，暗写一味香草的习性、生境或药性。<br/>
+          四选其一，辨对即得种子一枚，并解锁《香草志》中该味香草。购卡需 ${CARD_COST} 钱。
         </div>
         <div class="sep"></div>
         <div class="row">
@@ -1512,7 +1721,7 @@ function renderStudy(){
       if(state.money < CARD_COST) return toast('钱不够了，先去香室卖一方香');
       const pick = pool[Math.floor(Math.random() * pool.length)];
       mutate(s => { s.money -= CARD_COST; });
-      studyCardId = pick.id; studyPick = null; studyOpts = shuffle(Object.keys(HERBS));
+      studyCardId = pick.id; studyPick = null; studyOpts = studyOptionsFor(pick);
       renderStudy();
     };
     $('btnBackStudyList').onclick = () => { resetStudyCard(); go('hub'); };
@@ -1520,8 +1729,8 @@ function renderStudy(){
   }
 
   /* 选项顺序在开卡时定死，重绘（mutate 会整屏重绘）不再重排 */
-  const opts = studyOpts && studyOpts.length === Object.keys(HERBS).length
-    ? studyOpts : (studyOpts = shuffle(Object.keys(HERBS)));
+  const opts = studyOpts && studyOpts.length === 4
+    ? studyOpts : (studyOpts = studyOptionsFor(card));
   const answered = studyPick !== null;
   $('sc-study').innerHTML = `
     <div class="card flat" style="padding:14px 16px">
@@ -1643,6 +1852,10 @@ function renderGarden(){
         <div class="spacer"></div>
         <span class="hint">${hasSeeds ? `可选种子 ${seeds.length} 种` : '暂无种子，先去读古籍'}</span>
       </div>
+      ${dayReport ? `
+      <div class="sep"></div>
+      <div class="hint" style="color:var(--seal);font-family:var(--kai);letter-spacing:2px;margin-bottom:2px">近日纪事</div>
+      ${dayReport.map((t, i) => `<div class="log-item"${i ? ' style="color:var(--seal)"' : ''}>${esc(t)}</div>`).join('')}` : ''}
 
       <div class="wx">
         <div class="wx-ic${nx.id === 'drought' ? ' is-bad' : ''}">${inkIcon(nx.icon)}</div>
@@ -1816,8 +2029,9 @@ function renderGarden(){
   const nd = $('btnNextDay');
   if(nd) nd.onclick = () => {
     let lines = [];
-    mutate(s => { lines = nextDay(); });
-    toast(lines[0] || '一日过去');
+    mutate(s => { lines = nextDay(); dayReport = lines; });
+    /* 事件比天气更值得播报：有事件就报事件 */
+    toast(lines[1] ? lines[1] : (lines[0] || '一日过去'));
   };
 
   /* 重渲染后自动展开上次选中的区，方便连续播种 */
@@ -2126,13 +2340,22 @@ function renderCodex(){
   const c = CODEX[codexHerb];
   const known = !!state.known[codexHerb];
   const hasModel = !!h.model;
+  /* 商道层信息：品类、产区、行价、素材状态（视觉表现三级：3D 标本 / 正视图 / 墨线占位） */
+  const XY = window.XiangYe || null;
+  const sp = XY ? XY.SPICES[codexHerb] : null;
+  const asset = XY ? XY.assetOf(codexHerb) : { model:null, image:null, status: hasModel ? 'ready' : 'placeholder' };
+  const assetText = asset.status === 'ready' ? '3D 标本' : (asset.status === 'image' ? '正视图（三维待生成）' : '墨线占位 · 素材待生成');
+  const cityNames = cid => (XY && XY.CITIES[cid]) ? XY.CITIES[cid].name : cid;
+  const priceRow = sp && XY ? XY.CITY_IDS.map(cid => {
+    try{ return `${cityNames(cid)} ${XY.priceS.priceAt(cid, codexHerb)}`; }catch(e){ return ''; }
+  }).filter(Boolean).join(' · ') + '（分/斤）' : '—';
 
   $('sc-codex').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
         <button class="btn sm ghost" id="btnBackCodex">← 回到书斋</button>
         <div class="spacer"></div>
-        <span class="hint">香草志 · 已识 ${Object.keys(state.known).filter(k => state.known[k]).length} / 4</span>
+        <span class="hint">香草志 · 已识 ${Object.keys(state.known).filter(k => state.known[k]).length} / ${ids.length}</span>
       </div>
     </div>
 
@@ -2148,7 +2371,7 @@ function renderCodex(){
         ${hasModel
           ? `<model-viewer id="mv" alt="${esc(h.name)}标本"
                 camera-controls ar ar-modes="webxr quick-look"
-                ios-src="models/${h.model}.usdz"
+                ios-src="${(h.modelPath || `models/${h.model}.glb`).replace(/\.glb$/, '.usdz')}"
                 ar-scale="auto" environment-image="neutral" tone-mapping="neutral"
                 exposure="1.12" shadow-intensity="0.35" shadow-softness="1"
                 camera-orbit="0deg 78deg auto" min-camera-orbit="auto 45deg auto"
@@ -2156,14 +2379,18 @@ function renderCodex(){
                 interaction-prompt="none" touch-action="pan-y" loading="lazy"></model-viewer>
              <div class="paper-cast"></div>
              <div class="ar-slot" hidden><button class="seal-btn" id="btnAR">实景 AR</button></div>`
-          : `<div class="plate">
+          : (asset.image
+            ? `<img class="codex-img" src="${asset.image}" data-spice="${codexHerb}" alt="${esc(h.name)}正视图" loading="lazy"
+                 onerror="window.xyImgFail&&window.xyImgFail(this)">
+               <div class="paper-cast"></div>`
+            : `<div class="plate">
                ${inkPlate(codexHerb)}
-               <span class="tag">墨线图谱</span>
+               <span class="tag">墨线图谱 · 素材待生成</span>
              </div>
-             <div class="paper-cast"></div>`}
+             <div class="paper-cast"></div>`)}
       </div>
       <div class="load-bar" id="loadBar" ${hasModel ? '' : 'hidden'}><i id="loadFill"></i></div>
-      <div class="load-txt" id="loadTxt">${hasModel ? '正在展开图页…' : '此味暂无 3D 标本，以墨线图谱代之'}</div>
+      <div class="load-txt" id="loadTxt">${hasModel ? '正在展开图页…' : (asset.image ? '此味暂无 3D 标本，以正视图代之' : '此味素材待生成，以墨线图谱代之')}</div>
     </div>
 
     <div class="card">
@@ -2176,6 +2403,11 @@ function renderCodex(){
         <dt>成分</dt><dd>${esc(c.parts)}</dd>
         <dt>药性</dt><dd>${esc(c.med)}</dd>
         <dt>典故</dt><dd>${esc(c.lore)}</dd>
+        ${sp ? `<dt>品类</dt><dd>${esc(sp.cat)} · 品级 ${'★'.repeat(sp.tier)}${'☆'.repeat(Math.max(0, 5 - sp.tier))}</dd>
+        <dt>获取</dt><dd>${sp.sea ? '粤海番舶所入（广州府濠畔街香药行）' : '可于 ' + sp.farm.map(cityNames).join('、') + ' 置田栽种，或就地市集买入'}${c.era ? '　·　' + esc(c.era) : ''}</dd>
+        <dt>用途</dt><dd>${esc(sp.use || '合香配伍')}</dd>
+        <dt>行价</dt><dd>${priceRow}</dd>
+        <dt>素材</dt><dd>${assetText}</dd>` : ''}
       </dl>
       <div class="sep"></div>
       <div class="hint">香气取向（0–10）：${AROMA_AXES.map(a => `${a} ${h.aroma[a]}`).join(' · ')}</div>
@@ -2205,7 +2437,7 @@ function achCard(){
       <div class="an">${on ? '❖' : '○'} ${esc(a.name)}</div>
       <div class="ad">${esc(a.desc)}</div>
       <div class="ar ${on ? 'q-hi' : ''}" style="color:${on ? 'var(--seal)' : 'var(--muted)'}">
-        ${on ? `已得 ${a.reward.money} 钱` : `奖励 ${a.reward.money} 钱`}
+        ${on ? `已得 ${rewardText(a)}` : `奖励 ${rewardText(a)}`}
       </div>
     </div>`;
   const seedTotal = Object.keys(state.seeds).reduce((s, k) => s + state.seeds[k], 0);
@@ -2214,10 +2446,10 @@ function achCard(){
       <h2>成就 · ${got.length} / ${ACHIEVEMENTS.length}</h2>
       <div class="bar" style="margin-bottom:12px"><i style="width:${Math.round(got.length / ACHIEVEMENTS.length * 100)}%"></i></div>
       <div class="hint" style="margin-bottom:12px">
-        识草、种药、合香、读经、答题皆有成就，达成即得赏钱。
+        识草、种药、合香、读经、答题皆有成就；读古籍所成者赏种子，其余赏钱。
         当前：识 ${Object.keys(state.known).filter(k => state.known[k]).length} 味 ·
         收获 ${state.stats.harvest || 0} 株 · 合香 ${state.stats.blends} 次 ·
-        读经 ${state.readCards.length} 张 · 答对 ${state.stats.quizRight || 0} 题 · 种子 ${seedTotal} 枚
+        读经 ${state.readCards.length} / ${ANCIENT_CARDS.length} 张 · 答对 ${state.stats.quizRight || 0} 题 · 种子 ${seedTotal} 枚
       </div>
       <div class="ach-grid">
         ${got.map(a => item(a, true)).join('')}
@@ -2416,8 +2648,13 @@ async function initModelViewer(h){
     if(MVE) MVE.dracoDecoderLocation = 'shared/draco/';
   }catch(e){ toast('3D 组件加载失败'); return; }
 
-  const PRIMARY = `models/${h.model}.glb`;
-  const FALLBACK = `https://cdn.jsdelivr.net/gh/ruijiangyoumeile/spice3d@main/${h.model}/models/${h.model}.glb`;
+  /* 素材路径由商道层素材谱给出（无模型者不会走到这里）；备用通道仍走 CDN */
+  const PRIMARY = h.modelPath || `models/${h.model}.glb`;
+  const FALLBACK = (() => {
+    const rel = PRIMARY.replace(/^\.\//, '');
+    if(/^\.\.\//.test(rel)) return `https://cdn.jsdelivr.net/gh/ruijiangyoumeile/spice3d@main/${rel.replace(/^\.\.\//, '')}`;
+    return `https://cdn.jsdelivr.net/gh/ruijiangyoumeile/spice3d@main/hexiang/${rel}`;
+  })();
   const fill = $('loadFill'), txt = $('loadTxt');
   let switched = false;
   let loaded = false;
@@ -2459,7 +2696,7 @@ async function initModelViewer(h){
     window.initSpiceAR({
       viewer: mv,
       primary: PRIMARY,
-      usdz: `models/${h.model}.usdz`,
+      usdz: PRIMARY.replace(/\.glb$/, '.usdz'),
       restoreShadow: '0.35',
       toast: toast,
       host: $('modelStage'),
@@ -2493,6 +2730,8 @@ $('btnReset').onclick = () => {
   resetStudyCard(); gardenZone = null; ledgerAll = false;
   quizRun = null;
   go('hub');
+  /* 商道层随新档重建（状态树、行价、页签） */
+  if(window.XiangYe && window.HX) XiangYe.mount(window.HX);
 };
 
 window.addEventListener('hashchange', () => {
@@ -2508,6 +2747,19 @@ const boot = SCREEN_OF[location.hash] || state.screen || 'hub';
 state.screen = boot;
 if(location.hash !== HASH_OF[boot]) location.hash = HASH_OF[boot];
 render();
+
+/* ============================================================
+   =12 BRIDGE —— 香道层 ↔ 商道层 接口（商道层只经此接口读写，不改动香道层内部）
+   ============================================================ */
+window.HX = {
+  get state(){ return state; },
+  save, mutate, render, toast, go, esc, qOf, inkIcon, addLog, releaseViewer,
+  nextDay, randomSeed, rewardText, achPop,
+  HERBS, CODEX, HERB_BASE, ORDERS, ANCIENT_CARDS, ACHIEVEMENTS, ZONES, EVENTS,
+  SCREENS, HASH_OF, SCREEN_OF,
+  hashOf(id){ return HASH_OF[id] || ''; }
+};
+if(window.XiangYe) window.XiangYe.mount(window.HX);
 </script>
 </body>
 </html>
