@@ -373,6 +373,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
 }
 .search-bar input:focus{border-color:var(--seal)}
 .search-bar .hint{white-space:nowrap}
+.inv-item mark{background:var(--seal-soft);color:var(--seal);border-radius:3px;padding:0 1px}
 .inv-empty{padding:10px 0;color:var(--muted);font-size:13px}
 
 .wheel-box{text-align:center}
@@ -1916,7 +1917,65 @@ function answerStudy(card, pick){
 function qClass(q){ return q >= 0.85 ? 'q-hi' : (q >= 0.65 ? 'q-mid' : 'q-lo'); }
 function qLabel(q){ return q >= 0.85 ? '上品' : (q >= 0.65 ? '中品' : '下品'); }
 
+/* ============================================================
+   香草检索：名 / 拼音全拼 / 拼音首字母 / 学名科属 / 功效，
+   空格分词（全须命中），大小写与汉字通用——药圃选种、香室配香共用
+   ============================================================ */
+const PINYIN = {
+  huajiao:'hua jiao', huixiang:'xiao hui xiang', aicao:'ai cao', cangzhu:'cang zhu',
+  shengjiang:'sheng jiang', wuzhuyu:'wu zhu yu', wujiapi:'wu jia pi', gansong:'gan song', jingjie:'jing jie',
+  bohe:'bo he', peilan:'pei lan', baizhi:'bai zhi', xinyi:'xin yi', foshou:'fo shou', luohanguo:'luo han guo',
+  zisu:'zi su', chenpi:'chen pi', huoxiang:'huo xiang', liangjiang:'gao liang jiang', jinyinhua:'jin yin hua',
+  xiangmaocao:'xiang mao cao', jianghuang:'jiang huang', bajiao:'ba jiao', caoguo:'cao guo', sharen:'sha ren',
+  yujin:'yu jin', sumu:'su mu', linglingxiang:'ling ling xiang', muxiang:'mu xiang',
+  moli:'mo li', hangju:'hang ju', guihua:'gui hua', meigui:'mei gui', zhizi:'zhi zi', meihua:'mei hua',
+  furong:'mu fu rong hua',
+  bibo:'bi bo', hujiao:'hu jiao', dingxiang:'ding xiang', rougui:'rou gui', baidoukou:'bai dou kou',
+  tanxiang:'tan xiang', chenxiang:'chen xiang', longnao:'long nao', ruxiang:'ru xiang', moyao:'mo yao',
+  anxixiang:'an xi xiang', suhexiang:'su he xiang', jiangzhenxiang:'jiang zhen xiang',
+  yuegui:'yue gui', niuzhi:'niu zhi', bailixiang:'bai li xiang', midiexiang:'mi die xiang'
+};
+const HAY_CACHE = {};
+function herbHay(id){
+  if(HAY_CACHE[id]) return HAY_CACHE[id];
+  const h = HERBS[id] || {}, c = CODEX[id] || {};
+  const py = PINYIN[id] || '';
+  const full = py.replace(/ /g, '');
+  const ini = py.split(' ').filter(Boolean).map(s => s[0]).join('');
+  HAY_CACHE[id] = [
+    h.name || '', (h.name || '').replace(/花$/, ''), (h.efficacy || []).join(''),
+    c.latin || '', c.family || '', full, ini
+  ].join(' ').toLowerCase();
+  return HAY_CACHE[id];
+}
+/* 模糊命中：空格分词后逐词做子串匹配（词内不限位置，故输入「艾」即中「艾草」） */
+function fuzzyHit(id, kw){
+  const hay = herbHay(id);
+  return String(kw).toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.indexOf(t) >= 0);
+}
+/* 名字里首个命中的中文词加朱笔圈点（其余照旧转义） */
+function hlName(id, kw){
+  const name = (HERBS[id] || {}).name || '';
+  const t = String(kw).trim().split(/\s+/).find(k => /[\u4e00-\u9fa5]/.test(k) && name.indexOf(k) >= 0);
+  if(!t) return esc(name);
+  const i = name.indexOf(t);
+  return esc(name.slice(0, i)) + '<mark>' + esc(t) + '</mark>' + esc(name.slice(i + t.length));
+}
+/* 输入框保持原节点不重建：只刷新列表，中文输入法组词（composition）期间不刷新 */
+function bindSearchInput(input, getKw, setKw, refresh){
+  let composing = false;
+  input.addEventListener('compositionstart', () => { composing = true; });
+  input.addEventListener('compositionend', () => { composing = false; setKw(input.value); refresh(); });
+  input.addEventListener('input', () => { setKw(input.value); if(!composing) refresh(); });
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ input.value = ''; setKw(''); refresh(); }
+    if(e.key === 'Enter'){ e.preventDefault(); refresh(); }
+  });
+}
+
 function renderGarden(){
+  /* 输入中途被重绘（过一日/收获）时，重绘后把焦点与光标交还搜索框 */
+  const seedHadFocus = !!document.activeElement && document.activeElement.id === 'seedSearch';
   const seeds = Object.keys(state.seeds).filter(k => state.seeds[k] > 0);
   const hasSeeds = seeds.length > 0;
   const wx = wxOf(state.weather);
@@ -2030,10 +2089,8 @@ function renderGarden(){
     };
   });
 
-  function renderSeedPick(zone){
+  function renderSeedPick(zone, refocus){
     const nd = wxDelta(zone, state.weatherNext);
-    const kw = gardenSearch.trim();
-    const matched = kw ? seeds.filter(k => HERBS[k].name.indexOf(kw) >= 0) : seeds;
     $('seedPick').innerHTML = `
       <h3>选种（种于 ${esc(zone)}区）</h3>
       <div class="hint" style="margin-bottom:8px">
@@ -2041,23 +2098,34 @@ function renderGarden(){
         <b class="${nd > 0.02 ? 'q-hi' : (nd < -0.02 ? 'q-lo' : 'q-mid')}">${nd > 0 ? '+' : ''}${Math.round(nd * 100)}%</b>
       </div>
       <div class="search-bar">
-        <input id="seedSearch" type="search" placeholder="搜种子名，如「艾」「草」「桂」" value="${esc(gardenSearch)}" autocomplete="off"/>
-        <span class="hint">${matched.length} / ${seeds.length}</span>
+        <input id="seedSearch" type="search" autocomplete="off" enterkeyhint="search"
+               placeholder="搜种子：名 / 拼音 / 首字母，如 艾、aicao、ac、bohe"
+               value="${esc(gardenSearch)}"/>
+        <span class="hint" id="seedCount"></span>
       </div>
-      <div class="inv" id="seedRow">
-        ${matched.length
-          ? matched.map(k => `<button class="inv-item" data-seed="${k}">${esc(HERBS[k].name)} <span class="q">×${state.seeds[k]}</span></button>`).join('')
-          : `<span class="inv-empty">没有含「${esc(kw)}」的种子</span>`}
-      </div>
-      <div class="hint" style="margin-top:12px;line-height:1.9">
-        <b>据生境择地</b>（信息来自古籍与香草志）：<br/>
-        ${matched.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')}
-      </div>`;
-    const si = $('seedSearch');
-    si.oninput = () => { gardenSearch = si.value; renderSeedPick(zone); si.focus(); si.setSelectionRange(si.value.length, si.value.length); };
-    $('seedRow').querySelectorAll('[data-seed]').forEach(b => {
-      b.onclick = () => plant(b.dataset.seed, zone);
-    });
+      <div class="inv" id="seedRow"></div>
+      <div class="hint" id="seedHabitat" style="margin-top:12px;line-height:1.9"></div>`;
+
+    const si = $('seedSearch'), row = $('seedRow'), hab = $('seedHabitat'), cnt = $('seedCount');
+    /* 只刷新列表与计数：输入框节点原地不动，中文输入法组词与光标都不受影响 */
+    function refresh(){
+      const kw = gardenSearch.trim();
+      const matched = kw ? seeds.filter(k => fuzzyHit(k, kw)) : seeds;
+      cnt.textContent = kw ? matched.length + ' / ' + seeds.length : seeds.length + ' 味';
+      row.innerHTML = matched.length
+        ? matched.map(k => `<button class="inv-item" data-seed="${k}">${hlName(k, kw)} <span class="q">×${state.seeds[k]}</span></button>`).join('')
+        : `<span class="inv-empty">没有匹配「${esc(kw)}」的种子——可用名、拼音或首字母，如 艾 / aicao / ac</span>`;
+      hab.innerHTML = matched.length
+        ? '<b>据生境择地</b>（信息来自古籍与香草志）：<br/>' +
+          matched.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')
+        : '';
+      row.querySelectorAll('[data-seed]').forEach(b => {
+        b.onclick = () => plant(b.dataset.seed, zone);
+      });
+    }
+    bindSearchInput(si, () => gardenSearch, v => { gardenSearch = v; }, refresh);
+    refresh();
+    if(refocus){ si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
   }
 
   function plant(herbId, zone){
@@ -2137,7 +2205,7 @@ function renderGarden(){
   };
 
   /* 重渲染后自动展开上次选中的区，方便连续播种 */
-  if(gardenZone && ZONES.some(z => z.id === gardenZone)) renderSeedPick(gardenZone);
+  if(gardenZone && ZONES.some(z => z.id === gardenZone)) renderSeedPick(gardenZone, seedHadFocus);
 }
 
 /* ============================================================
@@ -2152,13 +2220,13 @@ function availableOrders(){
 }
 
 function renderBlend(){
+  /* 输入中途被重绘（点槽位/换订单）时，重绘后把焦点与光标交还搜索框 */
+  const invHadFocus = !!document.activeElement && document.activeElement.id === 'invSearch';
   const ids = availableOrders();
   if(!blendOrderId || ids.indexOf(blendOrderId) < 0) blendOrderId = ids[0];
   const order = ORDERS[blendOrderId];
   const res = scoreFormula(blendDraft, order);
   const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
-  const kw = blendSearch.trim();
-  const matchedInv = kw ? inv.filter(k => HERBS[k].name.indexOf(kw) >= 0) : inv;
 
   $('sc-blend').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
@@ -2216,14 +2284,12 @@ function renderBlend(){
             <button class="btn sm ghost" id="btnClear">清空配方</button>
           </div>
           <div class="search-bar">
-            <input id="invSearch" type="search" placeholder="搜库存香草，如「艾」「草」「桂」" value="${esc(blendSearch)}" autocomplete="off"/>
-            <span class="hint">${kw ? matchedInv.length + ' / ' : ''}${inv.length} 味</span>
+            <input id="invSearch" type="search" autocomplete="off" enterkeyhint="search"
+                   placeholder="搜香草：名 / 拼音 / 首字母，如 艾、aicao、ac"
+                   value="${esc(blendSearch)}"/>
+            <span class="hint" id="invCount"></span>
           </div>
-          <div class="inv" id="invRow">
-            ${inv.length ? (matchedInv.length ? matchedInv.map(k => `
-              <button class="inv-item" data-inv="${k}">${esc(HERBS[k].name)} <span class="q">×${state.inventory[k]}</span></button>
-            `).join('') : `<span class="inv-empty">库存中没有含「${esc(kw)}」的香草</span>`) : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>'}
-          </div>
+          <div class="inv" id="invRow"></div>
           <div class="hint" style="margin-top:10px">
             点香草放入「${blendSel}位」；同一味不可重复入方。再点已占用的槽位可替换。
           </div>
@@ -2248,8 +2314,31 @@ function renderBlend(){
   `;
 
   $('btnBackBlend').onclick = () => go('hub');
-  const invS = $('invSearch');
-  if(invS){ invS.oninput = () => { blendSearch = invS.value; renderBlend(); }; }
+  /* 库存列表：与搜索框分开刷新——输入时只换列表，输入框节点原地不动 */
+  const invS = $('invSearch'), invRow = $('invRow'), invCnt = $('invCount');
+  function refreshInv(){
+    const kw = blendSearch.trim();
+    const matched = kw ? inv.filter(k => fuzzyHit(k, kw)) : inv;
+    invCnt.textContent = kw ? matched.length + ' / ' + inv.length : inv.length + ' 味';
+    invRow.innerHTML = inv.length
+      ? (matched.length
+          ? matched.map(k => `<button class="inv-item" data-inv="${k}">${hlName(k, kw)} <span class="q">×${state.inventory[k]}</span></button>`).join('')
+          : `<span class="inv-empty">库存中没有匹配「${esc(kw)}」的香草——可用名、拼音或首字母，如 艾 / aicao / ac</span>`)
+      : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>';
+    invRow.querySelectorAll('[data-inv]').forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.inv;
+        const used = SLOT_NAMES.some(r => blendDraft[r] === id);
+        if(used) return toast('此味已入方，不可重复');
+        blendDraft[blendSel] = id;
+        const next = SLOT_NAMES[SLOT_NAMES.indexOf(blendSel) + 1];
+        if(next) blendSel = next;
+        renderBlend();
+      };
+    });
+  }
+  bindSearchInput(invS, () => blendSearch, v => { blendSearch = v; }, refreshInv);
+  refreshInv();
   $('sc-blend').querySelectorAll('[data-order]').forEach(b => {
     b.onclick = () => { blendOrderId = b.dataset.order; ledgerAll = false; renderBlend(); };
   });
@@ -2258,17 +2347,6 @@ function renderBlend(){
       const r = b.dataset.slot;
       if(blendSel === r){ blendDraft[r] = null; }
       blendSel = r;
-      renderBlend();
-    };
-  });
-  $('invRow').querySelectorAll('[data-inv]').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.inv;
-      const used = SLOT_NAMES.some(r => blendDraft[r] === id);
-      if(used) return toast('此味已入方，不可重复');
-      blendDraft[blendSel] = id;
-      const next = SLOT_NAMES[SLOT_NAMES.indexOf(blendSel) + 1];
-      if(next) blendSel = next;
       renderBlend();
     };
   });
@@ -2302,6 +2380,7 @@ function renderBlend(){
   $('btnSell').disabled = !filledSlots.length || missingAny;
   if(missingAny) $('btnSell').textContent = '槽位中有香草已无存货';
   else $('btnSell').textContent = '确认出售';
+  if(invHadFocus && invS){ invS.focus(); invS.setSelectionRange(invS.value.length, invS.value.length); }
 }
 
 function drawWheel(aroma, target){

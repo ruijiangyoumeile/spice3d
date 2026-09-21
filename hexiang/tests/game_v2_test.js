@@ -438,49 +438,80 @@ function serve(){
     ok('P11 纲目片显示进度', /\d+\/\d+/.test(chipCnt ? chipCnt.textContent : ''), chipCnt && chipCnt.textContent);
     ok('P12 定向不改动金钱口径', typeof S.money === 'number' && S.money > 0, S.money);
 
-    /* ---------- Q. 搜索：药圃选种 & 香室配香库存 ---------- */
+    /* ---------- Q. 搜索：中文/连续输入（不重建输入框）+ 拼音与模糊匹配 ---------- */
     S.money = 500000;
-    /* 准备：几味库存 + 几味种子 */
-    S.inventory = { aicao: 5, huajiao: 3, mint: 0 };            /* aicao=艾草含「艾」「草」；huajiao=花椒不含 */
-    Object.keys(S.inventory).forEach(k => { if(S.inventory[k] <= 0) delete S.inventory[k]; });
-    S.inventory.baizhi = 2;                                      /* 白芷，不含草 */
-    S.seeds = { aicao: 3, huajiao: 2, bohe: 1, baizhi: 1 };     /* bohe=薄荷含「荷」不含草 */
+    S.inventory = { aicao: 5, huajiao: 3, baizhi: 2 };   /* 艾草 / 花椒 / 白芷 */
+    S.seeds = { aicao: 3, huajiao: 2, bohe: 1, baizhi: 1 };
+    const inp = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles:true })); };
+    const idsOf = sel => [...document.querySelectorAll(sel)].map(b => b.dataset.inv || b.dataset.seed);
 
-    /* Q1 香室配香：搜「艾」只出艾草 */
+    /* Q1–Q5 香室配香搜索 */
     S.screen = 'blend'; HX.render();
-    const bSearch = document.getElementById('invSearch');
-    ok('Q1 香室搜索框存在', !!bSearch);
-    if(bSearch){
-      bSearch.value = '艾'; bSearch.dispatchEvent(new Event('input', { bubbles:true }));
-      const names = [...document.querySelectorAll('#invRow [data-inv]')].map(b => b.dataset.inv);
-      ok('Q2 搜「艾」仅匹配含艾字的库存',
-        names.length === 1 && names[0] === 'aicao',
-        names.join(','));
-    }
-    /* Q3 搜不存在的字返回空提示 */
-    if(bSearch){
-      bSearch.value = 'xyz'; bSearch.dispatchEvent(new Event('input', { bubbles:true }));
-      const empty = document.querySelector('#invRow .inv-empty');
-      ok('Q3 无匹配时显示空提示', !!empty && /xyz/.test(empty.textContent), empty && empty.textContent);
-    }
+    const b0 = document.getElementById('invSearch');
+    ok('Q1 香室搜索框存在', !!b0);
+    b0.focus();
+    inp(b0, '艾');
+    ok('Q2 搜「艾」仅命中艾草（子串模糊）', idsOf('#invRow [data-inv]').join(',') === 'aicao', idsOf('#invRow [data-inv]').join(','));
+    ok('Q3 命中处有朱笔圈点高亮', !!document.querySelector('#invRow mark'), !!document.querySelector('#invRow mark'));
+    inp(b0, 'AICAO');
+    ok('Q4 全拼且忽略大小写 → 艾草', idsOf('#invRow [data-inv]').join(',') === 'aicao', idsOf('#invRow [data-inv]').join(','));
+    inp(b0, 'hj');
+    ok('Q5 拼音首字母 hj → 花椒', idsOf('#invRow [data-inv]').join(',') === 'huajiao', idsOf('#invRow [data-inv]').join(','));
+    inp(b0, '菊科');
+    ok('Q6 科属也参与匹配 → 艾草（菊科）', idsOf('#invRow [data-inv]').indexOf('aicao') >= 0, idsOf('#invRow [data-inv]').join(','));
+    inp(b0, '艾 xyz');
+    ok('Q7 空格分词为「全须命中」→ 无结果提示',
+      !!document.querySelector('#invRow .inv-empty'), (document.querySelector('#invRow .inv-empty') || {}).textContent);
+    inp(b0, '');
+    ok('Q8 清空即恢复全部库存', idsOf('#invRow [data-inv]').length === Object.keys(S.inventory).length, idsOf('#invRow [data-inv]').length);
+    ok('Q9 香室输入全程不重建输入框、焦点不丢',
+      document.getElementById('invSearch') === b0 && document.activeElement === b0,
+      (document.activeElement || {}).id || String(document.activeElement));
 
-    /* Q4 药圃选种：选一区后搜「草」只出艾草 */
+    /* Q10–Q16 药圃选种搜索（含中文输入法组词） */
     S.screen = 'garden'; HX.render();
     const zoneBtn = document.querySelector('#zoneGrid [data-z]');
     if(zoneBtn) zoneBtn.click();
-    const gSearch = document.getElementById('seedSearch');
-    ok('Q4 药圃搜索框存在', !!gSearch);
-    if(gSearch){
-      gSearch.value = '草'; gSearch.dispatchEvent(new Event('input', { bubbles:true }));
-      const names = [...document.querySelectorAll('#seedRow [data-seed]')].map(b => b.dataset.seed);
-      ok('Q5 搜「草」仅匹配含草字的种子',
-        names.length === 1 && names[0] === 'aicao',
-        names.join(','));
-      /* 清空搜索后恢复全部种子 */
-      gSearch.value = ''; gSearch.dispatchEvent(new Event('input', { bubbles:true }));
-      const all = [...document.querySelectorAll('#seedRow [data-seed]')].map(b => b.dataset.seed);
-      ok('Q6 清空搜索恢复全部种子', all.length === Object.keys(S.seeds).length, all.length + ' / ' + Object.keys(S.seeds).length);
-    }
+    const g0 = document.getElementById('seedSearch');
+    ok('Q10 药圃搜索框存在', !!g0);
+    g0.focus();
+    inp(g0, '草');
+    ok('Q11 搜「草」仅命中艾草', idsOf('#seedRow [data-seed]').join(',') === 'aicao', idsOf('#seedRow [data-seed]').join(','));
+
+    /* 中文输入法：组词期间不刷新（不被拼音中间态打断），上屏后一次刷新 */
+    inp(g0, '');                                        /* 先恢复全部种子 */
+    const allN = idsOf('#seedRow [data-seed]').length;
+    g0.value = '';
+    g0.dispatchEvent(new CompositionEvent('compositionstart'));
+    inp(g0, 'ai');
+    const midN = idsOf('#seedRow [data-seed]').length;
+    g0.value = '艾';
+    g0.dispatchEvent(new CompositionEvent('compositionend', { data:'艾' }));
+    const endN = idsOf('#seedRow [data-seed]').length;
+    ok('Q12 组词期间不刷新、上屏后刷新', midN === allN && endN === 1, allN + '→' + midN + '→' + endN);
+    ok('Q13 组词全程输入框与焦点不变（可连续输入）',
+      document.getElementById('seedSearch') === g0 && document.activeElement === g0,
+      (document.activeElement || {}).id || String(document.activeElement));
+
+    inp(g0, 'ac');
+    ok('Q14 首字母 ac → 艾草', idsOf('#seedRow [data-seed]').join(',') === 'aicao', idsOf('#seedRow [data-seed]').join(','));
+    inp(g0, 'mentha');
+    ok('Q15 学名 mentha → 薄荷', idsOf('#seedRow [data-seed]').join(',') === 'bohe', idsOf('#seedRow [data-seed]').join(','));
+    inp(g0, '艾 草');
+    ok('Q16 多词全须命中 → 艾草', idsOf('#seedRow [data-seed]').join(',') === 'aicao', idsOf('#seedRow [data-seed]').join(','));
+
+    /* 播种后整屏重绘：关键字仍在、列表仍过滤、焦点交还（可连续播种） */
+    const seedBtn = document.querySelector('#seedRow [data-seed]');
+    if(seedBtn) seedBtn.click();
+    const gs1 = document.getElementById('seedSearch');
+    inp(gs1, 'aicao');
+    gs1.focus();
+    document.querySelector('#seedRow [data-seed]').click();      /* 种下 → mutate 整屏重绘 */
+    const gs2 = document.getElementById('seedSearch');
+    ok('Q17 播种重绘后保留关键字与焦点',
+      gs2 && gs2.value === 'aicao' && document.activeElement === gs2 &&
+      idsOf('#seedRow [data-seed]').length <= 1,
+      (gs2 ? gs2.value : 'null') + ' / ' + ((document.activeElement || {}).id || '-'));
 
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
