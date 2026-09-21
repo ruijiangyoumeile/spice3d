@@ -1377,7 +1377,7 @@
 .xy-pop-item .t{font-family:var(--kai);font-size:12.5px;letter-spacing:2px;color:var(--seal);margin-bottom:4px}\
 .xy-pop-item .b{font-size:12.5px;color:var(--ink-2);line-height:1.7}\
 @keyframes xyIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}\
-.xy-ach{position:fixed;left:0;right:0;top:72px;z-index:220;display:none;justify-content:center;pointer-events:none;padding:0 14px}\
+.xy-ach{position:fixed;left:0;right:0;top:124px;z-index:220;display:none;justify-content:center;pointer-events:none;padding:0 14px}\
 .xy-ach.on{display:flex}\
 .xy-ach-card{pointer-events:auto;width:min(460px,100%);display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;\
   background:linear-gradient(180deg,#fffdf6,#f4ecd8);border:1px solid rgba(162,62,43,.42);border-radius:8px;\
