@@ -1859,6 +1859,11 @@
       if(s.known[id] == null) s.known[id] = false;
       if(s.inventory[id] == null) s.inventory[id] = 0;
     });
+    /* 商道层新增香方：在香道层订单表里建条目（缺则香室渲染会取不到 .done） */
+    if(!s.orders) s.orders = {};
+    Object.keys(ORDERS_EXTRA).forEach(function(k){
+      if(!s.orders[k]) s.orders[k] = { done:0 };
+    });
     initPrices(s);
     CO = d;
   }
