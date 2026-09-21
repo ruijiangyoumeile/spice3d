@@ -43,6 +43,7 @@ function serve(){
   page.on('console', m => { if(m.type() === 'error') pageErrors.push('console: ' + m.text().slice(0, 200)); });
   await page.evaluateOnNewDocument(() => { try{ localStorage.clear(); }catch(e){} });
   await page.goto(`http://127.0.0.1:${PORT}/hexiang/index.html`, { waitUntil: 'load', timeout: 60000 });
+  page.on('dialog', async d => { try{ await d.accept(); }catch(e){} });
   await page.waitForFunction('window.XiangYe && window.HX && window.HX.state', { timeout: 30000 });
 
   const result = await page.evaluate(async () => {
@@ -262,6 +263,87 @@ function serve(){
       const i = document.querySelector('#modelStage .codex-smoke i');
       return !!i && /xySmoke/.test(getComputedStyle(i).animationName);
     })());
+
+    /* ---------- M. 成就对话：必须能关闭（回归本轮修复） ---------- */
+    const mkAch = n => ({ id:'t' + n, name:'测成就' + n, desc:'测试用成就', reward:{ money:1 } });
+    const dlgOpen = () => { const e = document.getElementById('xyAch'); return !!(e && e.classList.contains('on')); };
+    /* 前置：清掉此前游戏过程中真实触发而排队的成就条目（顺带验证反复关闭） */
+    for(let i = 0; i < 30 && dlgOpen(); i++) document.getElementById('xyAchClose').click();
+    ok('M0 前置：队列可清空', !dlgOpen());
+    XY.showAch([mkAch(1)]);
+    ok('M1 弹出后可见', dlgOpen());
+    document.getElementById('xyAchOk').click();
+    ok('M2 点「确认」后关闭', !dlgOpen());
+    XY.showAch([mkAch(2), mkAch(3)]);
+    ok('M3 多条排队并提示余量', dlgOpen() && /尚有/.test(document.getElementById('xyAch').textContent));
+    document.getElementById('xyAchOk').click();
+    ok('M4 连点「确认」逐条推进', dlgOpen());
+    document.getElementById('xyAchClose').click();
+    ok('M5 点「关闭」立即隐藏（清空队列）', !dlgOpen());
+    XY.showAch([mkAch(4)]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape' }));
+    ok('M6 ESC 可关闭', !dlgOpen());
+
+    /* ---------- N. 交互链路（真点 DOM） ---------- */
+    S.screen = 'market'; HX.render();
+    const mRow = document.querySelector('#sc-market .xy-mrow[data-good]');
+    const mBuy = mRow && mRow.querySelector('[data-buy]');
+    const moneyBefore = S.money;
+    if(mBuy && !mBuy.disabled) mBuy.click();
+    ok('N1 市集买入按钮真点可用', S.money < moneyBefore, moneyBefore + '->' + S.money);
+    S.screen = 'farm'; HX.render();
+    const plantBtns = document.querySelectorAll('#sc-farm [data-plant]');
+    if(plantBtns.length) plantBtns[0].click();
+    ok('N2 田亩播种按钮真点可用', plantBtns.length === 0 || S.co.plots.xian.some(p => p.crop), plantBtns.length);
+    const tabMarket = document.querySelector('#xyTabs [data-sc="market"]');
+    tabMarket.click();
+    ok('N3 页签点击切屏', HX.state.screen === 'market' && document.getElementById('sc-market').classList.contains('on'), HX.state.screen);
+    S.known.jinyinhua = true; S.screen = 'codex'; HX.render();
+    const ct = document.querySelector('#codexTabs [data-h="jinyinhua"]');
+    if(ct) ct.click();
+    ok('N4 香草志可切味', /金银花/.test(screenHTML('codex')));
+    ok('N5 顶栏口径为银两与农历', /两|钱|分/.test((document.getElementById('uiMoney') || {}).textContent || '') &&
+      /年/.test((document.getElementById('uiDay') || {}).textContent || ''),
+      (document.getElementById('uiMoney') || {}).textContent + ' / ' + (document.getElementById('uiDay') || {}).textContent);
+    /* ---------- O. 素材路径真取 + 脏档健壮性 ---------- */
+    const readyIds = Object.keys(XY.SPICES).filter(id => XY.assetOf(id).status === 'ready').slice(0, 3);
+    const imgIds = Object.keys(XY.SPICES).filter(id => XY.assetOf(id).status === 'image').slice(0, 2);
+    let okModel = readyIds.length > 0, dM = [];
+    for(const id of readyIds){
+      try{
+        const r = await fetch(XY.assetOf(id).model);
+        const b = await r.blob();
+        dM.push(id + ':' + r.status + '/' + Math.round(b.size / 1024) + 'KB');
+        if(!r.ok || b.size < 20000) okModel = false;
+      }catch(e){ okModel = false; dM.push(id + ':ERR'); }
+    }
+    ok('O1 三维素材路径真可取', okModel, dM.join(' '));
+    let okImg = true, dI = [];
+    for(const id of imgIds){
+      try{
+        const r = await fetch(XY.assetOf(id).image);
+        const b = await r.blob();
+        dI.push(id + ':' + r.status + '/' + Math.round(b.size / 1024) + 'KB');
+        if(!r.ok || b.size < 5000) okImg = false;
+      }catch(e){ okImg = false; dI.push(id + ':ERR'); }
+    }
+    ok('O2 正视图路径真可取', okImg, dI.join(' '));
+    /* 旧档残留未知香料 id：三屏不得崩，且不得渲染为未知条目 */
+    S.co.store.xian['__ghost__'] = 5; S.co.store.xian['__ghost2__'] = 3;
+    let ghostOk = true, ghostErr = '';
+    try{ S.screen = 'market'; HX.render(); S.screen = 'farm'; HX.render(); S.screen = 'cara'; HX.render(); }
+    catch(e){ ghostOk = false; ghostErr = e.message; }
+    ok('O3 脏档未知香料不致崩', ghostOk && !/__ghost__/.test(screenHTML('market') + screenHTML('farm') + screenHTML('cara')),
+      ghostErr || ('leak=' + /__ghost__/.test(screenHTML('market')) + '/' + /__ghost__/.test(screenHTML('farm')) + '/' + /__ghost__/.test(screenHTML('cara'))));
+    delete S.co.store.xian['__ghost__']; delete S.co.store.xian['__ghost2__'];
+
+    /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
+    document.getElementById('btnReset').click();
+    const S2 = HX.state;
+    ok('N6 重开档后商道层重建', !!document.getElementById('xyTabs') &&
+      Object.keys(S2.co.price.xian).length >= 50 && S2.money === 40000 &&
+      document.querySelectorAll('#xyTabs [data-sc]').length >= 13,
+      S2.money + ' / ' + Object.keys(S2.co.price.xian).length);
 
     return { R };
   });

@@ -35,6 +35,13 @@ const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Ap
     S.money = 500000;
     XY.plantCrop('xian', 0, 'huajiao');
     out.planted = S.co.plots.xian[0].crop || null;
+    /* 成就对话必须能关闭（回归：曾出现点确认后不收起） */
+    const dlg = () => { const e = document.getElementById('xyAch'); return !!(e && e.classList.contains('on')); };
+    for(let i = 0; i < 30 && dlg(); i++) document.getElementById('xyAchClose').click();
+    XY.showAch([{ id:'live1', name:'线上校验', desc:'线上实测用', reward:{ money:1 } }]);
+    out.dialogOpens = dlg();
+    document.getElementById('xyAchOk').click();
+    out.dialogCloses = !dlg();
     return out;
   });
   console.log('线上实测 ' + URL);
