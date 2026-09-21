@@ -89,18 +89,45 @@ function serve(){
     /* ---------- C. 种植：地域限制与农时 ---------- */
     S.money = 500000;
     const m0 = S.money;
+    const sowOf = (ci, pi) => ((S.co.plots[ci][pi] || {}).sow || []);
     XY.plantCrop('xian', 0, 'huajiao');
-    ok('C1 西安可种花椒', S.co.plots.xian[0].crop === 'huajiao', S.co.plots.xian[0].crop);
+    ok('C1 西安可种花椒', (sowOf('xian', 0)[0] || {}).id === 'huajiao', JSON.stringify(sowOf('xian', 0)));
     /* 苗钱须扣（同一次结算里可能另有成就赏银，故按「至少扣了苗钱」断言） */
     ok('C6 苗钱已扣', (m0 - S.money) >= XY.SPICES.huajiao.crop.s - 100, m0 + '->' + S.money);
     XY.plantCrop('xian', 1, 'tanxiang');
-    ok('C2 洋货不能下种', S.co.plots.xian[1].crop === null, S.co.plots.xian[1].crop);
+    ok('C2 洋货不能下种', sowOf('xian', 1).length === 0, JSON.stringify(sowOf('xian', 1)));
     XY.plantCrop('xian', 1, 'moli');
-    ok('C3 非本产城不可下种', S.co.plots.xian[1].crop === null, '提示为准');
+    ok('C3 非本产城不可下种', sowOf('xian', 1).length === 0, '提示为准');
     XY.commitDays(41);
-    ok('C4 熟期到即可收', XY.abs() >= S.co.plots.xian[0].ready, XY.abs() + '/' + S.co.plots.xian[0].ready);
+    ok('C4 熟期到即可收', XY.abs() >= sowOf('xian', 0)[0].ready, XY.abs() + '/' + sowOf('xian', 0)[0].ready);
     XY.harvest('xian', 0);
     ok('C5 收获入本城仓', (S.co.store.xian.huajiao || 0) > 0, S.co.store.xian.huajiao);
+    ok('C5b 收获后畦位归零', sowOf('xian', 0).length === 0, JSON.stringify(sowOf('xian', 0)));
+
+    /* ---------- C′. 每块田本茬种植上限（PLOT_SLOTS 畦） ---------- */
+    const SLOTS = XY.PLOT_SLOTS;
+    ok('C7 每块田上限为常数', SLOTS >= 1, SLOTS);
+    XY.plantCrop('xian', 1, 'huajiao');
+    ok('C8 第一畦下种成功', (sowOf('xian', 1)[0] || {}).id === 'huajiao', JSON.stringify(sowOf('xian', 1)));
+    XY.plantCrop('xian', 1, 'huajiao');
+    ok('C9 第二畦下种成功', sowOf('xian', 1).length === 2, sowOf('xian', 1).length);
+    const mFill = S.money;
+    XY.plantCrop('xian', 1, 'huajiao');
+    ok('C10 畦满拒种（且不扣苗钱）', sowOf('xian', 1).length === SLOTS && S.money === mFill,
+      sowOf('xian', 1).length + ' / 钱 ' + mFill + '->' + S.money);
+    XY.commitDays(45);
+    XY.harvest('xian', 1, 0);
+    ok('C11 收获腾出一畦', sowOf('xian', 1).length === SLOTS - 1, sowOf('xian', 1).length);
+    XY.plantCrop('xian', 1, 'huajiao');
+    ok('C12 腾畦后可再种', sowOf('xian', 1).length === SLOTS, sowOf('xian', 1).length);
+    /* 旧档 {crop,ready} 迁移为 {sow:[…]} */
+    S.co.plots.xian[0] = { crop: 'huajiao', ready: XY.abs() + 3 };
+    S.screen = 'farm'; HX.render();
+    const xTab = document.querySelector('#sc-farm [data-city="xian"]'); if(xTab) xTab.click();
+    ok('C13 旧档田块自动迁移为畦',
+      Array.isArray(S.co.plots.xian[0].sow) && S.co.plots.xian[0].sow[0].id === 'huajiao' &&
+      S.co.plots.xian[0].crop === undefined,
+      JSON.stringify(S.co.plots.xian[0]).slice(0, 80));
 
     /* ---------- D. 市集与行价 ---------- */
     const before = S.co.store.xian.huajiao;
@@ -298,10 +325,12 @@ function serve(){
     const moneyBefore = S.money;
     if(mBuy && !mBuy.disabled) mBuy.click();
     ok('N1 市集买入按钮真点可用', S.money < moneyBefore, moneyBefore + '->' + S.money);
+    S.co.plots.xian.forEach(p => { p.sow = []; });
     S.screen = 'farm'; HX.render();
     const plantBtns = document.querySelectorAll('#sc-farm [data-plant]');
     if(plantBtns.length) plantBtns[0].click();
-    ok('N2 田亩播种按钮真点可用', plantBtns.length === 0 || S.co.plots.xian.some(p => p.crop), plantBtns.length);
+    ok('N2 田亩播种按钮真点可用', plantBtns.length > 0 && S.co.plots.xian.some(p => (p.sow || []).length > 0),
+      plantBtns.length + ' 钮 / ' + S.co.plots.xian.map(p => (p.sow || []).length).join(','));
     const tabMarket = document.querySelector('#xyTabs [data-sc="market"]');
     tabMarket.click();
     ok('N3 页签点击切屏', HX.state.screen === 'market' && document.getElementById('sc-market').classList.contains('on'), HX.state.screen);
@@ -343,6 +372,71 @@ function serve(){
     ok('O3 脏档未知香料不致崩', ghostOk && !/__ghost__/.test(screenHTML('market') + screenHTML('farm') + screenHTML('cara')),
       ghostErr || ('leak=' + /__ghost__/.test(screenHTML('market')) + '/' + /__ghost__/.test(screenHTML('farm')) + '/' + /__ghost__/.test(screenHTML('cara'))));
     delete S.co.store.xian['__ghost__']; delete S.co.store.xian['__ghost2__'];
+
+    /* ---------- P. 读古籍：卡库 / 定向择读 / 未读优先 ---------- */
+    const CARDS = HX.ANCIENT_CARDS;
+    ok('P1 古籍卡库 ≥ 50 张', CARDS.length >= 50, CARDS.length);
+    const idDup = CARDS.map(c => c.id).filter((v, i, a) => a.indexOf(v) !== i);
+    ok('P2 卡号无重复', idDup.length === 0, idDup.join(','));
+    const orphan = CARDS.filter(c => !HX.HERBS[c.herb] || !HX.HERBS[c.herb].aroma).map(c => c.id);
+    ok('P3 每张卡的香草皆在谱中且有性味', orphan.length === 0, orphan.slice(0, 5).join(','));
+    const noQuote = CARDS.filter(c => !c.quote || !c.src || !c.desc).map(c => c.id);
+    ok('P4 每张卡引文出处齐全', noQuote.length === 0, noQuote.join(','));
+
+    const natOf = id => { const a = HX.HERBS[id].aroma;
+      const t = (a.辛 >= a.苦 && a.辛 >= a.甘) ? '辛' : (a.苦 >= a.甘 ? '苦' : '甘');
+      return t + ((a.温 || 0) >= (a.凉 || 0) ? '温' : '凉'); };
+    /* 卡片视图的引文唯一，可据以反查抽到的是哪张卡 */
+    const drawnCard = () => { const html = screenHTML('study'); return CARDS.find(c => html.indexOf(c.quote) >= 0) || null; };
+    const backToList = () => { const b = document.querySelector('#sc-study [data-again]'); if(b) b.click(); };
+    const chipOf = k => document.querySelector('#kindRow .kind-chip[data-kind="' + k + '"]');
+    const draw = n => {                       /* 连抽 n 张，答对后回目录，返回抽到的卡 */
+      const got = [];
+      for(let i = 0; i < n; i++){
+        const bb = document.getElementById('btnBuy');
+        if(!bb || bb.disabled) break;
+        bb.click();
+        const c = drawnCard(); if(!c) break;
+        got.push(c);
+        const ob = [...document.querySelectorAll('#optGrid .opt')].find(x => x.dataset.h === c.herb);
+        if(ob) ob.click();                     /* 辨对，写已读 */
+        backToList();
+        if(!document.getElementById('kindRow')) break;
+      }
+      return got;
+    };
+    S.money = 500000;
+    S.screen = 'study'; S.readCards = []; HX.render();
+    ok('P5 定向栏目含纲目与性味两轴', document.querySelectorAll('#kindRow .kind-chip').length === 11,
+      document.querySelectorAll('#kindRow .kind-chip').length);
+
+    const hkAll = CARDS.filter(c => HX.HERBS[c.herb].cat === '洋货').length;
+    chipOf('cat:洋货').click();
+    const hk = draw(Math.min(8, hkAll));
+    ok('P6 定向「洋货」：所抽之卡皆属洋货',
+      hk.length >= Math.min(4, hkAll) && hk.every(c => HX.HERBS[c.herb].cat === '洋货'),
+      hk.length + '/' + hkAll + ' 张 / ' + [...new Set(hk.map(c => HX.HERBS[c.herb].cat))].join(','));
+
+    const xwAll = CARDS.filter(c => natOf(c.herb) === '辛温').length;
+    const chipSpicy = chipOf('nature:辛温');
+    ok('P7 性味片可选中且有卡', !!chipSpicy && xwAll > 0, xwAll);
+    if(chipSpicy && xwAll) chipSpicy.click();
+    const xw = draw(Math.min(6, xwAll));
+    ok('P8 定向「辛温」：所抽之卡性味皆辛温',
+      xw.length >= Math.min(3, xwAll) && xw.every(c => natOf(c.herb) === '辛温'),
+      xw.length + '/' + xwAll + ' 张 / ' + [...new Set(xw.map(c => natOf(c.herb)))].join(','));
+
+    chipOf('').click();                        /* 回到随机读，验「未读优先、不重复」 */
+    S.readCards = []; HX.render();
+    const any = draw(12);
+    ok('P9 未读优先：连读十二张无重复',
+      any.length >= 10 && new Set(any.map(c => c.id)).size === any.length,
+      any.length + ' 张 / 去重后 ' + new Set(any.map(c => c.id)).size);
+    ok('P10 读后登记入册', S.readCards.length === any.length && S.readCards.indexOf(any[0].id) >= 0,
+      S.readCards.length + ' / ' + any.length);
+    const chipCnt = document.querySelector('#kindRow .kind-chip .kc');
+    ok('P11 纲目片显示进度', /\d+\/\d+/.test(chipCnt ? chipCnt.textContent : ''), chipCnt && chipCnt.textContent);
+    ok('P12 定向不改动金钱口径', typeof S.money === 'number' && S.money > 0, S.money);
 
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();

@@ -34,7 +34,7 @@ const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Ap
     /* 田亩与商队可交互 */
     S.money = 500000;
     XY.plantCrop('xian', 0, 'huajiao');
-    out.planted = S.co.plots.xian[0].crop || null;
+    out.planted = ((S.co.plots.xian[0].sow || [])[0] || {}).id || null;
     /* 成就对话必须能关闭（回归：曾出现点确认后不收起） */
     const dlg = () => { const e = document.getElementById('xyAch'); return !!(e && e.classList.contains('on')); };
     for(let i = 0; i < 30 && dlg(); i++) document.getElementById('xyAchClose').click();

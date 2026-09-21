@@ -490,7 +490,95 @@
       desc:'清初屈大均记粤中四市，香市专在东莞寮步（原作「寥步」），莞香生熟诸品皆聚于此。同书记莞香之盛：「当莞香盛时，岁售逾数万金」「故莞人多以香起家」。沉香结香需年久，价几与金等，粤海关岁入亦倚此为一大宗。' },
     { id:'gj26', herb:'tanxiang', src:'周嘉胄《香乘·卷二·檀香》',
       quote:'檀香出海外诸国及滇粤诸地，树即今之檀木。',
-      desc:'明末周嘉胄《香乘》为香事之总汇，檀香自卷首「香品」即列为一门；同卷又引《大明一统志》「檀香出广东云南及占城真蜡爪哇渤泥暹罗三佛斋回回等国」。佛门香市所亟，焚之清芬远逸，乾隆间番舶仍载之不绝。' }
+      desc:'明末周嘉胄《香乘》为香事之总汇，檀香自卷首「香品」即列为一门；同卷又引《大明一统志》「檀香出广东云南及占城真蜡爪哇渤泥暹罗三佛斋回回等国」。佛门香市所亟，焚之清芬远逸，乾隆间番舶仍载之不绝。' },
+    /* —— 补编：一地一草皆有典可稽，出处与「香草志」词条同源 —— */
+    { id:'gj27', herb:'huixiang', src:'唐《新修本草》',
+      quote:'蘹香子……叶似老胡荽，极细，茎粗。',
+      desc:'唐本草首著「蘹香子」，即今之小茴香。其喜冷凉干燥、耐旱怕涝，秦晋、宁夏田圃广种；秋日收其实，炒香入卤增味，入合香则温中理气。' },
+    { id:'gj28', herb:'hangju', src:'《神农本草经》',
+      quote:'久服利血气，轻身耐老延年。',
+      desc:'《本经》列菊为上品。菊喜温和湿润、短日照，杭州、桐乡水乡所植者花小瓣密、色白味甘，故称杭菊；秋日采花蒸晒成饼，入茶入枕，清头目之火。' },
+    { id:'gj29', herb:'meigui', src:'《本草纲目·花部·玫瑰花》',
+      quote:'处处有之，人家园圃多栽种。',
+      desc:'玫瑰耐寒耐旱喜光，园圃人家多栽。汉《西京杂记》已记上林苑有群臣所献玫瑰树；明清取花窨茶、蒸露、制饼，山东平阴花户自明代起即以采花为业。' },
+    { id:'gj30', herb:'zhizi', src:'《本草纲目》',
+      quote:'卮子……花白而香。',
+      desc:'栀子一名「木丹」，《神农本草经》已著录。喜温暖湿润半阴，长江以南溪边林下常见；入夏开白花，气香远溢，供案头清供、熏衣辟秽，秋结橙黄之实。' },
+    { id:'gj31', herb:'meihua', src:'《诗经·召南·摽有梅》',
+      quote:'摽有梅，其实七兮。',
+      desc:'以梅实渐落起兴，叹时序之迁。梅耐寒，江南山地庭园老梅成林；冬月花初绽时采蕾阴干，窨茶入香，取其暗香浮动，文人瓶供之珍。' },
+    { id:'gj32', herb:'foshou', src:'《本草纲目》',
+      quote:'状如人手，有指……其味不甚佳而清香袭人。',
+      desc:'佛手柑果实分歧如指，故名佛手。喜温暖湿润、忌霜冻，闽粤与浙江金华园圃栽植；鲜果陈于案头，香可累月不散，青果切片焙干则疏肝理气、和胃止痛。' },
+    { id:'gj33', herb:'sharen', src:'《本草纲目》',
+      quote:'此物实在根下，仁藏壳内。',
+      desc:'实藏根下、仁在壳中，故有「缩砂」之名。喜高温高湿之林下荫处，粤西阳春所产壳薄仁满、气烈为道地；化湿开胃、温脾止泻，岭南暑湿诸方多恃之。' },
+    { id:'gj34', herb:'yujin', src:'唐《新修本草》',
+      quote:'此药苗似姜黄。',
+      desc:'唐人已辨郁金与姜黄同类。喜温暖湿润，川、浙、桂岭下阴湿处栽培；秋冬掘根切片晒干，色黄气香，行气解郁，川郁金经栈道北运。' },
+    { id:'gj35', herb:'jianghuang', src:'《本草纲目》',
+      quote:'姜黄、郁金、蒁药三物，形状功用皆相近。',
+      desc:'姜黄根色深黄，岭南以之渍汁染布、为食馔着色。喜温暖湿润半阴，川粤闽岭下沙壤栽培；秋冬掘根煮透晒干，破血行气，药铺染料铺俱用。' },
+    { id:'gj36', herb:'sumu', src:'晋嵇含《南方草木状》',
+      quote:'苏枋，树类槐花，黑子，出九真。南人以染绛。',
+      desc:'苏木心材赤色，交广之人以之染红。喜高温干热，滇南、粤西低山所产；由海舶与陆路并至广州，濠畔街颜料行、药行皆有售，药中用以行血破滞。' },
+    { id:'gj37', herb:'bibo', src:'唐《新修本草》',
+      quote:'荜茇，生波斯国。',
+      desc:'番舶所载之南洋香药，果穗辛热，最能暖胃止痛；烹调又能去腥膻。李珣《海药本草》亦录之，宋元以来与胡椒同列香药大宗，粤中行栈常有。' },
+    { id:'gj38', herb:'longnao', src:'唐段成式《酉阳杂俎》',
+      quote:'龙脑香树，出婆利国。',
+      desc:'其树高八九丈，剖木得脑，即今之冰片。味辛气烈，能通诸窍而清热，宫中熏衣、佛事熏香多用；宋苏颂《本草图经》记「今唯南海番舶贾客货之」，价几同金。' },
+    { id:'gj39', herb:'ruxiang', src:'宋苏颂《本草图经》',
+      quote:'乳香，出南海。',
+      desc:'实自大食舶来，其脂垂滴如乳，故名乳香。《名医别录》以「薰陆香」著录。熏烧入药，行气活血、消肿生肌；宋元海上香药贸易以此为大宗。' },
+    { id:'gj40', herb:'moyao', src:'唐段成式《酉阳杂俎》',
+      quote:'没树，出波斯国，拂林呼为阿縒。',
+      desc:'树脂凝块，与乳香并称「乳没」。李时珍谓「乳香活血，没药散血，皆能止痛，消肿、生肌」；制香时二味相配，可增树脂定香之力。' },
+    { id:'gj41', herb:'anxixiang', src:'唐《新修本草》',
+      quote:'安息香出西戎，状如松脂，黄黑色，为块，新者亦柔韧。',
+      desc:'《酉阳杂俎》谓其树出波斯国，彼土呼为辟邪树，烧之辟邪。其脂自树皮割取凝结成块，燃之香气清长，为合香定香与佛事熏烧之要品。' },
+    { id:'gj42', herb:'suhexiang', src:'唐《新修本草》',
+      quote:'此香从西域来。',
+      desc:'《名医别录》首载苏合香，中土所无，其香自枫香类树皮煎熬萃取，浓稠如饴。宋《太平惠民和剂局方》载「苏合香丸」，以诸香合用治卒然昏厥，为芳香开窍名方。' },
+    { id:'gj43', herb:'jiangzhenxiang', src:'五代李珣《海药本草》',
+      quote:'降真香，生南海山中及大秦国。',
+      desc:'其香烧之初不甚显，与诸香合则味浓，故合香家列为要品。李时珍云「今广东、广西、云南、汉中、施州皆有之」，海南所产尤佳，道家斋醮所尚。' },
+    { id:'gj44', herb:'linglingxiang', src:'宋苏颂《本草图经》',
+      quote:'零陵香，生零陵山谷，今湖岭诸州皆有之。',
+      desc:'零陵香古即蕙草，《名医别录》以「薰草」著录。喜阴湿，粤桂湘山地林下溪旁自生；明《香乘》合香诸方屡见其名，岭南人亦以之藏衣袪蠹。' },
+    { id:'gj45', herb:'muxiang', src:'《神农本草经》',
+      quote:'木香……主邪气，辟毒疫。',
+      desc:'《本经》列木香为上品。其种原出天竺，自海舶传入中土；滇西北丽江引种后根实气烈，遂有云木香之名，行气止痛，香料铺亦取以佐香。' },
+    { id:'gj46', herb:'wujiapi', src:'《名医别录》',
+      quote:'五加皮，主腰脊痛。',
+      desc:'《神农本草经》列五加为上品，李时珍《本草纲目》引谚云「宁得一把五加，不用金玉满车」。秦巴、江淮山野所产，唐宋以来浸酒祛风湿而强筋骨。' },
+    { id:'gj47', herb:'gansong', src:'唐《本草拾遗》',
+      quote:'甘松香，丛生，叶细，出凉州……合诸香，裛衣妙也。',
+      desc:'产川西松潘、甘青高原草甸，由甘省驼帮驮运东来。宋人合香多取甘松增甜韵，与檀香同用而不夺其主角；李时珍云其「芳香，甚开脾郁」。' },
+    { id:'gj48', herb:'jingjie', src:'《本草纲目》',
+      quote:'假苏，即荆芥也。',
+      desc:'《神农本草经》以「假苏」著录。喜温和湿润，田埂路旁自生，冀鲁豫多有栽培；夏秋采全草与花穗阴干，气香而烈，解表散风，亦堪入香囊辟秽。' },
+    { id:'gj49', herb:'bajiao', src:'《本草纲目》',
+      quote:'实大如柏实，裂成八瓣，俗呼舶茴香，又曰八角茴香。',
+      desc:'番舶所载者如此；同书又云「广西左右江峒中亦有之」。喜温暖湿润半阴，桂西山谷自生，晒干成担由粤商转运广州、汉口，庖厨增香、医家温中两宜。' },
+    { id:'gj50', herb:'liangjiang', src:'陶弘景《本草经集注》',
+      quote:'高良姜，出高良郡。',
+      desc:'因郡得名。《名医别录》已著录其功，云「主暴冷，胃中冷逆」。喜高温湿润，粤西、海南丘陵自生或栽种，秋采根茎晒干，岭南人家以之炖肉暖胃。' },
+    { id:'gj51', herb:'baidoukou', src:'宋《开宝本草》',
+      quote:'白豆蔻，出伽古罗国，呼为多骨。',
+      desc:'番舶所载之南洋香药。李时珍谓其辛香，能散滞气、止吐逆反胃；合香用以辟秽，药中用以化湿止呕，与砂仁功用相类而价略高。' },
+    { id:'gj52', herb:'furong', src:'苏轼《和陈述古拒霜花》',
+      quote:'千林扫作一番黄，只有芙蓉独自芳。',
+      desc:'木芙蓉秋深始开，故又名拒霜。喜温暖湿润向阳，川湘江浙水岸栽植；花可捣汁染纸，亦可入药敷疮，蜀中因孟昶遍植芙蓉而得「蓉城」之名。' },
+    { id:'gj53', herb:'moli', src:'晋嵇含《南方草木状》',
+      quote:'耶悉茗花、末利花，皆胡人自西国移植于南海，南人怜其芳香，竞植之。',
+      desc:'茉莉随海舶落户岭南。宋人始以之熏茶，明清闽粤花农晨起摘蕾，窨入绿茶成花茶；簪佩、穿花篮、制香膏皆用之，粤闽花田成片，北运价增。' },
+    { id:'gj54', herb:'huoxiang', src:'唐宋本草',
+      quote:'藿香，方茎有节，中虚。',
+      desc:'岭南暑湿蒸郁、山岚瘴气最盛，广州石牌所产者气厚味浓，最是道地；芳香化浊、和中止呕，暑湿时疫之方多恃之为要药，故有「藿香正气」之目。' },
+    { id:'gj55', herb:'guihua', src:'《山海经·南山经》',
+      quote:'招摇之山……多桂，多金玉。',
+      desc:'先秦典籍已记桂树生于山野。屈原《九歌》「援北斗兮酌桂浆」，以桂入酒；秋深采花阴干，江南以之窨茶渍糖，木樨蒸露亦是旧法。' }
   ];
 
   /* ============================================================
@@ -674,34 +762,61 @@
   }
   /* ============================================================
      C · SYSTEM —— 田亩：按城置产、依农时下种、按气候收成
+     每块田本茬有种植上限（PLOT_SLOTS 畦）：可先后下种不同香药，
+     畦满即「满田」，须收获腾畦后方能再种。
      ============================================================ */
+  var PLOT_SLOTS = 2;                     /* 每块田本茬可种二畦 */
+  /* 旧档迁移：{crop, ready} → {sow:[{id, ready}]}；并保证 sow 存在 */
+  function normPlot(p){
+    if(!p) return null;
+    if(!Array.isArray(p.sow)){
+      p.sow = [];
+      if(p.crop) p.sow.push({ id:p.crop, ready:p.ready || 0 });
+      delete p.crop; delete p.ready;
+    }
+    return p;
+  }
+  function sowLeft(p){ return Math.max(0, PLOT_SLOTS - (p && p.sow ? p.sow.length : 0)); }
   function plantCrop(city, idx, id){
-    var s = HX.state;
-    var p = s.co.plots[city][idx];
-    if(!p || p.crop) return HX.toast('此田已有作物');
+    var s = HX.state, p = normPlot(s.co.plots[city][idx]);
+    if(!p) return;
+    if(sowLeft(p) <= 0) return HX.toast('此田本茬已满（' + PLOT_SLOTS + ' 畦），须收获腾畦后方可再种');
     if(!canFarm(city, id) || !SPICES[id].crop) return HX.toast('此地水土不宜种植此物');
     var seed = SPICES[id].crop.s;
     if(money() < seed) return HX.toast('银钱不足，付不起种苗钱');
     act(function(st){
       st.money -= seed;
-      p.crop = id; p.ready = abs() + SPICES[id].crop.d;
-      log(CITIES[city].name, '于' + CITIES[city].land + '种下' + SPICES[id].zh + '，约' + SPICES[id].crop.d + '日可收。', '农事');
+      var q = normPlot(st.co.plots[city][idx]);
+      q.sow.push({ id:id, ready: abs() + SPICES[id].crop.d });
+      var left = sowLeft(q);
+      log(CITIES[city].name, '于' + CITIES[city].land + '种下' + SPICES[id].zh + '，约' + SPICES[id].crop.d + '日可收' +
+        (left ? '；此田尚余 ' + left + ' 畦' : '；此田本茬已满') + '。', '农事');
     });
     HX.toast(SPICES[id].zh + '已下种，' + SPICES[id].crop.d + '日后可收');
   }
-  function harvest(city, idx){
-    var s = HX.state, p = s.co.plots[city][idx];
-    if(!p || !p.crop) return;
-    if(abs() < p.ready) return HX.toast('尚未成熟');
-    var id = p.crop;
+  /* si 省略时，收本块最早成熟的一畦（兼容旧调用） */
+  function harvest(city, idx, si){
+    var s = HX.state, p = normPlot(s.co.plots[city][idx]);
+    if(!p || !p.sow.length) return;
+    if(si == null){
+      si = p.sow.findIndex(function(q){ return abs() >= q.ready; });
+      if(si < 0) return HX.toast('尚未成熟');
+    }
+    var q0 = p.sow[si];
+    if(!q0) return;
+    if(abs() < q0.ready) return HX.toast('尚未成熟');
+    var id = q0.id;
     act(function(st){
-      var qty = Math.max(1, Math.round(SPICES[id].crop.y * (0.92 + Math.random() * 0.16) * yieldNow()));
-      st.co.store[city][id] = (st.co.store[city][id] || 0) + qty;
+      var q = normPlot(st.co.plots[city][idx]);
+      var item = q.sow[si];
+      if(!item) return;
+      var qty = Math.max(1, Math.round(SPICES[item.id].crop.y * (0.92 + Math.random() * 0.16) * yieldNow()));
+      st.co.store[city][item.id] = (st.co.store[city][item.id] || 0) + qty;
       st.co.harvested = (st.co.harvested || 0) + qty;
-      log(CITIES[city].name, '收获' + SPICES[id].zh + ' ' + qty + ' 斤，入' + CITIES[city].addr + '仓。', '农事');
-      p.crop = null; p.ready = 0;
+      log(CITIES[city].name, '收获' + SPICES[item.id].zh + ' ' + qty + ' 斤，入' + CITIES[city].addr + '仓。', '农事');
+      q.sow.splice(si, 1);
     });
-    HX.toast('已收获入仓');
+    HX.toast('已收获 ' + SPICES[id].zh + ' 入仓');
   }
   function buyPlot(city){
     var s = HX.state, C = CITIES[city];
@@ -709,7 +824,7 @@
     if(money() < C.plotCost) return HX.toast('银钱不足');
     act(function(st){
       st.money -= C.plotCost;
-      st.co.plots[city].push({ crop:null, ready:0 });
+      st.co.plots[city].push({ sow:[] });
       log(C.name, '置下' + C.land + '田产一块，费银 ' + fmt(C.plotCost) + '。', '产业');
     });
     HX.toast('已置田一块');
@@ -1306,6 +1421,14 @@
 .xy-plot.grow .pt .dot{background:var(--gold)}\
 .xy-plot.ready .pt .dot{background:var(--seal)}\
 .xy-plot .pd{font-size:12px;color:var(--muted);margin:5px 0 7px;line-height:1.6}\
+.xy-plot.full .pt .dot{background:var(--seal)}\
+.xy-sows{display:grid;gap:7px;margin:6px 0}\
+.xy-sow{padding:6px 8px;border-radius:4px;border:1px dashed var(--line);background:rgba(255,253,246,.6)}\
+.xy-sow.ready{border-style:solid;border-color:var(--seal);background:rgba(162,62,43,.05)}\
+.xy-sow .sn{font-family:var(--kai);font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}\
+.xy-sow .sd{font-size:11.5px;color:var(--muted);font-family:var(--sans);letter-spacing:0}\
+.xy-sow .btn{margin-top:6px}\
+.xy-sow .xy-bar{margin:5px 0 0}\
 .xy-bar{height:6px;background:rgba(51,39,25,.1);border-radius:99px;overflow:hidden;margin:6px 0 8px}\
 .xy-bar i{display:block;height:100%;background:linear-gradient(90deg,#732416,#a23e2b 45%,#c96a4e)}\
 .xy-seedgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}\
@@ -1564,7 +1687,8 @@
     }).join('') + '</div>' +
     '<div class="card">' +
       '<h2>' + C.name + ' · 田亩</h2>' +
-      '<div class="hint">' + esc(C.intro) + '</div>' +
+      '<div class="hint">' + esc(C.intro) + '<br/>' +
+        '每块田本茬可种 <b>' + PLOT_SLOTS + ' 畦</b>，可先后下种不同香药；畦满则须收获腾畦，方能再种。</div>' +
       '<div class="sep"></div>' +
       '<div class="xy-grid">' + plots.map(function(p, i){ return plotHTML(p, i, now); }).join('') + '</div>' +
       '<div class="sep"></div>' +
@@ -1585,34 +1709,47 @@
       b.onclick = function(){ plantCrop(fmCity, Number(kv[0]), kv[1]); };
     });
     el('sc-farm').querySelectorAll('[data-harvest]').forEach(function(b){
-      b.onclick = function(){ harvest(fmCity, Number(b.dataset.harvest)); };
+      var kv = b.dataset.harvest.split(':');
+      b.onclick = function(){ harvest(fmCity, Number(kv[0]), kv.length > 1 ? Number(kv[1]) : null); };
     });
     var bp = el('xyBuyPlot');
     if(bp) bp.onclick = function(){ buyPlot(fmCity); };
   }
   function plotHTML(p, i, now){
-    var C = CITIES[fmCity];
-    if(!p.crop){
-      var seeds = supplyOf(fmCity).filter(function(id){ return canFarm(fmCity, id) && SPICES[id].crop; });
-      return '<div class="xy-plot">' +
-        '<div class="pt"><span class="dot"></span>空地 · 待种</div>' +
-        '<div class="pd">此地水土宜植下列香药，苗钱一次，熟后自收。</div>' +
+    normPlot(p);
+    var left = sowLeft(p), full = left <= 0;
+    var head = '<div class="pt"><span class="dot"></span>第 ' + (i + 1) + ' 块 · 畦 ' +
+      p.sow.length + ' / ' + PLOT_SLOTS + (full ? ' · 本茬已满' : '') + '</div>';
+    var body;
+    if(p.sow.length){
+      body = '<div class="xy-sows">' + p.sow.map(function(q, si){
+        var cp = SPICES[q.id].crop, rest = Math.max(0, q.ready - now), ripe = rest <= 0;
+        var pct = Math.round((cp.d - rest) / cp.d * 100);
+        return '<div class="xy-sow' + (ripe ? ' ready' : '') + '">' +
+          '<div class="sn">' + spiceGlyph(q.id, 18) + SPICES[q.id].zh +
+            '<span class="sd">' + (ripe ? '已熟 · 亩收约 ' + cp.y + ' 斤' : '第 ' + (cp.d - rest) + ' / ' + cp.d + ' 日 · 尚余 ' + rest + ' 日') + '</span></div>' +
+          '<div class="xy-bar"><i style="width:' + pct + '%"></i></div>' +
+          (ripe ? '<button class="btn primary sm" data-harvest="' + i + ':' + si + '">收获入仓</button>' : '') +
+          '</div>';
+      }).join('') + '</div>';
+    } else {
+      body = '<div class="pd">空地 · 待种</div>';
+    }
+    var seeds = '';
+    if(!full){
+      seeds = supplyOf(fmCity).filter(function(id){ return canFarm(fmCity, id) && SPICES[id].crop; });
+      body += '<div class="pd">本茬尚可下种 ' + left + ' 畦，苗钱一次，熟后自收。</div>' +
         '<div class="xy-seedgrid">' + seeds.map(function(id){
           var cp = SPICES[id].crop;
           return '<button class="xy-seed" data-plant="' + i + ':' + id + '">' +
             '<span class="sn">' + spiceGlyph(id, 18) + SPICES[id].zh + '</span>' +
             '<span class="sd">' + cp.d + '日熟 · 亩收约' + cp.y + '斤 · 苗钱' + fmt(cp.s) + '</span></button>';
-        }).join('') + '</div></div>';
+        }).join('') + '</div>';
+    } else {
+      body += '<div class="pd">此田本茬已满，须收获腾畦后方可再种。</div>';
     }
-    var cp = SPICES[p.crop].crop;
-    var left = Math.max(0, p.ready - now);
-    var pct = Math.round((cp.d - left) / cp.d * 100);
-    return '<div class="xy-plot ' + (left <= 0 ? 'ready' : 'grow') + '">' +
-      '<div class="pt"><span class="dot"></span>' + SPICES[p.crop].zh + (left <= 0 ? ' · 已熟' : ' · 生长中') + '</div>' +
-      '<div class="pd">' + (left <= 0 ? '可以开镰了，亩收约 ' + cp.y + ' 斤上下' : '第 ' + (cp.d - left) + ' / ' + cp.d + ' 日 · 尚余 ' + left + ' 日') + '</div>' +
-      '<div class="xy-bar"><i style="width:' + pct + '%"></i></div>' +
-      (left <= 0 ? '<button class="btn primary sm" data-harvest="' + i + '">收获入仓</button>' : '') +
-      '</div>';
+    var cls = full ? 'full' : (p.sow.length ? (p.sow.some(function(q){ return now >= q.ready; }) ? 'ready' : 'grow') : '');
+    return '<div class="xy-plot ' + cls + '">' + head + body + '</div>';
   }
   function storeHTML(city){
     var st = HX.state.co.store[city] || {};
@@ -1899,7 +2036,8 @@
     if(!d.store) d.store = {};
     if(!d.price) d.price = {};
     CITY_IDS.forEach(function(c){
-      if(!Array.isArray(d.plots[c])) d.plots[c] = (c === 'xian' && !d.started) ? [{ crop:null, ready:0 }, { crop:null, ready:0 }] : [];
+      if(!Array.isArray(d.plots[c])) d.plots[c] = (c === 'xian' && !d.started) ? [{ sow:[] }, { sow:[] }] : [];
+      d.plots[c].forEach(normPlot);        /* 旧档 {crop,ready} 归一为 {sow:[…]} */
       if(!d.store[c]) d.store[c] = {};
       if(!d.price[c]) d.price[c] = {};
     });
@@ -2032,7 +2170,7 @@
     eraText:eraText, cnNum:cnNum, MONTHS:MONTHS, fmt:fmt, fmtShort:fmtShort, HQ:HQ,
     drain:drain, push:push, pop:pop, showAch:showAch, playSfx:playSfx, checkAch:checkAch,
     /* 系统 */
-    tick:tick, commitDays:commitDays, plantCrop:plantCrop, harvest:harvest, buyPlot:buyPlot,
+    tick:tick, commitDays:commitDays, plantCrop:plantCrop, harvest:harvest, buyPlot:buyPlot, PLOT_SLOTS:PLOT_SLOTS,
     openShop:openShop, buyGood:buyGood, sellGood:sellGood, estTrip:estTrip, dispatch:dispatch,
     cargoValue:cargoValue, ownedCities:ownedCities, shipModes:MODES,
     priceS:{ anchorOf:anchorOf, curAnchor:curAnchor, priceAt:priceAt, buyPrice:buyPrice, sellPrice:sellPrice,

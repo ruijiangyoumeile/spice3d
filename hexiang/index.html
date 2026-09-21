@@ -439,6 +439,26 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
   box-shadow:inset 0 1px 0 rgba(255,238,222,.3), 0 2px 6px rgba(124,43,28,.26);
 }
 .codex-tab:disabled{opacity:.5;cursor:not-allowed}
+.kind-row{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 4px}
+.kind-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+  background:rgba(255,253,246,.55);font-family:var(--kai);font-size:13.5px;letter-spacing:1px;color:inherit;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+  transition:background .18s,border-color .18s,transform .18s;
+}
+.kind-chip:hover{background:#fffdf6;border-color:rgba(51,39,25,.34);transform:translateY(-1px)}
+.kind-chip:active{transform:translateY(0)}
+.kind-chip.on{
+  background:var(--cinnabar);border-color:var(--seal-deep);color:#faf3e6;
+  box-shadow:inset 0 1px 0 rgba(255,238,222,.3), 0 2px 6px rgba(124,43,28,.26);
+}
+.kind-chip:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.kind-chip .kc{
+  font-family:var(--serif);font-size:11.5px;letter-spacing:0;
+  padding:0 5px;border-radius:8px;background:rgba(51,39,25,.09);color:var(--muted);
+}
+.kind-chip.on .kc{background:rgba(255,244,232,.24);color:#f6e7d2}
 .kv{display:grid;grid-template-columns:76px 1fr;gap:6px 12px;font-size:13.5px;margin-top:12px}
 .kv dt{font-family:var(--kai);color:var(--muted);letter-spacing:1px}
 .kv dd{margin:0;color:var(--ink);line-height:1.75}
@@ -1496,6 +1516,7 @@ let blendOrderId = null;
 let blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
 let blendSel = '君';
 let studyCardId = null;
+let studyKind = null;     // 读古籍定向：null=随机读 / {axis:'cat'|'nature', key:…}
 let studyPick = null;     // 本轮已选香草；renderStudy 据此还原答后态（防重绘丢高亮）
 let studyOpts = null;     // 本轮四选项的固定顺序（防重绘重排）
 let gardenZone = null;    // 药圃选中区，跨重渲染保留
@@ -1674,15 +1695,48 @@ function studyOptionsFor(card){
   return shuffle([card.herb].concat(picks));
 }
 
+/* 定向择读：纲目（土产/南货/洋货/花）与性味（主味 + 主性）两轴，
+   免去「想得某一味香草却总抽不到它的卡」之困 */
+const KIND_CATS = ['土产', '南货', '洋货', '花'];
+const KIND_NATURES = ['辛温', '辛凉', '苦温', '苦凉', '甘温', '甘凉'];
+function herbNature(id){
+  const h = HERBS[id];
+  if(!h || !h.aroma) return '';
+  const a = h.aroma;
+  const taste = (a.辛 >= a.苦 && a.辛 >= a.甘) ? '辛' : (a.苦 >= a.甘 ? '苦' : '甘');
+  return taste + ((a.温 || 0) >= (a.凉 || 0) ? '温' : '凉');
+}
+function kindName(k){ return !k ? '随机' : k.key; }
+function cardKindMatch(c, k){
+  if(!k) return true;
+  const h = HERBS[c.herb];
+  if(!h) return true;
+  return k.axis === 'cat' ? (h.cat || '土产') === k.key : herbNature(c.herb) === k.key;
+}
+function cardsOfKind(k){ return ANCIENT_CARDS.filter(c => cardKindMatch(c, k)); }
+/* 抽卡次序：①未读且未识 ②未读 ③已读（早读过的先出，避免连读重复同一张） */
+function studyPool(){
+  const rel = cardsOfKind(studyKind);
+  const unread = rel.filter(c => state.readCards.indexOf(c.id) < 0);
+  if(!unread.length){
+    return rel.slice().sort((a, b) => state.readCards.indexOf(a.id) - state.readCards.indexOf(b.id));
+  }
+  const fresh = unread.filter(c => !state.known[c.herb]);
+  return fresh.length ? fresh : unread;
+}
+
 function renderStudy(){
   const remain = ANCIENT_CARDS.filter(c => state.readCards.indexOf(c.id) < 0);
-  /* 优先出「尚未识得」香草的卡，逐步集齐香谱；
-     读尽后允许重读，否则拿不到新种子会锁死循环 */
-  const fresh = remain.filter(c => !state.known[c.herb]);
-  const pool = fresh.length ? fresh : (remain.length ? remain : ANCIENT_CARDS);
   const card = studyCardId ? ANCIENT_CARDS.find(c => c.id === studyCardId) : null;
 
   if(!card){
+    const pool = studyPool();
+    const inKind = cardsOfKind(studyKind);
+    const unreadKind = inKind.filter(c => state.readCards.indexOf(c.id) < 0);
+    const lostHerbs = [...new Set(unreadKind.filter(c => !state.known[c.herb]).map(c => HERBS[c.herb].name))];
+    const chips = [{ k:null, label:'随机' }]
+      .concat(KIND_CATS.map(k => ({ k:{ axis:'cat', key:k }, label:k })))
+      .concat(KIND_NATURES.map(k => ({ k:{ axis:'nature', key:k }, label:k })));
     $('sc-study').innerHTML = `
       <div class="card flat" style="padding:12px 16px">
         <div class="row">
@@ -1695,17 +1749,33 @@ function renderStudy(){
         <h2>读古籍</h2>
         <div class="hint">
           每张古籍卡摘抄一段真典，暗写一味香草的习性、生境或药性。<br/>
-          四选其一，辨对即得种子一枚，并解锁《香草志》中该味香草。购卡需 ${CARD_COST} 钱。
+          四选其一，辨对即得种子一枚，并解锁《香草志》中该味香草。购卡需 ${CARD_COST} 钱。<br/>
+          抽卡次序：<b>先出未读过的</b>，其次出未识得的香草；读尽方许重读。
+        </div>
+        <div class="sep"></div>
+        <div class="hint" style="margin-bottom:6px">定向择读——只读某一类，免得久候一味不来</div>
+        <div class="kind-row" id="kindRow">
+          ${chips.map(o => {
+            const n = cardsOfKind(o.k).length;
+            const u = cardsOfKind(o.k).filter(c => state.readCards.indexOf(c.id) < 0).length;
+            const on = JSON.stringify(studyKind) === JSON.stringify(o.k);
+            return `<button class="kind-chip${on ? ' on' : ''}" data-kind="${o.k ? o.k.axis + ':' + o.k.key : ''}"${n ? '' : ' disabled'}>${esc(o.label)}<span class="kc">${u}/${n}</span></button>`;
+          }).join('')}
         </div>
         <div class="sep"></div>
         <div class="row">
-          <button class="btn primary" id="btnBuy" ${state.money < CARD_COST ? 'disabled' : ''}>购一张古籍卡（${CARD_COST} 钱）</button>
-          <span class="hint">${remain.length ? `尚有 ${remain.length} 张未读` : '古籍已尽数读过，可重读（同样得种子）'} · 现有 ${state.money} 钱</span>
+          <button class="btn primary" id="btnBuy" ${(state.money < CARD_COST || !pool.length) ? 'disabled' : ''}>购一张${studyKind ? `〈${esc(kindName(studyKind))}〉` : ''}古籍卡（${CARD_COST} 钱）</button>
+          <span class="hint">${studyKind ? `〈${esc(kindName(studyKind))}〉` : '全部'}尚有 ${unreadKind.length} 张未读 · 现有 ${state.money} 钱</span>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          ${lostHerbs.length
+            ? `此类未识香草：<b style="font-family:var(--kai)">${lostHerbs.map(esc).join('、')}</b>（共 ${lostHerbs.length} 味）——辨对其中任意一味，即得它的种子。`
+            : (unreadKind.length ? '此类香草皆已识得，读之亦得种子。' : '此类已读尽，可重读，同样得种子。')}
         </div>
       </div>
       ${state.readCards.length ? `
       <div class="card flat">
-        <h2>已读古籍</h2>
+        <h2>已读古籍 ${state.readCards.length} / ${ANCIENT_CARDS.length}</h2>
         ${state.readCards.map(id => {
           const c = ANCIENT_CARDS.find(x => x.id === id);
           return `<div style="padding:7px 0;border-bottom:1px dashed var(--line-2);font-size:13px">
@@ -1716,9 +1786,18 @@ function renderStudy(){
         }).join('')}
       </div>` : ''}
     `;
+    $('kindRow').querySelectorAll('[data-kind]').forEach(b => {
+      b.onclick = () => {
+        const v = b.dataset.kind;
+        studyKind = v ? { axis:v.split(':')[0], key:v.split(':').slice(1).join(':') } : null;
+        resetStudyCard();
+        renderStudy();
+      };
+    });
     const bb = $('btnBuy');
     if(bb) bb.onclick = () => {
       if(state.money < CARD_COST) return toast('钱不够了，先去香室卖一方香');
+      if(!pool.length) return toast('此类暂无古籍卡');
       const pick = pool[Math.floor(Math.random() * pool.length)];
       mutate(s => { s.money -= CARD_COST; });
       studyCardId = pick.id; studyPick = null; studyOpts = studyOptionsFor(pick);
@@ -2728,7 +2807,7 @@ $('btnReset').onclick = () => {
   state.weatherNext = rollWeather();
   blendDraft = { 君:null, 臣:null, 佐:null, 使:null };
   blendSel = '君'; blendOrderId = null;
-  resetStudyCard(); gardenZone = null; ledgerAll = false;
+  resetStudyCard(); studyKind = null; gardenZone = null; ledgerAll = false;
   quizRun = null;
   go('hub');
   /* 商道层随新档重建（状态树、行价、页签） */
