@@ -586,15 +586,17 @@
      C · SYSTEM —— 行价：产地贱、远地贵 + 时令/事件修正
      ============================================================ */
   function goodOf(id){ return SPICES[id]; }
-  function isSea(id){ return !!SPICES[id].sea; }
-  function canFarm(city, id){ return !isSea(id) && (SPICES[id].farm || []).indexOf(city) >= 0; }
-  function canBuy(city, id){ return isSea(id) ? city === 'guangzhou' : (SPICES[id].farm || []).indexOf(city) >= 0; }
+  /* 未知 id（旧档残留/外部数据）一律视为不可种、不可购、非洋货，避免取属性即崩 */
+  function isSea(id){ return !!(SPICES[id] && SPICES[id].sea); }
+  function canFarm(city, id){ return !!SPICES[id] && !isSea(id) && (SPICES[id].farm || []).indexOf(city) >= 0; }
+  function canBuy(city, id){ if(!SPICES[id]) return false; return isSea(id) ? city === 'guangzhou' : (SPICES[id].farm || []).indexOf(city) >= 0; }
   function supplyOf(city){
     return Object.keys(SPICES).filter(function(id){ return canBuy(city, id); });
   }
   /* 基准锚价：品级与类别定基准，产地近则贱 */
   function anchorOf(city, id){
     var sp = SPICES[id];
+    if(!sp) return 1;
     var origin = (sp.farm && sp.farm.length) ? REGION[sp.farm[0]] : '岭南';
     var d = (DIST[origin] && DIST[origin][REGION[city]]) || 0;
     var m = isSea(id) ? (city === 'guangzhou' ? 0.80 : 1 + d * 0.20) : (canFarm(city, id) ? 0.80 + (sp.tier >= 4 ? 0.06 : 0) : 1 + d * 0.16);
@@ -1099,14 +1101,25 @@
       setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 1600);
     }catch(e){}
   }
-  var achQueue = [], achOpen = false;
+  var achQueue = [], achOpen = false, achEscBound = false;
   function showAch(list){
     achQueue = achQueue.concat(list);
+    if(!achEscBound){                       /* ESC 亦可关闭，绑一次即可 */
+      achEscBound = true;
+      document.addEventListener('keydown', function(e){
+        if((e.key === 'Escape' || e.key === 'Esc') && achOpen){ achQueue.length = 0; nextAch(); }
+      });
+    }
     if(!achOpen) nextAch();
+  }
+  /* 收起成就对话（队列取空时必须显式收起，否则面板会一直留在屏幕上） */
+  function hideAch(){
+    var el = document.getElementById('xyAch');
+    if(el) el.classList.remove('on');
   }
   function nextAch(){
     var a = achQueue.shift();
-    if(!a){ achOpen = false; return; }
+    if(!a){ achOpen = false; hideAch(); return; }
     achOpen = true;
     var total = achQueue.length + 1;
     var el = document.getElementById('xyAch');
@@ -1267,7 +1280,7 @@
   ];
   var HASH_NAME = { book:'haobu', farm:'tianmu', market:'shiji', cara:'shangdui', shop:'pumian', annals:'biannian', ach:'chengjiu' };
 
-  var fmCity = 'xian', mkCity = 'xian', anSampled = false;
+  var fmCity = 'xian', mkCity = 'xian';
   var caFrom = 'xian', caTo = 'hankou', caMode = 'tuo', caCargo = {};
 
   var STYLE = '\
@@ -1428,6 +1441,16 @@
     });
     document.getElementById('xyDay').onclick = function(){ commitDays(1); };
     document.getElementById('xyTen').onclick = function(){ commitDays(10); };
+    /* 顶栏标签就地改写（保留 id，hexiang 渲染时仍能取到元素） */
+    var mc = document.getElementById('uiMoney'), dc = document.getElementById('uiDay');
+    if(mc && mc.parentNode) mc.parentNode.innerHTML = '银 <b id="uiMoney">0</b>';
+    if(dc && dc.parentNode) dc.parentNode.innerHTML = '历日 <b id="uiDay">—</b>';
+  }
+  function fmtWallet(n){
+    n = Math.round(n);
+    if(n >= 100) return fmt(n);                                 /* 大数走 两/钱/分 */
+    if(n >= 10) return Math.floor(n / 10) + '钱' + (n % 10) + '分';
+    return n + '分';
   }
   function syncTabs(){
     if(!HX || !HX.state) return;
@@ -1440,6 +1463,11 @@
     var d = document.getElementById('xyDate'), f = document.getElementById('xyFame');
     if(d) d.textContent = dateText(s);
     if(f) f.textContent = (s.co && s.co.fame) || 0;
+    /* 顶栏口径：银钱按 两/钱/分，日期按农历（合并商道层后「第 N 日」已无意义） */
+    var mEl = document.getElementById('uiMoney');
+    if(mEl) mEl.textContent = fmtWallet(s.money);
+    var dEl = document.getElementById('uiDay');
+    if(dEl) dEl.textContent = dateText(s);
   }
   function renderScreen(id){
     if(!HX || !HX.state) return false;
@@ -1587,7 +1615,8 @@
       '</div>';
   }
   function storeHTML(city){
-    var st = HX.state.co.store[city] || {}, ids = Object.keys(st).filter(function(id){ return st[id] > 0; });
+    var st = HX.state.co.store[city] || {};
+    var ids = Object.keys(st).filter(function(id){ return st[id] > 0 && !!SPICES[id]; });
     if(!ids.length) return '<div class="hint">仓中空空。收获田里的香药，或往市集买入。</div>';
     return '<div class="xy-grid">' + ids.map(function(id){
       return '<div class="xy-plot"><div class="pt"><span class="dot"></span>' + spiceGlyph(id, 18) + SPICES[id].zh + '</div>' +
@@ -1603,7 +1632,7 @@
     if(owned.indexOf(mkCity) < 0) mkCity = owned[0];
     var C = CITIES[mkCity], store = s.co.store[mkCity] || {};
     var list = supplyOf(mkCity).concat(Object.keys(store).filter(function(id){ return !canBuy(mkCity, id) && store[id] > 0; }));
-    list = list.filter(function(id, i){ return list.indexOf(id) === i; });
+    list = list.filter(function(id, i){ return SPICES[id] && list.indexOf(id) === i; });   /* 剔除未知 id（旧档残留） */
     var cm = (s.co.mods || []).filter(function(m){ return m.city === '*' || m.city === mkCity; });
     el('sc-market').innerHTML =
     '<div class="xy-ctabs">' + owned.map(function(c){
@@ -1684,7 +1713,7 @@
           (M.base ? ' · 使费' + fmt(M.base) : '') + '</div></button>';
       }).join('') + '</div>' : '') +
       '<h3 style="font-family:var(--kai);font-size:14px;letter-spacing:1px;margin:12px 0 7px">货品（自' + esc(CITIES[caFrom].addr) + '起运）</h3>' +
-      (Object.keys(store).length ? '<div class="xy-seedgrid">' + Object.keys(store).map(function(id){
+      (Object.keys(store).filter(function(id){ return !!SPICES[id]; }).length ? '<div class="xy-seedgrid">' + Object.keys(store).filter(function(id){ return !!SPICES[id]; }).map(function(id){
         return '<label class="xy-seed" style="cursor:default">' +
           '<span class="sn">' + SPICES[id].zh + '<span class="hint"> · 存 ' + store[id] + ' 斤</span></span>' +
           '<input class="xy-qty" style="width:100%;margin-top:5px" type="number" min="0" max="' + store[id] + '" step="10" value="' +
