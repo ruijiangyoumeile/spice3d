@@ -2441,9 +2441,10 @@ function achCard(){
       </div>
     </div>`;
   const seedTotal = Object.keys(state.seeds).reduce((s, k) => s + state.seeds[k], 0);
+  const extraAch = (window.XiangYe && XiangYe.ACH_EXTRA) ? XiangYe.ACH_EXTRA.length : 0;
   return `
     <div class="card">
-      <h2>成就 · ${got.length} / ${ACHIEVEMENTS.length}</h2>
+      <h2>香道成就 · ${got.length} / ${ACHIEVEMENTS.length}${extraAch ? `<span style="font-size:12.5px;color:var(--muted);font-family:var(--sans);letter-spacing:0">　另有商道成就 ${extraAch} 项，见「成就」屏</span>` : ''}</h2>
       <div class="bar" style="margin-bottom:12px"><i style="width:${Math.round(got.length / ACHIEVEMENTS.length * 100)}%"></i></div>
       <div class="hint" style="margin-bottom:12px">
         识草、种药、合香、读经、答题皆有成就；读古籍所成者赏种子，其余赏钱。
