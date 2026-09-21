@@ -1,5 +1,5 @@
-/* 香料素材谱（由 .tools/gen_assets.js 自动生成，2026-09-21 04:59）
-   三维就位 34 味 · 仅正视图 19 味 · 占位 0 味
+/* 香料素材谱（由 .tools/gen_assets.js 自动生成，2026-09-21 05:52）
+   三维就位 46 味 · 仅正视图 7 味 · 占位 0 味
    游戏侧：XiangYe 启动时合并本表；未列名者自动退墨线占位，且不发起任何请求 */
 window.SPICE_ASSETS = {
   ready: {
@@ -17,6 +17,12 @@ window.SPICE_ASSETS = {
     baizhi:{ model:'../baizhi/models/baizhi.glb' },
     xinyi:{ model:'../xinyi/models/xinyi.glb' },
     moli:{ model:'../moli/models/model.glb', image:'../moli/models/front.png' },
+    hangju:{ model:'../hangju/models/model.glb', image:'../hangju/models/front.png' },
+    guihua:{ model:'../guihua/models/model.glb', image:'../guihua/models/front.png' },
+    meigui:{ model:'../meigui/models/model.glb', image:'../meigui/models/front.png' },
+    zhizi:{ model:'../zhizi/models/model.glb', image:'../zhizi/models/front.png' },
+    meihua:{ model:'../meihua/models/model.glb', image:'../meihua/models/front.png' },
+    foshou:{ model:'../foshou/models/model.glb', image:'../foshou/models/front.png' },
     luohanguo:{ model:'../luohanguo/models/luohanguo.glb' },
     furong:{ model:'../furong/models/furong.glb' },
     zisu:{ model:'../zisu/models/zisu.glb' },
@@ -28,34 +34,28 @@ window.SPICE_ASSETS = {
     jianghuang:{ model:'../jianghuang/models/jianghuang.glb' },
     bajiao:{ model:'../bajiao/models/bajiao.glb' },
     caoguo:{ model:'../caoguo/models/model.glb', image:'../caoguo/models/front.png' },
+    sumu:{ model:'../sumu/models/model.glb', image:'../sumu/models/front.png' },
     hujiao:{ model:'../hujiao/models/hujiao.glb' },
     dingxiang:{ model:'../dingxiang/models/dingxiang.glb' },
     rougui:{ model:'../rougui/models/rougui.glb' },
     baidoukou:{ model:'../baikou/models/baikou.glb' },
     tanxiang:{ model:'../tanxiang/models/tanxiang.glb' },
+    chenxiang:{ model:'../chenxiang/models/model.glb', image:'../chenxiang/models/front.png' },
+    longnao:{ model:'../longnao/models/model.glb', image:'../longnao/models/front.png' },
+    ruxiang:{ model:'../ruxiang/models/model.glb', image:'../ruxiang/models/front.png' },
+    moyao:{ model:'../moyao/models/model.glb', image:'../moyao/models/front.png' },
+    anxixiang:{ model:'../anxixiang/models/model.glb', image:'../anxixiang/models/front.png' },
     yuegui:{ model:'../yuegui/models/yuegui.glb' },
     niuzhi:{ model:'../niuzhi/models/niuzhi.glb' },
     bailixiang:{ model:'../bailixiang/models/bailixiang.glb' },
     midiexiang:{ model:'../midiexiang/models/midiexiang.glb' },
   },
   image: {
-    hangju:{ image:'../hangju/models/front.png' },
-    guihua:{ image:'../guihua/models/front.png' },
-    meigui:{ image:'../meigui/models/front.png' },
-    zhizi:{ image:'../zhizi/models/front.png' },
-    meihua:{ image:'../meihua/models/front.png' },
-    foshou:{ image:'../foshou/models/front.png' },
     sharen:{ image:'../sharen/models/front.png' },
     yujin:{ image:'../yujin/models/front.png' },
-    sumu:{ image:'../sumu/models/front.png' },
     bibo:{ image:'../bibo/models/front.png' },
     linglingxiang:{ image:'../linglingxiang/models/front.png' },
     muxiang:{ image:'../muxiang/models/front.png' },
-    chenxiang:{ image:'../chenxiang/models/front.png' },
-    longnao:{ image:'../longnao/models/front.png' },
-    ruxiang:{ image:'../ruxiang/models/front.png' },
-    moyao:{ image:'../moyao/models/front.png' },
-    anxixiang:{ image:'../anxixiang/models/front.png' },
     suhexiang:{ image:'../suhexiang/models/front.png' },
     jiangzhenxiang:{ image:'../jiangzhenxiang/models/front.png' },
   }
