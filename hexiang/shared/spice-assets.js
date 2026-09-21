@@ -1,5 +1,5 @@
-/* 香料素材谱（由 .tools/gen_assets.js 自动生成，2026-09-21 05:52）
-   三维就位 46 味 · 仅正视图 7 味 · 占位 0 味
+/* 香料素材谱（由 .tools/gen_assets.js 自动生成，2026-09-21 06:11）
+   三维就位 49 味 · 仅正视图 4 味 · 占位 0 味
    游戏侧：XiangYe 启动时合并本表；未列名者自动退墨线占位，且不发起任何请求 */
 window.SPICE_ASSETS = {
   ready: {
@@ -34,7 +34,10 @@ window.SPICE_ASSETS = {
     jianghuang:{ model:'../jianghuang/models/jianghuang.glb' },
     bajiao:{ model:'../bajiao/models/bajiao.glb' },
     caoguo:{ model:'../caoguo/models/model.glb', image:'../caoguo/models/front.png' },
+    sharen:{ model:'../sharen/models/model.glb', image:'../sharen/models/front.png' },
+    yujin:{ model:'../yujin/models/model.glb', image:'../yujin/models/front.png' },
     sumu:{ model:'../sumu/models/model.glb', image:'../sumu/models/front.png' },
+    bibo:{ model:'../bibo/models/model.glb', image:'../bibo/models/front.png' },
     hujiao:{ model:'../hujiao/models/hujiao.glb' },
     dingxiang:{ model:'../dingxiang/models/dingxiang.glb' },
     rougui:{ model:'../rougui/models/rougui.glb' },
@@ -51,9 +54,6 @@ window.SPICE_ASSETS = {
     midiexiang:{ model:'../midiexiang/models/midiexiang.glb' },
   },
   image: {
-    sharen:{ image:'../sharen/models/front.png' },
-    yujin:{ image:'../yujin/models/front.png' },
-    bibo:{ image:'../bibo/models/front.png' },
     linglingxiang:{ image:'../linglingxiang/models/front.png' },
     muxiang:{ image:'../muxiang/models/front.png' },
     suhexiang:{ image:'../suhexiang/models/front.png' },
