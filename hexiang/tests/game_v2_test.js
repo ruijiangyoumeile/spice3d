@@ -49,6 +49,8 @@ function serve(){
   const result = await page.evaluate(async () => {
     const R = [], ok = (n, c, x) => R.push({ n, p: !!c, x: x === undefined ? '' : String(x) });
     const XY = window.XiangYe, HX = window.HX, S = HX.state;
+    /* 天然香料 id 快照：须在 J 段用扩展点注册假香料之前取样，供 O 段取真素材用 */
+    const NATURAL_IDS = Object.keys(XY.SPICES);
     const T = (id) => document.getElementById(id);
     const screenHTML = (id) => (T('sc-' + id) ? T('sc-' + id).innerHTML : '');
 
@@ -342,8 +344,8 @@ function serve(){
       /年/.test((document.getElementById('uiDay') || {}).textContent || ''),
       (document.getElementById('uiMoney') || {}).textContent + ' / ' + (document.getElementById('uiDay') || {}).textContent);
     /* ---------- O. 素材路径真取 + 脏档健壮性 ---------- */
-    const readyIds = Object.keys(XY.SPICES).filter(id => XY.assetOf(id).status === 'ready').slice(0, 3);
-    const imgIds = Object.keys(XY.SPICES).filter(id => XY.assetOf(id).status === 'image').slice(0, 2);
+    const readyIds = NATURAL_IDS.filter(id => XY.assetOf(id).status === 'ready').slice(0, 3);
+    const imgIds = NATURAL_IDS.filter(id => XY.assetOf(id).status === 'image').slice(0, 2);
     let okModel = readyIds.length > 0, dM = [];
     for(const id of readyIds){
       try{
@@ -771,7 +773,7 @@ function serve(){
 
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.2 回归 ===========');
+  console.log('\n=========== 合香 · 乾隆香料商道 v2.3 回归 ===========');
   all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
   console.log(`\n通过 ${passAll} / ${all.length}`);
   if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));
