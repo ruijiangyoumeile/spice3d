@@ -771,6 +771,98 @@ function serve(){
     over.length ? over.map(k => k + '=' + narrow[k]).join(',') : 'iw=' + narrow.iw);
   await page.setViewport({ width:900, height:800 });
 
+  /* ---------- V. A2 品类分组与检索（市集 / 田亩 / 香草志） ---------- */
+  const v1 = await page.evaluate(() => {
+    HX.go('market');
+    const bar = [...document.querySelectorAll('#sc-market [data-mkcat]')];
+    return { n: bar.length, cats: bar.map(b => b.getAttribute('data-mkcat')).join(','),
+             total: document.querySelectorAll('#sc-market .xy-mrow[data-good]').length,
+             hasSearch: !!document.getElementById('mkSearch'),
+             cnt: (document.getElementById('mkCount') || {}).textContent || '' };
+  });
+  okx('V1 市集设品类页签与搜索框', v1.n >= 3 && v1.hasSearch && v1.total > 10 && /共 \d+ \/ \d+ 味/.test(v1.cnt),
+    JSON.stringify(v1));
+
+  const v2 = await page.evaluate(() => {
+    const chip = document.querySelector('#sc-market [data-mkcat]:not([data-mkcat="*"])');
+    if(!chip) return { ok:false };
+    const want = chip.getAttribute('data-mkcat');
+    chip.click();
+    const rows = [...document.querySelectorAll('#sc-market .xy-mrow[data-good]')];
+    const bad = rows.filter(r => (XiangYe.SPICES[r.dataset.good] || {}).cat !== want).length;
+    const back = document.querySelector('#sc-market [data-mkcat="*"]');
+    if(back) back.click();
+    return { ok:true, want: want, after: rows.length, bad: bad };
+  });
+  okx('V2 品类页签收窄后列表只余该类', v2.ok && v2.after > 0 && v2.after < v1.total && v2.bad === 0,
+    '类=' + v2.want + ' rows=' + v2.after + ' 越类=' + v2.bad + ' 全部=' + v1.total);
+
+  /* 真键盘输入拼音：命中即收窄，且全程不需再点一次输入框（焦点仍在搜索框） */
+  await page.evaluate(() => { HX.go('market'); const si = document.getElementById('mkSearch'); si.value = ''; si.focus(); });
+  await page.keyboard.type('huajiao', { delay: 20 });
+  await new Promise(r => setTimeout(r, 80));
+  const v3 = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('#sc-market .xy-mrow[data-good]')];
+    return { ids: rows.map(r => r.dataset.good).join(','), n: rows.length,
+             focus: (document.activeElement || {}).id || '',
+             hit: document.querySelectorAll('#sc-market .xy-searchhit').length };
+  });
+  /* 注：mkHl 只对「名中的中文子串」加朱笔标（与香道层 hlName 口径一致），
+     故拼音 huajiao 命中但不加标（hit===0 属预期），中文关键词才加标 → 见 V3b */
+  okx('V3 市集拼音检索收窄且焦点未丢', v3.n === 1 && v3.ids === 'huajiao' && v3.focus === 'mkSearch',
+    JSON.stringify(v3));
+
+  /* 连续输入中文（不经鼠标重点）：清空 → 直接输入「花」→ 命中项名皆含花且加朱笔标 */
+  await page.evaluate(() => { const si = document.getElementById('mkSearch'); si.value = ''; si.focus(); });
+  await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('花', { delay: 30 });
+  await new Promise(r => setTimeout(r, 80));
+  const v3b = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('#sc-market .xy-mrow[data-good]')];
+    const names = rows.map(r => (XiangYe.SPICES[r.dataset.good] || {}).zh || '');
+    return { n: rows.length, allHas: names.every(n => n.indexOf('花') >= 0),
+             focus: (document.activeElement || {}).id || '',
+             hit: document.querySelectorAll('#sc-market .xy-searchhit').length };
+  });
+  okx('V3b 市集中文检索命中并加朱笔标', v3b.n >= 1 && v3b.allHas && v3b.focus === 'mkSearch' && v3b.hit >= 1,
+    JSON.stringify(v3b));
+
+  const v4 = await page.evaluate(() => {
+    HX.state.co.plots.xian.forEach(p => { p.sow = []; });
+    HX.go('farm');
+    const all = document.querySelectorAll('#sc-farm [data-plant]').length;
+    const chip = document.querySelector('#sc-farm [data-fmcat="土产"]');
+    if(!chip || !all) return { ok:false, all: all };
+    chip.click();
+    const rows = [...document.querySelectorAll('#sc-farm [data-plant]')];
+    const bad = rows.filter(b => (XiangYe.SPICES[b.dataset.plant.split(':')[1]] || {}).cat !== '土产').length;
+    const back = document.querySelector('#sc-farm [data-fmcat="*"]');
+    if(back) back.click();
+    return { ok:true, all: all, after: rows.length, bad: bad };
+  });
+  okx('V4 田亩品类页签收束下种清单', v4.ok && v4.after > 0 && v4.after < v4.all && v4.bad === 0,
+    JSON.stringify(v4));
+
+  const v5 = await page.evaluate(() => {
+    HX.go('codex');
+    const all = document.querySelectorAll('#codexTabs [data-h]').length;
+    const chip = document.querySelector('#codexCats [data-cat="花"]');
+    if(!chip) return { ok:false, all: all };
+    chip.click();
+    const tabs = [...document.querySelectorAll('#codexTabs [data-h]')];
+    const bad = tabs.filter(b => (XiangYe.SPICES[b.dataset.h] || {}).cat !== '花').length;
+    const cur = document.querySelector('#codexTabs .codex-tab.on');
+    const out = { ok:true, all: all, after: tabs.length, bad: bad,
+                  cur: cur ? (XiangYe.SPICES[cur.dataset.h] || {}).cat : '(none)' };
+    const back = document.querySelector('#codexCats [data-cat="*"]');
+    if(back) back.click();
+    HX.go('hub');
+    return out;
+  });
+  okx('V5 香草志品类页签收束香谱且选中同品', v5.ok && v5.after > 0 && v5.after < v5.all && v5.bad === 0 && v5.cur === '花',
+    JSON.stringify(v5));
+
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
   console.log('\n=========== 合香 · 乾隆香料商道 v2.3 回归 ===========');

@@ -1830,6 +1830,7 @@ let gardenSearch = '';    // 药圃选种搜索关键字（重绘后恢复）
 let blendSearch = '';     // 香室配香库存搜索关键字（重绘后恢复）
 let dayReport = null;     // 最近一次「过一日」的纪事（含随机事件），在药圃顶部显示
 let codexHerb = null;
+let codexCat = '*';       // 香草志品类页签（全部/土产/南货/花/洋货）
 let ledgerAll = false;
 
 function go(screen){
@@ -2271,7 +2272,12 @@ const PINYIN = {
   bibo:'bi bo', hujiao:'hu jiao', dingxiang:'ding xiang', rougui:'rou gui', baidoukou:'bai dou kou',
   tanxiang:'tan xiang', chenxiang:'chen xiang', longnao:'long nao', ruxiang:'ru xiang', moyao:'mo yao',
   anxixiang:'an xi xiang', suhexiang:'su he xiang', jiangzhenxiang:'jiang zhen xiang',
-  yuegui:'yue gui', niuzhi:'niu zhi', bailixiang:'bai li xiang', midiexiang:'mi die xiang'
+  yuegui:'yue gui', niuzhi:'niu zhi', bailixiang:'bai li xiang', midiexiang:'mi die xiang',
+  /* 第二批入谱 19 味（站点科普页已就位者） */
+  gancao:'gan cao', xiangru:'xiang ru', xiangfu:'xiang fu', gaoben:'gao ben', xixin:'xi xi xin',
+  qianghuo:'qiang huo', duzhong:'du zhong', guizhi:'gui zhi', chuanxiong:'chuan xiong', shannai:'shan nai',
+  caodoukou:'cao dou kou', hongdoukou:'hong dou kou', yizhi:'yi zhi', xiangyuan:'xiang yuan', luolei:'luo lei',
+  lamei:'la mei', daidaihua:'dai dai hua', ainaixiang:'ai na xiang', zanghonghua:'zang hong hua'
 };
 const HAY_CACHE = {};
 function herbHay(id){
@@ -2870,7 +2876,13 @@ function sell(orderId, res){
    ============================================================ */
 function renderCodex(){
   const ids = Object.keys(HERBS);
-  if(!codexHerb || ids.indexOf(codexHerb) < 0) codexHerb = ids[0];
+  /* 品类页签：谱至七十二味，一列长排难寻，故先按品类收束（土产/南货/花/洋货） */
+  const XYs = window.XiangYe || null;
+  const catOf = id => (XYs && XYs.SPICES[id] && XYs.SPICES[id].cat) || '其他';
+  const catList = ['土产', '南货', '花', '洋货'].filter(c => ids.some(id => catOf(id) === c));
+  if(codexCat !== '*' && catList.indexOf(codexCat) < 0) codexCat = '*';
+  const shown = codexCat === '*' ? ids : ids.filter(id => catOf(id) === codexCat);
+  if(!codexHerb || !HERBS[codexHerb] || shown.indexOf(codexHerb) < 0) codexHerb = shown[0] || ids[0];
   const h = HERBS[codexHerb];
   const c = CODEX[codexHerb];
   const known = !!state.known[codexHerb];
@@ -2894,8 +2906,16 @@ function renderCodex(){
       </div>
     </div>
 
+    <div class="kind-row" id="codexCats">
+      ${['*'].concat(catList).map(c => {
+        const pool = c === '*' ? ids : ids.filter(id => catOf(id) === c);
+        const u = pool.filter(id => state.known[id]).length;
+        return `<button class="kind-chip${c === codexCat ? ' on' : ''}" data-cat="${c}">${c === '*' ? '全部' : esc(c)}<span class="kc">${u}/${pool.length}</span></button>`;
+      }).join('')}
+    </div>
+
     <div class="codex-tabs" id="codexTabs">
-      ${ids.map(id => `<button class="codex-tab ${id === codexHerb ? 'on' : ''}" data-h="${id}" ${state.known[id] ? '' : 'disabled'}>
+      ${shown.map(id => `<button class="codex-tab ${id === codexHerb ? 'on' : ''}" data-h="${id}" ${state.known[id] ? '' : 'disabled'}>
         ${esc(HERBS[id].name)}${state.known[id] ? '' : ' · 未识'}
       </button>`).join('')}
     </div>
@@ -2956,6 +2976,9 @@ function renderCodex(){
   `;
 
   $('btnBackCodex').onclick = () => go('hub');
+  $('codexCats').querySelectorAll('[data-cat]').forEach(b => {
+    b.onclick = () => { codexCat = b.dataset.cat; renderCodex(); };
+  });
   $('codexTabs').querySelectorAll('[data-h]').forEach(b => {
     b.onclick = () => { codexHerb = b.dataset.h; renderCodex(); };
   });
@@ -3294,7 +3317,9 @@ window.HX = {
   fx: FX, playTone,                     /* 手感层接口：商道层经此调用；旧调用方不传亦不影响 */
   HERBS, CODEX, HERB_BASE, ORDERS, ANCIENT_CARDS, ACHIEVEMENTS, ZONES, EVENTS,
   SCREENS, HASH_OF, SCREEN_OF,
-  hashOf(id){ return HASH_OF[id] || ''; }
+  hashOf(id){ return HASH_OF[id] || ''; },
+  /* 检索：商道层（市集）复用同一套模糊命中，故语义与药圃/香室搜索一致 */
+  fuzzyHit, herbHay
 };
 if(window.XiangYe) window.XiangYe.mount(window.HX);
 
