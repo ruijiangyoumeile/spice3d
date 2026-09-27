@@ -577,6 +577,82 @@ function serve(){
     await new Promise(r => setTimeout(r, 1200));
     ok('R14 大量粒子后仍无泄漏', fxNodes() === 0, fxNodes());
 
+    /* ---------- T. UI 合规与测试钩子 ----------
+       依 game-ui-design 的硬性校验（字号 / 触控 / 动画时长）与
+       develop-web-game 的明文要求（render_game_to_text / advanceTime） */
+    const fsOf = (el) => parseFloat(getComputedStyle(el).fontSize) || 0;
+    const shownFs = () => Array.prototype.filter.call(document.querySelectorAll('body *'),
+      e => e.offsetParent !== null && !e.children.length).map(fsOf);
+    const bodySel = '.hint,.chip,.opt,.quiz-opt,.inv-item,.lg-item,.zone .zd,.hub-tile .d';
+    const allFs = shownFs();
+    const smallBody = [];
+    ['hub','blend','study','garden'].forEach(scr => {
+      S.screen = scr; HX.render();
+      Array.prototype.forEach.call(document.querySelectorAll('body *'), e => { if(e.offsetParent !== null) allFs.push(fsOf(e)); });
+      Array.prototype.forEach.call(document.querySelectorAll(bodySel), e => {
+        if(e.offsetParent !== null && fsOf(e) < 13)
+          smallBody.push((e.className || e.tagName) + '@' + scr + '=' + fsOf(e) + 'px');
+      });
+    });
+    ok('T1 全局无不可读小字（最小 ≥11px）', allFs.length > 20 && Math.min(...allFs) >= 11,
+      'min=' + Math.min(...allFs) + ' n=' + allFs.length);
+    ok('T2 正文/次要文字 ≥13px（game-ui-design 校验）', smallBody.length === 0,
+      smallBody.slice(0, 5).join(' | ') || '全部达标');
+
+    let g2t = null, t3err = '';
+    try{ g2t = JSON.parse(window.render_game_to_text()); }catch(e){ t3err = String(e.message); }
+    ok('T3 render_game_to_text 返回可解析状态契约',
+      !!g2t && typeof g2t.screen === 'string' && typeof g2t.day === 'number' && typeof g2t.money === 'number' &&
+      !!g2t.seeds && !!g2t.co && typeof g2t.co.fame === 'number' && !!g2t.settings &&
+      typeof g2t.settings.shake === 'boolean' && g2t.screen === S.screen,
+      t3err || Object.keys(g2t || {}).join(','));
+
+    HX.fx.shake(1);
+    const backTxt = window.advanceTime(1000);
+    ok('T4 advanceTime 把视觉推到静息（确定性，免真等）',
+      typeof window.advanceTime === 'function' && !stageEl.style.transform && HX.fx.trauma === 0 &&
+      fxNodes() === 0 && JSON.parse(backTxt).screen === S.screen,
+      JSON.stringify(stageEl.style.transform) + ' trauma=' + HX.fx.trauma);
+
+    S.screen = 'hub'; HX.render();
+    const tbEl = document.querySelector('.topbar .brand');
+    const cdEl = document.querySelector('#sc-hub .card') || document.querySelector('.card');
+    const dL = Math.abs(tbEl.getBoundingClientRect().left - cdEl.getBoundingClientRect().left);
+    ok('T5 顶部栏与内容卡左缘对齐（safe-area 落在 .wrap 上）', dL <= 1.5, dL.toFixed(2) + 'px');
+    ok('T6 无横向溢出', document.documentElement.scrollWidth <= window.innerWidth + 1,
+      document.documentElement.scrollWidth + '/' + window.innerWidth);
+
+    let maxAni = 0, worst = '';
+    Array.prototype.forEach.call(document.styleSheets, sh => {
+      let rules; try{ rules = sh.cssRules; }catch(e){ return; }
+      Array.prototype.forEach.call(rules, r => {
+        if(!r.selectorText || r.selectorText.indexOf('.fx-') >= 0 || !r.style) return;
+        const anim = String(r.style.animation || '');
+        if(/infinite/.test(anim)) return;                 /* 环境循环（如香篆青烟）非 UI 过渡，不计时长 */
+        (anim.match(/([0-9.]+)(m?s)\b/g) || []).forEach(tok => {
+          const m = tok.match(/([0-9.]+)(m?s)/);
+          const sec = m[2] === 'ms' ? +m[1] / 1000 : +m[1];
+          if(sec > maxAni){ maxAni = sec; worst = r.selectorText + ' ' + tok; }
+        });
+      });
+    });
+    ok('T7 一次性界面动画 ≤500ms（.fx-* 与 infinite 环境循环另计）', maxAni > 0 && maxAni <= 0.5,
+      maxAni + 's @ ' + worst);
+
+    S.screen = 'hub'; HX.render();
+    const moneyEl = document.getElementById('uiMoney');
+    const txt0T8 = moneyEl.textContent;
+    S.money = S.money + 7; HX.render();
+    ok('T8 银钱变动时数字跳动提示（因果可见）',
+      moneyEl.classList.contains('num-pop') && moneyEl.textContent !== txt0T8,
+      moneyEl.className + ' / ' + txt0T8 + '->' + moneyEl.textContent);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key:'Tab', bubbles:true }));
+    const kbdOn = document.body.classList.contains('kbd');
+    window.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+    ok('T9 键盘态挂 body.kbd，鼠标一动即撤（焦点环只在键盘时炫）',
+      kbdOn && !document.body.classList.contains('kbd') && HX.setKbd !== undefined, String(kbdOn));
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
@@ -643,7 +719,7 @@ function serve(){
     await page.keyboard.press('Enter');
     await new Promise(r => setTimeout(r, 150));
     const jumped = await page.evaluate(() => HX.state.screen);
-    okx('S5 键盘可达商道页签并切屏', jumped === 'market', jumped);
+    okx('S6 键盘可达商道页签并切屏', jumped === 'market', jumped);
   }
   const kbClick = await page.evaluate(() => {
     const row = document.querySelector('#sc-market .xy-mrow[data-good]');
@@ -656,12 +732,46 @@ function serve(){
     await page.keyboard.press('Enter');
     await new Promise(r => setTimeout(r, 120));
     const money2 = await page.evaluate(() => HX.state.money);
-    okx('S6 键盘完成一次市集买入', money2 < kbClick.money, kbClick.money + '->' + money2);
+    okx('S7 键盘完成一次市集买入', money2 < kbClick.money, kbClick.money + '->' + money2);
   }
+
+  /* ---------- U. 粗指针命中区 + 窄屏不溢出（game-ui-design 校验，需真设备模拟） ---------- */
+  await page.setViewport({ width:390, height:780, hasTouch:true, isMobile:true });
+  const touch = await page.evaluate(() => {
+    const coarse = window.matchMedia('(pointer:coarse)').matches;
+    const probe = (cls) => {
+      const e = document.createElement('button');
+      e.className = cls; e.textContent = '香';
+      document.querySelector('.wrap').appendChild(e);
+      const r = e.getBoundingClientRect();
+      const h = Math.round(r.height);
+      e.remove();
+      return h;
+    };
+    return { coarse: coarse, sm: probe('btn sm'), opt: probe('opt'), chip: probe('kind-chip'), tab: probe('xy-tab') };
+  });
+  okx('U1 粗指针下可点元素命中区 ≥44px',
+    touch.coarse === true && [touch.sm, touch.opt, touch.chip, touch.tab].every(h => h >= 44),
+    JSON.stringify(touch));
+
+  await page.setViewport({ width:360, height:720, hasTouch:true, isMobile:true });
+  const narrow = await page.evaluate(() => {
+    const out = { iw: window.innerWidth };
+    ['hub','blend','garden','study','market','farm','shop','annals','ach'].forEach(sc => {
+      HX.go(sc);
+      out[sc] = document.documentElement.scrollWidth;
+    });
+    HX.go('hub');
+    return out;
+  });
+  const over = Object.keys(narrow).filter(k => k !== 'iw' && narrow[k] > narrow.iw + 1);
+  okx('U2 360px 窄屏九屏皆无横向溢出', over.length === 0,
+    over.length ? over.map(k => k + '=' + narrow[k]).join(',') : 'iw=' + narrow.iw);
+  await page.setViewport({ width:900, height:800 });
 
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.1 回归 ===========');
+  console.log('\n=========== 合香 · 乾隆香料商道 v2.2 回归 ===========');
   all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
   console.log(`\n通过 ${passAll} / ${all.length}`);
   if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));

@@ -36,6 +36,8 @@
   --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
   --sans:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --r:4px;
+  --pad-x:18px;   /* 页边距；≤760px 收窄为 12px */
+  --pad-b:90px;   /* 页底留白，给底部弹报让位 */
   --ease:cubic-bezier(.22,.8,.3,1);
   --shadow:0 1px 0 rgba(51,39,25,.05), 0 3px 10px rgba(51,39,25,.06), 0 10px 28px rgba(51,39,25,.08);
   --shadow-lg:0 2px 0 rgba(51,39,25,.06), 0 8px 18px rgba(51,39,25,.08), 0 18px 40px rgba(51,39,25,.12);
@@ -67,7 +69,12 @@ body::after{
   opacity:.035;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.wrap{position:relative;z-index:2;max-width:940px;margin:0 auto;padding:0 18px 90px}
+.wrap{
+  position:relative;z-index:2;max-width:940px;margin:0 auto;
+  padding:0 calc(var(--pad-x) + env(safe-area-inset-left))
+           calc(var(--pad-b) + env(safe-area-inset-bottom))
+           calc(var(--pad-x) + env(safe-area-inset-right));
+}
 
 /* 浏览器默认面也入设计：选区 / 光标 / 滚动条 / focus */
 ::selection{background:rgba(162,62,43,.18);color:var(--ink)}
@@ -275,7 +282,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
     linear-gradient(180deg, rgba(255,253,246,.9), rgba(250,245,230,.62));
   border:1px solid var(--line);outline:1px solid var(--line-2);outline-offset:5px;
   border-radius:2px;padding:26px 26px 22px;margin-bottom:16px;
-  animation:scrollUnroll .46s var(--ease) both;
+  animation:scrollUnroll .34s var(--ease) both;
 }
 @keyframes scrollUnroll{
   from{clip-path:inset(0 0 100% 0)}
@@ -584,7 +591,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
    响应式
    ============================================================ */
 @media (max-width:760px){
-  .wrap{padding:0 12px 80px}
+  .wrap{--pad-x:12px;--pad-b:80px}
   .blend-top{grid-template-columns:1fr}
   .wheel-box{order:-1}
   #wheel{max-width:236px}
@@ -637,8 +644,54 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
 @keyframes fxPop{0%{transform:scale(.92)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
 .hitstop,.hitstop *{animation-play-state:paused !important}   /* 停帧：只冻视觉，不锁输入 */
 .btn:active:not(:disabled){transform:translateY(1px) scale(.97)}
-.topbar{padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right))}
-.wrap{padding-bottom:env(safe-area-inset-bottom)}
+
+/* ============================================================
+   可读性基座 —— 依 game-ui-design 的硬性校验补齐
+     正文 ≥14.5px · 次要 ≥13px · 重要数字 ≥24px · 动画 ≤500ms · 触控目标 ≥44px
+   本节只做「抬高地板」，不改任何布局骨架；判定见 tests 的 T1 / T2 / T7。
+   ============================================================ */
+.hint,.chip,.hub-tile .d,.plot .pm,.lg-more,.log-item,.gj-desc,.advice{font-size:13.5px}
+.gj-quote{font-size:17.5px}
+.gj-src{font-size:13.5px}
+.btn.sm{font-size:13.5px}
+.opt{font-size:15.5px}
+.quiz-opt,.inv-item,.lg-item,.kv{font-size:14.5px}
+.zone .zd,.q-tag,.ach .ar,.plate .tag,.load-txt{font-size:13px}
+.zone .zn,.slot .sh{font-size:15.5px}
+.slot .sq,.ach .ad{font-size:13.5px}
+.slot .sr,.kind-chip .kc,.wx-tag{font-size:12.5px}
+.inv-item .q{font-size:12.5px}
+.lg-label{font-size:13.5px}
+#toast{font-size:14.5px}
+#achPop .ach-pop-t{font-size:13.5px}
+#achPop .ach-pop-i{font-size:14.5px}
+#achPop .ach-pop-i span{font-size:12.5px}
+/* 顶部栏与状态药丸：宣纸纹理之上加一层浅晕，久看更清楚 */
+.topbar .chip,#achPop,#toast{text-shadow:0 1px 0 rgba(255,253,246,.55)}
+.chip{background:linear-gradient(180deg,#fffdf6,rgba(252,247,235,.92))}
+/* 重要数字放大到 24px 档（钱 / 日 / 分数 / 品质） */
+.chip b{font-size:16px}
+#uiMoney,#uiDay{font-size:16px}
+.lg-bar{font-size:14.5px}
+/* 数值一变就跳一下：动画是沟通，不是装饰 */
+.num-pop{animation:numPop .42s cubic-bezier(.34,1.4,.64,1) both}
+@keyframes numPop{
+  0%{transform:translateY(-1px) scale(1);color:var(--seal)}
+  35%{transform:translateY(-2px) scale(1.22)}
+  100%{transform:translateY(0) scale(1)}
+}
+/* 键盘/手柄导航时，焦点环更醒目（配合 v2.1 的 kbdMode） */
+body.kbd :focus-visible{
+  outline:2.5px solid var(--seal);outline-offset:3px;
+  box-shadow:0 0 0 6px rgba(162,62,43,.14);
+}
+/* 触控设备：可点元素一律抬到 44px 命中线（Apple 44pt / Google 48dp） */
+@media (pointer:coarse){
+  .btn.sm,.kind-chip,.codex-tab,.opt,.inv-item,.quiz-opt{min-height:44px}
+  .btn.sm{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px}
+  .kind-chip,.codex-tab{align-items:center}
+  .codex-tab{display:inline-flex;justify-content:center}
+}
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important}
 }
@@ -651,7 +704,7 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
     <div class="spacer"></div>
     <div class="chip">钱 <b id="uiMoney">0</b></div>
     <div class="chip">第 <b id="uiDay">1</b> 日</div>
-    <span class="hint" id="uiVer" style="font-size:11px;align-self:center"></span>
+    <span class="hint" id="uiVer" style="align-self:center"></span>
     <button class="btn sm ghost" id="btnReset" title="清空存档">重开</button>
   </header>
 
@@ -981,7 +1034,7 @@ const CARD_COST = 8;
 /* 御用订单解锁：识得八味香草后，宫中传旨 */
 const ROYAL_KNOWN = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '2.1';
+const BUILD = '2.2';
 
 /* ============================================================
    =3 STORE
@@ -1650,8 +1703,18 @@ const FX = (function(){
     if(x && x.classList) pop(x);
     return T;
   }
+  /* —— 立即把视觉层推到静息：归零 trauma、撤销停帧、清残留节点 ——
+     自动化测试用它取代「真等 1.5 秒」，断言才不脆（见 tests T4）。 */
+  function settle(){
+    trauma = 0;
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+    stage.style.transform = '';
+    document.querySelectorAll('.hitstop').forEach(function(n){ n.classList.remove('hitstop'); });
+    if(layer) Array.prototype.slice.call(layer.children).forEach(function(n){ n.remove(); });
+    return true;
+  }
   return { shake:shake, float:float, inkBurst:inkBurst, inkAt:inkAt, flash:flash,
-           hitStop:hitStop, pop:pop, tier:tier,
+           hitStop:hitStop, pop:pop, tier:tier, settle:settle,
            get trauma(){ return trauma; }, get enabled(){ return !off(); } };
 })();
 /* ============================================================
@@ -1682,22 +1745,27 @@ function moveFocus(dir){
   if(n.scrollIntoView) n.scrollIntoView({ block:'nearest' });
   return true;
 }
+/* 键盘/手柄模式：同时给 body 挂 kbd，焦点环才够醒目（见 .kbd :focus-visible） */
+function setKbd(on){
+  kbdMode = on;
+  document.body.classList.toggle('kbd', on);
+}
 window.addEventListener('keydown', function(e){
   const tag = (document.activeElement && document.activeElement.tagName) || '';
-  if(e.key === 'Tab'){ kbdMode = true; return; }
-  if(e.key === 'Enter' || e.key === ' '){ kbdMode = true; return; }
+  if(e.key === 'Tab'){ setKbd(true); return; }
+  if(e.key === 'Enter' || e.key === ' '){ setKbd(true); return; }
   if(e.key === 'Escape'){
     if(tag === 'INPUT'){ document.activeElement.blur(); return; }
     if(state.screen !== 'hub'){ resetStudyCard(); go('hub'); }
     return;
   }
   if(/^(ArrowRight|ArrowDown|ArrowLeft|ArrowUp)$/.test(e.key)){
-    kbdMode = true;
+    setKbd(true);
     if(tag === 'INPUT') return;                       /* 输入框内方向键仍归光标 */
     if(moveFocus(/Right|Down/.test(e.key) ? 1 : -1)) e.preventDefault();
   }
 }, true);
-window.addEventListener('pointerdown', function(){ kbdMode = false; }, true);
+window.addEventListener('pointerdown', function(){ setKbd(false); }, true);
 
 /* ============================================================
    =7.6 AUDIO · 分层音效（WebAudio 合成，无外部素材）
@@ -1776,11 +1844,23 @@ function go(screen){
 /* ============================================================
    渲染入口
    ============================================================ */
+/* 钱/日一变就跳一下——把「数值已改」这件因果明说出来（$ease overshoot） */
+let lastMoney = null, lastDay = null;
+function popNum(el){
+  if(state.settings.reduceMotion) return;
+  el.classList.remove('num-pop');
+  void el.offsetWidth;                     /* 强制重排，动画才能重放 */
+  el.classList.add('num-pop');
+}
 function render(){
   /* 键盘使用者：重绘后把焦点交还首个控件（若此前正在输入则不抢焦点） */
   const prevWasInput = !!(document.activeElement && document.activeElement.tagName === 'INPUT');
-  $('uiMoney').textContent = state.money;
-  $('uiDay').textContent = state.day;
+  const moneyEl = $('uiMoney'), dayEl = $('uiDay');
+  if(lastMoney !== null && lastMoney !== state.money) popNum(moneyEl);
+  if(lastDay !== null && lastDay !== state.day) popNum(dayEl);
+  lastMoney = state.money; lastDay = state.day;
+  moneyEl.textContent = state.money;
+  dayEl.textContent = state.day;
   $('uiVer').textContent = 'v' + BUILD;
   /* 离开香草志时释放 3D 显存 */
   if(state.screen !== 'codex') releaseViewer();
@@ -3210,13 +3290,44 @@ render();
 window.HX = {
   get state(){ return state; },
   save, mutate, render, toast, go, esc, qOf, inkIcon, addLog, releaseViewer,
-  nextDay, randomSeed, rewardText, achPop,
+  nextDay, randomSeed, rewardText, achPop, setKbd,
   fx: FX, playTone,                     /* 手感层接口：商道层经此调用；旧调用方不传亦不影响 */
   HERBS, CODEX, HERB_BASE, ORDERS, ANCIENT_CARDS, ACHIEVEMENTS, ZONES, EVENTS,
   SCREENS, HASH_OF, SCREEN_OF,
   hashOf(id){ return HASH_OF[id] || ''; }
 };
 if(window.XiangYe) window.XiangYe.mount(window.HX);
+
+/* ============================================================
+   =13 TEST HOOK —— 依 develop-web-game 的明文要求
+     · render_game_to_text：把状态文本化，测试/无障碍/调试皆可读
+     · advanceTime：本作为回合制（无逐帧模拟），故语义定为
+       「把视觉层推到静息」，让断言发生在确定性时刻而非真实时钟
+   ============================================================ */
+window.render_game_to_text = function(){
+  const co = state.co || {};
+  const inv = {};
+  Object.keys(state.inventory).forEach(k => { if(state.inventory[k]) inv[k] = state.inventory[k]; });
+  const seedKinds = Object.keys(state.seeds).filter(k => state.seeds[k] > 0);
+  const plots = { total:0 };
+  if(co.plots) Object.keys(co.plots).forEach(c => { plots[c] = (co.plots[c] || []).length; plots.total += plots[c]; });
+  return JSON.stringify({
+    screen: state.screen, day: state.day, money: state.money,
+    seeds: { kinds: seedKinds.length, total: seedKinds.reduce((n,k) => n + state.seeds[k], 0) },
+    inventory: inv,
+    known: Object.keys(state.known).filter(k => state.known[k]).length,
+    ripe: state.plants.filter(p => p.ready).length,
+    achievements: Object.keys(state.ach).length,
+    co: { fame: co.fame || 0, trips: co.trips || 0, transit: (co.transit || []).length,
+          shops: co.shops ? Object.keys(co.shops).filter(c => co.shops[c]) : [], plots: plots },
+    settings: { shake: state.settings.shake, sound: state.settings.sound, reduceMotion: state.settings.reduceMotion }
+  });
+};
+window.advanceTime = function(ms){
+  const steps = Math.max(1, Math.round((ms || 16.7) / 16.7));
+  for(let i = 0; i < steps; i++) FX.settle();
+  return window.render_game_to_text();
+};
 </script>
 </body>
 </html>

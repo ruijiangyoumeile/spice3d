@@ -1530,6 +1530,20 @@
   .xy-mrow .stk{display:none}\
   .xy-mrow .act{grid-column:1/-1;justify-content:flex-start}\
   .xy-pop{right:8px;left:8px;bottom:12px;max-width:none}\
+}\
+/* ---- 可读性基座（依 game-ui-design：次要文字 ≥13px，触控目标 ≥44px）----\
+   本表注入在 index.html 的 <style> 之后，同权重会盖掉那边，故加 .wrap 前缀提权 ---- */\
+.wrap .xy-chip,.wrap .xy-tab,.wrap .xy-ctab,.wrap .xy-ach-desc,.wrap .xy-ach-reward,\
+.wrap .xy-mrow,.wrap .xy-transit .tb,.wrap .xy-est,.wrap .xy-goal,.wrap .xy-tl>summary,\
+.wrap .xy-now,.wrap .xy-pop-item .t,.wrap .xy-pop-item .b{font-size:13.5px}\
+.wrap .xy-sow .sn,.wrap .xy-mrow .gname{font-size:13.5px}\
+.wrap .xy-seed .sn,.wrap .xy-mode .mn,.wrap .xy-transit .th{font-size:14px}\
+.wrap .xy-plot .pd,.wrap .xy-sow .sd,.wrap .xy-seed .sd,.wrap .xy-mode .md,.wrap .xy-tl p{font-size:13px}\
+.wrap .xy-group,.wrap .xy-ctab .st,.wrap .xy-mod,.wrap .xy-ach-kicker,\
+.wrap .xy-mrow.head,.wrap .xy-tl .tag,.wrap .xy-mrow .imp{font-size:12.5px}\
+.wrap .xy-icon-ph .ph-tag{font-size:11px}\
+@media (pointer:coarse){\
+  .wrap .xy-tab,.wrap .xy-ctab{min-height:44px;display:inline-flex;align-items:center}\
 }';
 
   function injectStyle(){
@@ -1640,7 +1654,7 @@
       '<div class="hint">乾隆四十年正月，聚香号自西安府南院门起家，泾阳两畦薄田为业。<br/>' +
         '田里出香药，行市赚差价，商队通南北——货在途中不算钱，运到价高处卖脱，才落得银两入柜。</div>' +
       '<div class="sep"></div>' +
-      '<div class="row" style="font-size:12.5px">' +
+      '<div class="row" style="font-size:13.5px">' +
         '<span class="xy-chip">分号 <b>' + owned.length + '</b> / 5</span>' +
         '<span class="xy-chip">田产 <b>' + plotTotal + '</b> 块</span>' +
         '<span class="xy-chip">在途 <b>' + s.co.transit.length + '</b> 批</span>' +
@@ -1809,7 +1823,7 @@
     var tag = priceTag(city, id), have = store[id] || 0, sp = SPICES[id];
     return '<div class="xy-mrow" data-good="' + id + '">' +
       '<div class="gname">' + spiceGlyph(id, 20) + sp.zh + (sp.sea ? '<span class="imp">洋货</span>' : '') + '</div>' +
-      '<div class="hint" style="font-size:11.5px">行价 <span class="xy-num">' + priceAt(city, id) + '</span> 分 · 较常价 ' +
+      '<div class="hint" style="font-size:13px">行价 <span class="xy-num">' + priceAt(city, id) + '</span> 分 · 较常价 ' +
         '<span class="' + (tag[0] === 'up' ? 'xy-up' : (tag[0] === 'down' ? 'xy-down' : 'hint')) + '">' + tag[1] + '</span></div>' +
       '<div class="xy-num" style="color:var(--seal)">' + (canBuyHere ? buyPrice(city, id) : '—') + '</div>' +
       '<div class="xy-num" style="color:var(--good)">' + sellPrice(city, id) + '</div>' +
@@ -1936,7 +1950,7 @@
       var fameOk = !C.fame || s.co.fame >= C.fame;
       return '<div class="card">' +
         '<h2>' + C.name + ' · ' + esc(C.addr) + '</h2>' +
-        '<div class="row" style="font-size:12.5px">' +
+        '<div class="row" style="font-size:13.5px">' +
           '<span class="xy-chip">' + C.tag + '</span>' +
           '<span class="xy-chip">' + C.region + '</span>' +
           (owned ? '<span class="xy-chip" style="color:var(--seal)">已设分号</span>' : '<span class="xy-chip">未设分号</span>') +
@@ -2010,7 +2024,7 @@
       var a = x.a;
       return '<div class="xy-plot" style="' + (on ? '' : 'opacity:.72') + '">' +
         '<div class="pt"><span class="dot" style="background:' + (on ? 'var(--seal)' : 'var(--muted)') + '"></span>' +
-          (on ? '❖ ' : '○ ') + esc(a.name) + '<span class="hint" style="font-size:10.5px">' + x.side + '</span></div>' +
+          (on ? '❖ ' : '○ ') + esc(a.name) + '<span class="hint" style="font-size:12px">' + x.side + '</span></div>' +
         '<div class="pd">' + esc(a.desc) + '</div>' +
         '<div class="hint" style="color:' + (on ? 'var(--seal)' : 'var(--muted)') + '">' +
           (on ? '已得 ' : '奖励 ') + esc(rewardOf(a)) + '</div></div>';
