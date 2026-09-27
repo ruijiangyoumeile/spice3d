@@ -817,6 +817,9 @@
       q.sow.splice(si, 1);
     });
     HX.toast('已收获 ' + SPICES[id].zh + ' 入仓');
+    /* 手感层（可选接入）：商道层只经 HX.fx，旧宿主无此接口时静默跳过 */
+    if(HX.fx) HX.fx.tier('medium', null, '收获 ' + SPICES[id].zh + ' 入仓', 'up');
+    if(HX.playTone) HX.playTone('good');
   }
   function buyPlot(city){
     var s = HX.state, C = CITIES[city];
@@ -871,6 +874,8 @@
       log(CITIES[city].name, '售出' + SPICES[id].zh + ' ' + qty + ' 斤，得银 ' + fmt(rev) + '。', '买卖');
     });
     HX.toast('已售' + SPICES[id].zh + ' ' + qty + ' 斤，得 ' + fmt(rev));
+    if(HX.fx) HX.fx.tier(rev >= 8000 ? 'large' : 'medium', null, '+' + fmt(rev), 'up');
+    if(HX.playTone) HX.playTone(rev >= 8000 ? 'big' : 'coin');
   }
 
   /* ============================================================

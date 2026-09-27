@@ -513,6 +513,70 @@ function serve(){
       idsOf('#seedRow [data-seed]').length <= 1,
       (gs2 ? gs2.value : 'null') + ' / ' + ((document.activeElement || {}).id || '-'));
 
+    /* ---------- R. 手感层（game-feel）：震动 / 飘字 / 粒子 / 停帧 / 分级 / 可访问性 / 性能 ---------- */
+    const stageEl = document.querySelector('.stage');
+    const fxNodes = () => document.querySelectorAll('.fx-float,.fx-ink,.fx-flash').length;
+    S.settings.shake = true; S.settings.reduceMotion = false;
+    ok('R1 手感层接口齐备',
+      !!(HX.fx && HX.fx.tier && HX.fx.shake && HX.fx.float && HX.fx.inkBurst && HX.fx.hitStop && HX.fx.pop));
+    ok('R2 分层音效接口在位', typeof HX.playTone === 'function');
+
+    HX.fx.shake(0.8);
+    await new Promise(r => setTimeout(r, 90));
+    const shaken = !!stageEl.style.transform && stageEl.style.transform !== 'none';
+    ok('R3 震动产生位移（只动视觉层）', shaken, stageEl.style.transform);
+    await new Promise(r => setTimeout(r, 1400));
+    ok('R4 震动自动衰减归零（不残留新常态）', !stageEl.style.transform, JSON.stringify(stageEl.style.transform));
+
+    const fEl = HX.fx.float(null, '测试 +1', 'up');
+    ok('R5 飘字节点生成', !!fEl && !!document.querySelector('.fx-float'));
+    const inkN = HX.fx.inkBurst(200, 200, 8, 5);
+    ok('R6 墨点粒子按数生成', inkN === 8 && document.querySelectorAll('.fx-ink').length === 8,
+      inkN + '/' + document.querySelectorAll('.fx-ink').length);
+    await new Promise(r => setTimeout(r, 1200));
+    ok('R7 特效节点自清（无节点泄漏）', fxNodes() === 0, fxNodes());
+
+    HX.fx.hitStop(80);
+    const hsOn = !!document.querySelector('.hitstop');
+    await new Promise(r => setTimeout(r, 240));
+    ok('R8 停帧短暂生效后解除（不锁输入）', hsOn && !document.querySelector('.hitstop'), hsOn);
+
+    const tS = HX.fx.tier('small', null, '', ''), tL = HX.fx.tier('large', null, '', '');
+    ok('R9 重要性分级强度递增', tL.tr > tS.tr && tL.ink > tS.ink && tL.hs > tS.hs,
+      tS.tr + '/' + tL.tr);
+
+    await new Promise(r => setTimeout(r, 1500));         /* 先让上一轮震动彻底归零 */
+    S.settings.shake = false;
+    HX.fx.shake(1);
+    await new Promise(r => setTimeout(r, 80));
+    ok('R10 关震感后不再位移', !stageEl.style.transform && HX.fx.enabled === false,
+      JSON.stringify(stageEl.style.transform) + ' enabled=' + HX.fx.enabled);
+    S.settings.shake = true; S.settings.reduceMotion = true;
+    const fSilent = HX.fx.float(null, 'x');
+    HX.fx.inkBurst(10, 10, 4, 4); HX.fx.shake(1);
+    await new Promise(r => setTimeout(r, 90));
+    ok('R11 静默模式：飘字/墨点/震动全停',
+      fSilent === null && document.querySelectorAll('.fx-ink').length === 0 && !stageEl.style.transform,
+      'float=' + fSilent + ' ink=' + document.querySelectorAll('.fx-ink').length);
+    S.settings.reduceMotion = false;
+
+    /* 键盘模式：重绘后自动把焦点交还首个控件（此前不在输入框中） */
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key:'Tab', bubbles:true }));
+    S.screen = 'study'; HX.render();
+    const afEl = document.activeElement;
+    ok('R12 键盘模式重绘后自动聚焦首个控件',
+      !!afEl && afEl.tagName === 'BUTTON' && !!afEl.closest('#sc-study'),
+      afEl && (afEl.id || afEl.textContent || afEl.tagName));
+
+    /* 性能：大号粒子连续触发为同步开销，且节点仍能自清 */
+    const tPerf = performance.now();
+    for(let i = 0; i < 10; i++) HX.fx.inkBurst(120, 120, 22, 6);
+    const perfMs = performance.now() - tPerf;
+    ok('R13 十次大号粒子同步开销 < 80ms', perfMs < 80, Math.round(perfMs) + 'ms');
+    await new Promise(r => setTimeout(r, 1200));
+    ok('R14 大量粒子后仍无泄漏', fxNodes() === 0, fxNodes());
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
@@ -525,17 +589,89 @@ function serve(){
   });
 
   const pass = result.R.filter(r => r.p).length, fail = result.R.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.0 回归 ===========');
-  result.R.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
-  console.log(`\n通过 ${pass} / ${result.R.length}`);
-  if(fail.length) console.log('失败项：' + fail.map(f => f.n).join('；'));
+  const extra = [];
+  const okx = (n, c, x) => extra.push({ n, p: !!c, x: x === undefined ? '' : String(x) });
+
+  /* ---------- S. 真键盘端到端（Node 侧 page.keyboard，验证「不用鼠标也能玩」） ---------- */
+  const optN = await page.evaluate(() => {
+    HX.state.money = 500000; HX.state.screen = 'study'; HX.state.readCards = []; HX.render();
+    const b = document.getElementById('btnBuy'); if(b) b.click();
+    return document.querySelectorAll('#optGrid .opt').length;
+  });
+  okx('S1 购卡后选项网格就绪', optN === 4, optN);
+  await page.evaluate(() => { document.querySelector('#optGrid .opt').focus(); });
+  await page.keyboard.press('ArrowRight');
+  const movedTo = await page.evaluate(() => {
+    const opts = [...document.querySelectorAll('#optGrid .opt')];
+    return { i: opts.indexOf(document.activeElement), h: (document.activeElement || {}).dataset ? document.activeElement.dataset.h : '' };
+  });
+  okx('S2 方向键在选项组内走位', movedTo.i === 1, 'index=' + movedTo.i);
+  const readBefore = await page.evaluate(() => HX.state.readCards.length);
+  await page.keyboard.press('Enter');                      /* 真键盘激活，原生 click */
+  await new Promise(r => setTimeout(r, 120));
+  const after = await page.evaluate(() => ({
+    read: HX.state.readCards.length,
+    flt: [...document.querySelectorAll('.fx-float')].map(f => f.textContent).join('|')
+  }));
+  okx('S3 键盘激活选项生效', after.read === readBefore + 1, readBefore + '->' + after.read);
+  /* 对错皆有反馈：辨对 medium（含墨点）、辨错 small（仅飘字），故此处只验飘字文案 */
+  okx('S4 键盘交互触发反馈文案', /辨对|辨错/.test(after.flt), after.flt);
+
+  /* S5 确定性路径：药圃收获走 medium 档，必有墨点 + 飘字 */
+  const hv = await page.evaluate(async () => {
+    HX.state.seeds = { aicao: 2 };
+    HX.state.plants = [{ id:'p_test', herb:'aicao', zone:'干燥', plantedDay:HX.state.day, ready:true, quality:0.92 }];
+    HX.state.screen = 'garden'; HX.render();
+    const b = document.querySelector('#sc-garden [data-harvest]');
+    if(!b) return { ok:false };
+    b.click();
+    await new Promise(r => setTimeout(r, 60));
+    return { ok:true, ink: document.querySelectorAll('.fx-ink').length,
+             flt: [...document.querySelectorAll('.fx-float')].map(f => f.textContent).join('|') };
+  });
+  okx('S5 收获触发 medium 反馈包（墨点 + 飘字）',
+    hv.ok && hv.ink >= 8 && /收获/.test(hv.flt), hv.ink + ' / ' + hv.flt);
+
+  /* 键盘导航至商道层页签并切屏（跨模块兼容） */
+  const tabJump = await page.evaluate(async () => {
+    const tab = document.querySelector('#xyTabs [data-sc="market"]');
+    if(!tab || tab.disabled) return { ok:false };
+    tab.focus();
+    return { ok:true, focused: document.activeElement === tab };
+  });
+  if(tabJump.ok){
+    await page.keyboard.press('Enter');
+    await new Promise(r => setTimeout(r, 150));
+    const jumped = await page.evaluate(() => HX.state.screen);
+    okx('S5 键盘可达商道页签并切屏', jumped === 'market', jumped);
+  }
+  const kbClick = await page.evaluate(() => {
+    const row = document.querySelector('#sc-market .xy-mrow[data-good]');
+    const btn = row && row.querySelector('[data-buy]');
+    if(!btn || btn.disabled) return { ok:false };
+    btn.focus();
+    return { ok:true, money: HX.state.money };
+  });
+  if(kbClick.ok){
+    await page.keyboard.press('Enter');
+    await new Promise(r => setTimeout(r, 120));
+    const money2 = await page.evaluate(() => HX.state.money);
+    okx('S6 键盘完成一次市集买入', money2 < kbClick.money, kbClick.money + '->' + money2);
+  }
+
+  const all = result.R.concat(extra);
+  const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
+  console.log('\n=========== 合香 · 乾隆香料商道 v2.1 回归 ===========');
+  all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
+  console.log(`\n通过 ${passAll} / ${all.length}`);
+  if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));
   const errs = pageErrors.filter(e => !/404|Failed to load resource|net::ERR/.test(e));
   if(errs.length) console.log('页面异常：\n  ' + errs.slice(0, 8).join('\n  '));
   else console.log('页面无未捕获异常。');
 
   await browser.close();
   server.close();
-  process.exit(fail.length ? 1 : 0);
+  process.exit(failAll.length ? 1 : 0);
 })().catch(e => {
   console.error('测试脚本异常：', e.message);
   process.exit(2);

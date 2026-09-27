@@ -607,6 +607,38 @@ html{scrollbar-width:thin;scrollbar-color:rgba(51,39,25,.32) transparent}
   .chip{padding:3px 9px;font-size:12px}
 }
 .codex-img{width:100%;height:100%;object-fit:contain;display:block}
+/* ============================================================
+   手感层（juice）—— 震动 / 飘字 / 墨点 / 白闪 / 停帧 / 按压回弹
+   依 game-feel：短暂且必回静息；reduced-motion 下全部停用
+   ============================================================ */
+.stage{will-change:transform}
+.fx-layer{position:fixed;inset:0;pointer-events:none;z-index:300;overflow:hidden}
+.fx-float{
+  position:fixed;font-family:var(--serif);font-size:15px;letter-spacing:1px;white-space:nowrap;
+  color:var(--seal);text-shadow:0 1px 0 rgba(255,253,246,.75),0 0 6px rgba(255,253,246,.6);
+  animation:fxFloat .9s cubic-bezier(.22,.8,.3,1) both;
+}
+.fx-float.up{color:var(--good)}
+.fx-float.down{color:var(--bad)}
+@keyframes fxFloat{
+  0%{opacity:0;transform:translate(-50%,0) scale(.72)}
+  18%{opacity:1;transform:translate(-50%,-12px) scale(1.14)}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-48px) scale(1)}
+}
+.fx-ink{position:fixed;width:var(--r,5px);height:var(--r,5px);border-radius:50%;
+  background:var(--ink);opacity:.9;animation:fxInk .62s cubic-bezier(.22,.8,.3,1) both}
+@keyframes fxInk{
+  0%{opacity:.95;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.28)}
+}
+.fx-flash{position:fixed;inset:0;background:#fffdf6;pointer-events:none;animation:fxFlash .17s ease-out both}
+@keyframes fxFlash{0%{opacity:var(--a,.26)}100%{opacity:0}}
+.fx-pop{animation:fxPop .34s cubic-bezier(.34,1.4,.64,1) both}
+@keyframes fxPop{0%{transform:scale(.92)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
+.hitstop,.hitstop *{animation-play-state:paused !important}   /* 停帧：只冻视觉，不锁输入 */
+.btn:active:not(:disabled){transform:translateY(1px) scale(.97)}
+.topbar{padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right))}
+.wrap{padding-bottom:env(safe-area-inset-bottom)}
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important}
 }
@@ -949,7 +981,7 @@ const CARD_COST = 8;
 /* 御用订单解锁：识得八味香草后，宫中传旨 */
 const ROYAL_KNOWN = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '2.0';
+const BUILD = '2.1';
 
 /* ============================================================
    =3 STORE
@@ -977,7 +1009,7 @@ const DEFAULT_STATE = {
   log:[],
   quizDay:0,
   quiz:null,
-  settings:{ seenIntro:false }
+  settings:{ seenIntro:false, shake:true, reduceMotion:false, sound:true }
 };
 
 let state = load();
@@ -991,6 +1023,7 @@ function load(){
     s.known = Object.assign({}, DEFAULT_STATE.known, p.known || {});
     s.orders = Object.assign({}, DEFAULT_STATE.orders, p.orders || {});
     s.stats = Object.assign({}, DEFAULT_STATE.stats, p.stats || {});
+    s.settings = Object.assign({}, DEFAULT_STATE.settings, p.settings || {});   /* 旧档补上新设置项 */
     s.ach = Object.assign({}, DEFAULT_STATE.ach, p.ach || {});
     if(!Array.isArray(s.log)) s.log = [];
     if(!WEATHER_OF[s.weather]) s.weather = 'mild';
@@ -1505,7 +1538,199 @@ function toast(t){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.display = 'none'; }, 1900);
 }
-/* 成就弹报：多条合并，避免连续 toast 互相覆盖 */
+/* ============================================================
+   =7.5 FX · 手感层
+   trauma 模型（平方衰减 + 正弦采样，必自动归零）· 重要性分级 small/medium/large
+   视觉只作用于 .stage 与浮层，不碰游戏逻辑；reduceMotion 或关震感时全部退化为静默
+   ============================================================ */
+let kbdMode = false;                    /* 最近一次输入是否键盘（决定重绘后是否自动聚焦） */
+const FX = (function(){
+  const stage = document.querySelector('.stage');
+  let layer = null, trauma = 0, raf = 0, t0 = 0;
+  function layerEl(){
+    if(!layer){ layer = document.createElement('div'); layer.className = 'fx-layer'; document.body.appendChild(layer); }
+    return layer;
+  }
+  function off(){ return !!(state.settings.reduceMotion || state.settings.shake === false); }
+  function toRect(x){
+    if(x && x.getBoundingClientRect) return x.getBoundingClientRect();
+    if(x && typeof x.left === 'number') return x;
+    return { left: window.innerWidth / 2, top: Math.max(120, window.innerHeight * 0.32), width: 0, height: 0 };
+  }
+  /* —— 屏幕震动：小事件几乎不动，大事件猛，且必定衰减归零 —— */
+  function shake(amount){
+    if(off()) return;
+    trauma = Math.min(1, trauma + amount);
+    if(!raf){ t0 = performance.now(); raf = requestAnimationFrame(tick); }
+  }
+  function tick(now){
+    const dt = Math.min(0.05, (now - t0) / 1000);
+    t0 = now;
+    trauma = Math.max(0, trauma - 1.2 * dt);
+    const k = trauma * trauma;                       /* 平方：低值近乎不动 */
+    if(k < 0.0015){ trauma = 0; raf = 0; stage.style.transform = ''; return; }
+    const t = now / 1000;
+    const x = 9 * k * (0.6 * Math.sin(t * 11) + 0.4 * Math.sin(t * 23));
+    const y = 6 * k * (0.6 * Math.sin(t * 13 + 1.7) + 0.4 * Math.sin(t * 27));
+    stage.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
+    raf = requestAnimationFrame(tick);
+  }
+  /* —— 飘字：升起 + 淡出 + 缓出，横向随机错开，堆叠不重叠 —— */
+  function float(x, text, kind){
+    if(off() || !text) return null;
+    const r = toRect(x);
+    const d = document.createElement('div');
+    d.className = 'fx-float' + (kind ? ' ' + kind : '');
+    d.textContent = text;
+    d.style.left = (r.left + r.width / 2) + 'px';
+    d.style.top = (r.top + r.height / 2 - 8) + 'px';
+    d.style.setProperty('--dx', (Math.random() * 26 - 13).toFixed(0) + 'px');
+    layerEl().appendChild(d);
+    setTimeout(function(){ d.remove(); }, 960);
+    return d;
+  }
+  /* —— 墨点迸溅：短促一圈，随即自清 —— */
+  function inkBurst(x, y, n, size){
+    if(off()) return 0;
+    n = Math.max(0, n | 0);
+    for(let i = 0; i < n; i++){
+      const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+      const dist = 26 + Math.random() * 34;
+      const d = document.createElement('div');
+      d.className = 'fx-ink';
+      d.style.left = x + 'px'; d.style.top = y + 'px';
+      d.style.setProperty('--dx', (Math.cos(a) * dist).toFixed(1) + 'px');
+      d.style.setProperty('--dy', (Math.sin(a) * dist).toFixed(1) + 'px');
+      d.style.setProperty('--r', ((size || 5) * (0.6 + Math.random() * 0.8)).toFixed(1) + 'px');
+      d.style.animationDelay = (Math.random() * 40).toFixed(0) + 'ms';
+      layerEl().appendChild(d);
+      setTimeout(function(){ d.remove(); }, 800);
+    }
+    return n;
+  }
+  function inkAt(x, n, size){
+    const r = toRect(x);
+    return inkBurst(r.left + r.width / 2, r.top + r.height / 2, n, size);
+  }
+  /* —— 白闪：极短，仅大事件 —— */
+  function flash(a){
+    if(off()) return null;
+    const d = document.createElement('div');
+    d.className = 'fx-flash';
+    d.style.setProperty('--a', String(a == null ? 0.26 : a));
+    document.body.appendChild(d);
+    setTimeout(function(){ d.remove(); }, 240);
+    return d;
+  }
+  /* —— 停帧：只冻视觉动画，不锁输入；短促，按重要性分级 —— */
+  function hitStop(ms){
+    if(off()) return;
+    const node = document.querySelector('.screen.on') || stage;
+    node.classList.add('hitstop');
+    setTimeout(function(){ node.classList.remove('hitstop'); }, ms || 90);
+  }
+  function pop(x){
+    if(off() || !x || !x.classList) return;
+    x.classList.remove('fx-pop');
+    void x.offsetWidth;                              /* 重排一次，重放动画 */
+    x.classList.add('fx-pop');
+    setTimeout(function(){ x.classList.remove('fx-pop'); }, 380);
+  }
+  /* —— 分级反馈包：一次调用叠齐 声/震/停/点/闪/字/弹 —— */
+  function tier(level, x, text, kind){
+    const T = { small:{ tr:0.14, ink:0,  hs:0   },
+                medium:{ tr:0.38, ink:8,  hs:50  },
+                large:{ tr:0.80, ink:22, hs:110 } }[level];
+    if(!T) return null;
+    if(off()){ float(x, text, kind); return T; }     /* 关震感也保留文字反馈 */
+    shake(T.tr);
+    if(T.hs) hitStop(T.hs);
+    if(T.ink){ inkAt(x, T.ink, level === 'large' ? 6 : 5); flash(level === 'large' ? 0.30 : 0.16); }
+    float(x, text, kind);
+    if(x && x.classList) pop(x);
+    return T;
+  }
+  return { shake:shake, float:float, inkBurst:inkBurst, inkAt:inkAt, flash:flash,
+           hitStop:hitStop, pop:pop, tier:tier,
+           get trauma(){ return trauma; }, get enabled(){ return !off(); } };
+})();
+/* ============================================================
+   =7.7 键盘导航（game-ui-ux：每屏必有可达控件，方向键成组走位）
+   ============================================================ */
+const FOCUS_GROUP = '.opt-grid,.inv,.kind-row,.zone-grid,.codex-tabs,.row,#xyTabs';
+function visibleFocusables(){
+  const scr = document.querySelector('.screen.on') || document;
+  return Array.prototype.filter.call(
+    scr.querySelectorAll('button:not(:disabled),input:not([disabled]),[tabindex]:not([tabindex="-1"])'),
+    function(el){ return el.offsetParent !== null; });
+}
+function focusFirst(){
+  const items = visibleFocusables();
+  if(items.length) items[0].focus({ preventScroll:true });
+}
+function moveFocus(dir){
+  const cur = document.activeElement;
+  const group = (cur && cur.closest) ? cur.closest(FOCUS_GROUP) : null;
+  const items = group
+    ? Array.prototype.filter.call(group.querySelectorAll('button:not(:disabled),input:not([disabled])'),
+        function(el){ return el.offsetParent !== null; })
+    : visibleFocusables();
+  const i = items.indexOf(cur);
+  if(i < 0 || items.length < 2) return false;
+  const n = items[(i + dir + items.length) % items.length];
+  n.focus({ preventScroll:true });
+  if(n.scrollIntoView) n.scrollIntoView({ block:'nearest' });
+  return true;
+}
+window.addEventListener('keydown', function(e){
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if(e.key === 'Tab'){ kbdMode = true; return; }
+  if(e.key === 'Enter' || e.key === ' '){ kbdMode = true; return; }
+  if(e.key === 'Escape'){
+    if(tag === 'INPUT'){ document.activeElement.blur(); return; }
+    if(state.screen !== 'hub'){ resetStudyCard(); go('hub'); }
+    return;
+  }
+  if(/^(ArrowRight|ArrowDown|ArrowLeft|ArrowUp)$/.test(e.key)){
+    kbdMode = true;
+    if(tag === 'INPUT') return;                       /* 输入框内方向键仍归光标 */
+    if(moveFocus(/Right|Down/.test(e.key) ? 1 : -1)) e.preventDefault();
+  }
+}, true);
+window.addEventListener('pointerdown', function(){ kbdMode = false; }, true);
+
+/* ============================================================
+   =7.6 AUDIO · 分层音效（WebAudio 合成，无外部素材）
+   起音 + 尾音两层包络；与反馈包同属「一次事件多层回应」的一层
+   ============================================================ */
+let toneCtx = null;
+function playTone(kind){
+  if(state.settings.sound === false) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!toneCtx) toneCtx = new AC();
+    if(toneCtx.state === 'suspended') toneCtx.resume();
+    const cfg = {
+      good:{ f:660, f2:990,  t:0.16, wave:'triangle', g:0.20 },
+      bad: { f:196, f2:150,  t:0.22, wave:'sawtooth', g:0.16 },
+      coin:{ f:880, f2:1320, t:0.12, wave:'square',   g:0.14 },
+      big: { f:520, f2:1180, t:0.26, wave:'triangle', g:0.22 },
+      tick:{ f:420, f2:420,  t:0.05, wave:'sine',     g:0.10 }
+    }[kind];
+    if(!cfg) return;
+    const now = toneCtx.currentTime;
+    const o = toneCtx.createOscillator(), g = toneCtx.createGain();
+    o.type = cfg.wave;
+    o.frequency.setValueAtTime(cfg.f, now);
+    o.frequency.exponentialRampToValueAtTime(Math.max(60, cfg.f2), now + cfg.t);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(cfg.g, now + 0.012);        /* 起音 */
+    g.gain.exponentialRampToValueAtTime(0.0001, now + cfg.t);       /* 尾音 */
+    o.connect(g); g.connect(toneCtx.destination);
+    o.start(now); o.stop(now + cfg.t + 0.02);
+  }catch(e){}
+}
 let achTimer = null;
 function achPop(list){
   const el = $('achPop');
@@ -1515,6 +1740,7 @@ function achPop(list){
   el.style.display = 'block';
   clearTimeout(achTimer);
   achTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+  FX.tier('small', el, null);                 /* 成就：轻震 + 弹入，不抢戏 */
 }
 
 /* ============================================================
@@ -1551,6 +1777,8 @@ function go(screen){
    渲染入口
    ============================================================ */
 function render(){
+  /* 键盘使用者：重绘后把焦点交还首个控件（若此前正在输入则不抢焦点） */
+  const prevWasInput = !!(document.activeElement && document.activeElement.tagName === 'INPUT');
   $('uiMoney').textContent = state.money;
   $('uiDay').textContent = state.day;
   $('uiVer').textContent = 'v' + BUILD;
@@ -1568,6 +1796,7 @@ function render(){
   if(state.screen === 'quiz') renderQuiz();
   /* 商道层七屏（号簿/田亩/市集/商队/铺面/编年/成就）由 XiangYe 接管渲染 */
   if(window.XiangYe) XiangYe.renderScreen(state.screen);
+  if(kbdMode && !prevWasInput) focusFirst();
 }
 
 /* ============================================================
@@ -1635,6 +1864,14 @@ function renderHub(){
         <span class="chip">成就 <b>${achCount}</b> / ${ACHIEVEMENTS.length}</span>
       </div>
       <div class="hint" style="margin-top:8px">${esc(wx.desc)}——${esc(wx.tip)}</div>
+      <div class="sep"></div>
+      <div class="row" style="font-size:13px" id="fxSettings">
+        <span class="hint">手感：</span>
+        <button class="btn sm ${state.settings.shake !== false ? 'primary' : 'ghost'}" data-set="shake">震感 ${state.settings.shake !== false ? '开' : '关'}</button>
+        <button class="btn sm ${state.settings.sound !== false ? 'primary' : 'ghost'}" data-set="sound">音效 ${state.settings.sound !== false ? '开' : '关'}</button>
+        <button class="btn sm ${state.settings.reduceMotion ? 'primary' : 'ghost'}" data-set="reduceMotion">静默 ${state.settings.reduceMotion ? '开' : '关'}</button>
+        <span class="hint">（静默＝关闭震动与闪动，适合长时间阅读）</span>
+      </div>
       ${state.trade ? `
       <div class="sep"></div>
       <div class="hint" style="color:var(--seal)">
@@ -1682,6 +1919,16 @@ function renderHub(){
 
   $('sc-hub').querySelectorAll('[data-go]').forEach(b => {
     b.onclick = () => go(b.dataset.go);
+  });
+  /* 手感开关：写入存档，立即重绘以更新按钮态 */
+  $('fxSettings').querySelectorAll('[data-set]').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.set;
+      mutate(s => { s.settings[k] = (k === 'reduceMotion') ? !s.settings[k] : (s.settings[k] === false); });
+      if(k === 'shake' && state.settings.shake !== false) FX.tier('small', b, '震感已开');
+      if(k === 'sound' && state.settings.sound !== false) playTone('tick');
+      renderHub();
+    };
   });
   const rb = $('btnRoyal');
   if(rb) rb.onclick = () => {
@@ -1851,7 +2098,7 @@ function renderStudy(){
 
   $('btnBackStudy').onclick = () => { resetStudyCard(); go('hub'); };
   $('optGrid').querySelectorAll('[data-h]').forEach(b => {
-    b.onclick = () => answerStudy(card, b.dataset.h);
+    b.onclick = () => answerStudy(card, b.dataset.h, b);
   });
 
   /* 答后态由状态还原：对错着色、禁用、反馈卡都在这一处输出 */
@@ -1898,10 +2145,13 @@ function fillStudyFeedback(card){
   });
 }
 
-function answerStudy(card, pick){
+function answerStudy(card, pick, anchorEl){
   if(studyPick !== null) return;
   studyPick = pick;
   const ok = pick === card.herb;
+  /* 反馈锚点在 mutate 重绘后即失效，故先量好坐标 */
+  const rect = anchorEl && anchorEl.getBoundingClientRect
+    ? anchorEl.getBoundingClientRect() : null;
   mutate(s => {
     if(s.readCards.indexOf(card.id) < 0) s.readCards.push(card.id);
     if(ok){
@@ -1909,6 +2159,14 @@ function answerStudy(card, pick){
       s.known[card.herb] = true;
     }
   });
+  const h = HERBS[card.herb];
+  if(ok){
+    playTone('good');
+    FX.tier('medium', rect, '辨对 · 得种子 ' + h.name, 'up');
+  }else{
+    playTone('bad');
+    FX.tier('small', rect, '辨错 · 是' + h.name, 'down');
+  }
 }
 
 /* ============================================================
@@ -2148,6 +2406,7 @@ function renderGarden(){
       const p = state.plants.find(x => x.id === id);
       if(!p) return;
       const isTop = p.quality >= 0.85;
+      const rect = b.getBoundingClientRect();
       mutate(s => {
         s.plants = s.plants.filter(x => x.id !== id);
         s.inventory[p.herb] = (s.inventory[p.herb] || 0) + 1;
@@ -2156,6 +2415,9 @@ function renderGarden(){
         s.stats.harvest = (s.stats.harvest || 0) + 1;
         if(isTop) s.stats.topGrade = (s.stats.topGrade || 0) + 1;
       });
+      playTone(isTop ? 'good' : 'tick');
+      FX.tier(isTop ? 'medium' : 'small', rect,
+        '收获 ' + HERBS[p.herb].name + ' · ' + Math.round(p.quality * 100) + '%', isTop ? 'up' : '');
       toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
     };
   });
@@ -2511,6 +2773,10 @@ function sell(orderId, res){
     </div>
   `;
   $('btnNext').onclick = () => { renderBlend(); };
+  /* 出售是全局最重的一次「成交」：按分等放大反馈 */
+  const big = res.total >= SCORE_CFG.payout.refuseBelow + 25 || res.stars >= 4;
+  playTone(big ? 'big' : 'coin');
+  FX.tier(big ? 'large' : 'medium', $('sc-blend').querySelector('.gj-card'), '+' + pay + ' 钱', 'up');
   $('btnHub').onclick = () => go('hub');
   $('btnCodex').onclick = () => {
     const id = Object.keys(state.known).find(k => state.known[k]);
@@ -2945,6 +3211,7 @@ window.HX = {
   get state(){ return state; },
   save, mutate, render, toast, go, esc, qOf, inkIcon, addLog, releaseViewer,
   nextDay, randomSeed, rewardText, achPop,
+  fx: FX, playTone,                     /* 手感层接口：商道层经此调用；旧调用方不传亦不影响 */
   HERBS, CODEX, HERB_BASE, ORDERS, ANCIENT_CARDS, ACHIEVEMENTS, ZONES, EVENTS,
   SCREENS, HASH_OF, SCREEN_OF,
   hashOf(id){ return HASH_OF[id] || ''; }
