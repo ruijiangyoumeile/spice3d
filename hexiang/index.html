@@ -1062,6 +1062,7 @@ const DEFAULT_STATE = {
   log:[],
   quizDay:0,
   quiz:null,
+  qSeen:[],                 /* 已出过的题 id（后进后出）：出题优先取未读 */
   settings:{ seenIntro:false, shake:true, reduceMotion:false, sound:true }
 };
 
@@ -1079,6 +1080,7 @@ function load(){
     s.settings = Object.assign({}, DEFAULT_STATE.settings, p.settings || {});   /* 旧档补上新设置项 */
     s.ach = Object.assign({}, DEFAULT_STATE.ach, p.ach || {});
     if(!Array.isArray(s.log)) s.log = [];
+    if(!Array.isArray(s.qSeen)) s.qSeen = [];      /* 旧档补上「已出题」记录 */
     if(!WEATHER_OF[s.weather]) s.weather = 'mild';
     if(!WEATHER_OF[s.weatherNext]) s.weatherNext = 'mild';
     return s;
@@ -1470,18 +1472,24 @@ function nextDay(){
 }
 
 /* ============================================================
-   =4.6 QUIZ · 香料问答题库（题干与答案全部取自 CODEX / HERBS / 古籍卡）
+   =4.6 QUIZ · 香料问答题库（题干与答案全部取自 CODEX / HERBS / 古籍卡 / 商道号簿数据）
    ============================================================ */
 const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
 function pickN(arr, n){ return shuffle(arr).slice(0, n); }
+const uniq = a => a.filter((v, i) => a.indexOf(v) === i);
 
-/* 造一道「选香草」题 */
-function herbQ(q, correct, why, n){
-  const others = pickN(Object.keys(HERBS).filter(k => k !== correct), n || 3);
+/* 造一道「选香草」题；
+   kind/key 记录题源：id 稳定（见 buildQuizPool 注），既供「未读优先」判重，
+   也供回归测试从原始数据独立复算正解（不依赖本函数的造题逻辑） */
+function herbQ(q, correct, why, kind, key){
+  const others = pickN(Object.keys(HERBS).filter(k => k !== correct), 3);
   const opts = shuffle([correct].concat(others));
-  return { q, opts: opts.map(k => HERBS[k].name), ans: opts.indexOf(correct), why };
+  return { id: kind + ':' + key, kind, key, q, opts: opts.map(k => HERBS[k].name),
+           ans: opts.indexOf(correct), why };
 }
 
+/* 题库：每条带稳定 id（kind:key），选项顺序洗牌但 id 不变——
+   这样「换过选项顺序的同一题」仍判定为同一题，未读优先才不会误把旧题当新题放行 */
 function buildQuizPool(){
   /* 只出「词条已备」的香料题：词条待补者不入题库，免得题面出现「待补」字样 */
   const ks = Object.keys(HERBS).filter(k => CODEX[k] && CODEX[k].latin && CODEX[k].latin.indexOf('待补') < 0);
@@ -1491,51 +1499,52 @@ function buildQuizPool(){
   ks.forEach(k => {
     const h = HERBS[k], c = CODEX[k];
     const opts = shuffle(ZONES.map(z => z.id));
-    pool.push({ q:`${h.name}最宜种在哪一区？`, opts: opts.map(z => z + '区'),
-      ans: opts.indexOf(h.zone), why:`香草志载：${c.habitat}。故宜种于${h.zone}区。` });
+    pool.push({ id:'zone:'+k, kind:'zone', key:k, q:`${h.name}最宜种在哪一区？`,
+      opts: opts.map(z => z + '区'), ans: opts.indexOf(h.zone),
+      why:`香草志载：${c.habitat}。故宜种于${h.zone}区。` });
   });
 
-  /* 学名 */
+  /* 学名（干扰项取「别味的不同学名」，免得选项里出现两个同字） */
   ks.forEach(k => {
-    const others = pickN(ks.filter(x => x !== k), 3);
-    const opts = shuffle([k].concat(others));
-    pool.push({ q:`${HERBS[k].name}的学名是？`, opts: opts.map(x => CODEX[x].latin),
-      ans: opts.indexOf(k), why:`${HERBS[k].name}（${CODEX[k].family}）学名 ${CODEX[k].latin}。` });
+    const o = shuffle(pickN(uniq(ks.map(x => CODEX[x].latin).filter(l => l !== CODEX[k].latin)), 3)
+                      .concat([CODEX[k].latin]));
+    pool.push({ id:'latin:'+k, kind:'latin', key:k, q:`${HERBS[k].name}的学名是？`,
+      opts: o, ans: o.indexOf(CODEX[k].latin),
+      why:`${HERBS[k].name}（${CODEX[k].family}）学名 ${CODEX[k].latin}。` });
   });
 
-  /* 科属 */
+  /* 科属（同理：若干扰项取到同科香料，选项会出现两个同名科，答对也判错） */
   ks.forEach(k => {
-    const others = pickN(ks.filter(x => x !== k), 3);
-    const opts = shuffle([k].concat(others));
-    pool.push({ q:`${HERBS[k].name}属于哪个科？`, opts: opts.map(x => CODEX[x].family),
-      ans: opts.indexOf(k), why:`${HERBS[k].name}属${CODEX[k].family}。` });
+    const o = shuffle(pickN(uniq(ks.map(x => CODEX[x].family).filter(f => f !== CODEX[k].family)), 3)
+                      .concat([CODEX[k].family]));
+    pool.push({ id:'fam:'+k, kind:'fam', key:k, q:`${HERBS[k].name}属于哪个科？`,
+      opts: o, ans: o.indexOf(CODEX[k].family), why:`${HERBS[k].name}属${CODEX[k].family}。` });
   });
 
   /* 药性 → 反查香草 */
   ks.forEach(k => {
     pool.push(herbQ(`「${CODEX[k].med}」说的是哪一味香草？`, k,
-      `香草志「药性」一栏记：${CODEX[k].med}。`));
+      `香草志「药性」一栏记：${CODEX[k].med}。`, 'med', k));
   });
 
   /* 成分 → 反查香草 */
   ks.forEach(k => {
     pool.push(herbQ(`「${CODEX[k].parts}」是哪一味香草的主要成分？`, k,
-      `${HERBS[k].name}含${CODEX[k].parts}。`));
+      `${HERBS[k].name}含${CODEX[k].parts}。`, 'parts', k));
   });
 
   /* 引文 → 出处 */
   ANCIENT_CARDS.forEach(c => {
     const srcs = ANCIENT_CARDS.map(x => x.src).filter((v, i, a) => a.indexOf(v) === i);
-    const opts = pickN(srcs.filter(s => s !== c.src), 3).concat([c.src]);
-    const o = shuffle(opts);
-    pool.push({ q:`「${c.quote}」出自哪一部典籍？`, opts: o,
-      ans: o.indexOf(c.src), why:`此句出自 ${c.src}。${c.desc}` });
+    const o = shuffle(pickN(srcs.filter(s => s !== c.src), 3).concat([c.src]));
+    pool.push({ id:'src:'+c.id, kind:'src', key:c.id, q:`「${c.quote}」出自哪一部典籍？`,
+      opts: o, ans: o.indexOf(c.src), why:`此句出自 ${c.src}。${c.desc}` });
   });
 
   /* 引文 → 所咏香草 */
   ANCIENT_CARDS.forEach(c => {
     pool.push(herbQ(`「${c.quote}」所咏的是哪一味香草？`, c.herb,
-      `此句出自 ${c.src}，写的是${HERBS[c.herb].name}。`));
+      `此句出自 ${c.src}，写的是${HERBS[c.herb].name}。`, 'qherb', c.id));
   });
 
   /* 香气取向极值 */
@@ -1543,14 +1552,73 @@ function buildQuizPool(){
     const max = ks.reduce((best, k) => HERBS[k].aroma[a] > HERBS[best].aroma[a] ? k : best, ks[0]);
     if(HERBS[max].aroma[a] < 4) return;
     pool.push(herbQ(`香气取向中「${a}」最强的是哪一味？`, max,
-      `${HERBS[max].name}的「${a}」为 ${HERBS[max].aroma[a]}（0–10），在全部 ${ks.length} 味中最高。`));
+      `${HERBS[max].name}的「${a}」为 ${HERBS[max].aroma[a]}（0–10），在全部 ${ks.length} 味中最高。`, 'aroma', a));
   });
 
   /* 功效 → 反查香草 */
   ks.forEach(k => {
     pool.push(herbQ(`功效为「${HERBS[k].efficacy.join('、')}」的是哪一味香草？`, k,
-      `${HERBS[k].name}功效：${HERBS[k].efficacy.join('、')}。`));
+      `${HERBS[k].name}功效：${HERBS[k].efficacy.join('、')}。`, 'eff', k));
   });
+
+  /* ---------- 商道类：行市 / 商路 / 编年 / 农时（题面取自号簿数据，学以致用） ---------- */
+  const XY = window.XiangYe;
+  if(XY){
+    const goods = Object.keys(XY.SPICES);
+    const cityIds = XY.CITY_IDS;
+
+    /* 行市：产处价轻、远地价重 */
+    goods.forEach(g => {
+      const gn = XY.SPICES[g].zh;
+      const cheap = cityIds.reduce((b, c) => XY.priceS.priceAt(c, g) < XY.priceS.priceAt(b, g) ? c : b, cityIds[0]);
+      const dear  = cityIds.reduce((b, c) => XY.priceS.priceAt(c, g) > XY.priceS.priceAt(b, g) ? c : b, cityIds[0]);
+      const oC = shuffle(cityIds), oD = shuffle(cityIds);
+      pool.push({ id:'cheap:'+g, kind:'cheap', key:g,
+        q:`市面行价：「${gn}」在五城中何处最贱？`, opts: oC.map(c => XY.CITIES[c].name),
+        ans: oC.indexOf(cheap),
+        why:`产处价轻、远地价重——${gn}于${XY.CITIES[cheap].name}最贱，运至${XY.CITIES[dear].name}则最贵。` });
+      pool.push({ id:'dear:'+g, kind:'dear', key:g,
+        q:`市面行价：「${gn}」在五城中何处最贵？`, opts: oD.map(c => XY.CITIES[c].name),
+        ans: oD.indexOf(dear),
+        why:`${gn}于${XY.CITIES[dear].name}最贵（${XY.fmt(XY.priceS.priceAt(dear, g))}／斤），产处${XY.CITIES[cheap].name}最贱。` });
+    });
+
+    /* 商路：里程取清代驿路／长江／运河概数 */
+    const lis = XY.EDGES.map(e => e.li).filter((v, i, a) => a.indexOf(v) === i);
+    XY.EDGES.forEach(e => {
+      const o = shuffle(pickN(lis.filter(v => v !== e.li), 3).concat([e.li]));
+      pool.push({ id:'edge:'+e.name, kind:'edge', key:e.name,
+        q:`自${XY.CITIES[e.a].name}至${XY.CITIES[e.b].name}，走「${e.name}」，凡几里？`,
+        opts: o.map(v => v + ' 里'), ans: o.indexOf(e.li),
+        why:`${e.name}凡 ${e.li} 里，${e.water ? '水路，可通民船' : '陆路，驮队与镖车可行'}。` });
+    });
+
+    /* 编年：乾隆朝大事（至期必发，改元自动化） */
+    const hist = XY.HISTORY;
+    const hcats = hist.map(h => h.cat).filter((v, i, a) => a.indexOf(v) === i);
+    hist.forEach(h => {
+      const oT = shuffle(pickN(hist.filter(x => x.id !== h.id).map(x => x.title), 3).concat([h.title]));
+      pool.push({ id:'hist:'+h.id, kind:'hist', key:h.id,
+        q:`${XY.dateText({ day:h.at })}，朝中大事为哪一件？`, opts: oT, ans: oT.indexOf(h.title),
+        why:`${h.title}（${h.cat}）：${h.text}` });
+      if(hcats.length >= 4){
+        const oC2 = shuffle(pickN(hcats.filter(x => x !== h.cat), 3).concat([h.cat]));
+        pool.push({ id:'histc:'+h.id, kind:'histc', key:h.id,
+          q:`编年中「${h.title}」属于哪一类大事？`, opts: oC2, ans: oC2.indexOf(h.cat),
+          why:`「${h.title}」列于「${h.cat}」一门。${h.text.slice(0, 50)}…` });
+      }
+    });
+
+    /* 农时：下种至可收（洋货无农时，自不入题） */
+    const ds = goods.map(g => (XY.SPICES[g].crop || {}).d).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+    goods.filter(g => XY.SPICES[g].crop).forEach(g => {
+      const d = XY.SPICES[g].crop.d;
+      const o = shuffle(pickN(ds.filter(v => v !== d), 3).concat([d]));
+      pool.push({ id:'crop:'+g, kind:'crop', key:g,
+        q:`「${XY.SPICES[g].zh}」下种之后，约几日可收？`, opts: o.map(v => v + ' 日'),
+        ans: o.indexOf(d), why:`${XY.SPICES[g].zh}农时约 ${d} 日可收。` });
+    });
+  }
 
   return pool;
 }
@@ -1562,16 +1630,36 @@ const QUIZ_PERFECT = 20;    // 全对额外奖励
 let quizRun = state.quiz || null;
 function persistQuiz(){ state.quiz = quizRun; save(); }
 
+/* ---------- 未读优先调度（game-design-theory：Competence 须持续可达成） ----------
+   state.qSeen 记已出过的题 id（后进后出）。出题先取未读；
+   未读不足一轮时才按「最早读过者先复现」补齐——故一轮之内绝不重题，跨轮重复率极低。
+   题库远大于上限时（现约 700 题），相当于先把整库过一遍再回头复习。 */
+const QSEEN_CAP = 900;
+function pickUnread(pool, n){
+  const seen = state.qSeen || [];
+  const fresh = [], stale = [];
+  pool.forEach(it => (seen.indexOf(it.id) < 0 ? fresh : stale).push(it));
+  stale.sort((a, b) => seen.indexOf(a.id) - seen.indexOf(b.id));
+  const out = shuffle(fresh).slice(0, n);
+  for(let i = 0; out.length < n && i < stale.length; i++) out.push(stale[i]);
+  return out;
+}
+function markQuizSeen(ids){
+  const seen = state.qSeen = state.qSeen || [];
+  ids.forEach(id => { const i = seen.indexOf(id); if(i >= 0) seen.splice(i, 1); seen.push(id); });
+  if(seen.length > QSEEN_CAP) seen.splice(0, seen.length - QSEEN_CAP);
+}
+
 function startQuiz(){
   if(!quizLeftToday()) return toast('今日已答过一轮，过一日再来');
   const pool = buildQuizPool();
-  const qs = pickN(pool, QUIZ_LEN).map(item => {
+  const qs = pickUnread(pool, QUIZ_LEN).map(item => {
     const order = shuffle(item.opts.map((_, i) => i));
-    return { q: item.q, why: item.why,
+    return { id: item.id, q: item.q, why: item.why,
       opts: order.map(i => item.opts[i]), ans: order.indexOf(item.ans) };
   });
   quizRun = { qs, i:0, picked:[], done:false };
-  mutate(s => { s.quizDay = s.day; s.quiz = quizRun; });
+  mutate(s => { s.quizDay = s.day; s.quiz = quizRun; markQuizSeen(qs.map(q => q.id)); });
 }
 /* 一日一轮，免得反复刷钱冲垮种药合香的主循环 */
 function quizLeftToday(){ return state.quizDay !== state.day; }
@@ -3056,8 +3144,9 @@ function renderQuiz(){
       <div class="card">
         <h2>香料问答</h2>
         <div class="hint">
-          题目皆出自「香草志」与「读古籍」中已见的记载——生境、学名、成分、药性、典籍出处。<br/>
-          一轮 ${QUIZ_LEN} 题，每题四选一；答对得 ${QUIZ_REWARD} 钱，全对另赏 ${QUIZ_PERFECT} 钱。
+          题目出自「香草志」「读古籍」与号簿所载——生境、学名、成分、药性、典籍出处，
+          兼及行价贵贱、商路里程、编年大事与农时。出题优先未读过的，读过方回头温习。<br/>
+          一轮 ${QUIZ_LEN} 题，每题三至五选一（依题而定）；答对得 ${QUIZ_REWARD} 钱，全对另赏 ${QUIZ_PERFECT} 钱。
         </div>
         <div class="sep"></div>
         <div class="row" style="font-size:13px">
@@ -3084,7 +3173,8 @@ function renderQuiz(){
   const cur = quizRun.qs[quizRun.i];
   const pickedIdx = quizRun.picked[quizRun.i];
   const answered = typeof pickedIdx === 'number';
-  const keys = ['甲','乙','丙','丁'];
+  /* 标号须容得下最多选项：行价题问「五城何处最贱」即五选一 */
+  const keys = ['甲','乙','丙','丁','戊'];
 
   $('sc-quiz').innerHTML = `
     <div class="card flat" style="padding:12px 16px">
@@ -3319,7 +3409,9 @@ window.HX = {
   SCREENS, HASH_OF, SCREEN_OF,
   hashOf(id){ return HASH_OF[id] || ''; },
   /* 检索：商道层（市集）复用同一套模糊命中，故语义与药圃/香室搜索一致 */
-  fuzzyHit, herbHay
+  fuzzyHit, herbHay,
+  /* 题库：回归测试据此按原始数据独立复算正解、并验「未读优先」调度 */
+  buildQuizPool, startQuiz, QUIZ_LEN
 };
 if(window.XiangYe) window.XiangYe.mount(window.HX);
 

@@ -863,6 +863,107 @@ function serve(){
   okx('V5 香草志品类页签收束香谱且选中同品', v5.ok && v5.after > 0 && v5.after < v5.all && v5.bad === 0 && v5.cur === '花',
     JSON.stringify(v5));
 
+  /* ---------- W. A3 题库容量与「未读优先」调度 ---------- */
+  const w1 = await page.evaluate(() => {
+    const pool = HX.buildQuizPool();
+    const byKind = {};
+    pool.forEach(it => { byKind[it.kind] = (byKind[it.kind] || 0) + 1; });
+    /* 结构完整：有稳定 id、选项数对（宜种区只三区→三选一；行价题问五城→五选一；余四选一）、
+       ans 指向唯一且存在的选项——选项文字重复即判残缺（同名项答对也判错） */
+    const wantN = it => (it.kind === 'zone' ? 3 : (it.kind === 'cheap' || it.kind === 'dear') ? 5 : 4);
+    const bad = pool.filter(it => !it.id || !it.q || !Array.isArray(it.opts) || it.opts.length !== wantN(it) ||
+      typeof it.ans !== 'number' || it.ans < 0 || it.ans >= it.opts.length ||
+      it.opts.filter(o => o === it.opts[it.ans]).length !== 1);
+    return { n: pool.length, byKind, bad: bad.length,
+             dup: pool.length - new Set(pool.map(it => it.id)).size,
+             sample: bad.slice(0, 2).map(it => it.id + '@' + it.kind) };
+  });
+  okx('W1 题库 ≥ 300 题且条目结构完整、id 不重', w1.n >= 300 && w1.bad === 0 && w1.dup === 0,
+    '共' + w1.n + '题 重复id' + w1.dup + ' 残缺' + w1.bad + (w1.sample.length ? ' ' + w1.sample.join(',') : ''));
+
+  okx('W4 题库含商道类题（行市／商路／编年／农时）',
+    ['cheap','dear','edge','crop','hist','histc'].every(k => (w1.byKind[k] || 0) > 0),
+    JSON.stringify(w1.byKind));
+
+  /* 抽样 20 题：只信原始数据（HERBS/CODEX/XY），按 kind+key 独立复算正解，
+     不复用 buildQuizPool 的造题逻辑——故能真正验出「答案张冠李戴」 */
+  const w2 = await page.evaluate(() => {
+    const pool = HX.buildQuizPool();
+    const H = HX.HERBS, C = HX.CODEX, XY = XiangYe;
+    const step = Math.max(1, Math.floor(pool.length / 20));
+    const idx = [...pool.keys()].filter(i => i % step === 0).slice(0, 20);
+    const ks = Object.keys(H).filter(k => C[k] && C[k].latin && C[k].latin.indexOf('待补') < 0);
+    const card = id => HX.ANCIENT_CARDS.find(x => x.id === id);
+    const hist = id => XY.HISTORY.find(x => x.id === id);
+    const argmin = g => XY.CITY_IDS.reduce((b, c) => XY.priceS.priceAt(c, g) < XY.priceS.priceAt(b, g) ? c : b, XY.CITY_IDS[0]);
+    const argmax = g => XY.CITY_IDS.reduce((b, c) => XY.priceS.priceAt(c, g) > XY.priceS.priceAt(b, g) ? c : b, XY.CITY_IDS[0]);
+    const want = it => {
+      switch(it.kind){
+        case 'zone':   return H[it.key].zone + '区';
+        case 'latin':  return C[it.key].latin;
+        case 'fam':    return C[it.key].family;
+        case 'med': case 'parts': case 'eff': return H[it.key].name;
+        case 'src':    return card(it.key).src;
+        case 'qherb':  return H[card(it.key).herb].name;
+        case 'aroma':  { const mx = ks.reduce((b, k) => H[k].aroma[it.key] > H[b].aroma[it.key] ? k : b, ks[0]);
+                         return H[mx].name; }
+        case 'cheap':  return XY.CITIES[argmin(it.key)].name;
+        case 'dear':   return XY.CITIES[argmax(it.key)].name;
+        case 'edge':   return XY.EDGES.find(e => e.name === it.key).li + ' 里';
+        case 'crop':   return XY.SPICES[it.key].crop.d + ' 日';
+        case 'hist':   return hist(it.key).title;
+        case 'histc':  return hist(it.key).cat;
+        default:       return null;
+      }
+    };
+    const bad = [];
+    idx.forEach(i => {
+      const it = pool[i], w = want(it);
+      if(w === null) bad.push(it.id + ' 未知题类');
+      else if(it.opts[it.ans] !== w) bad.push(it.id + ' 期望「' + w + '」实为「' + it.opts[it.ans] + '」');
+    });
+    return { n: idx.length, badN: bad.length, bad: bad.slice(0, 3),
+             kinds: [...new Set(idx.map(i => pool[i].kind))].join(',') };
+  });
+  okx('W2 抽样 20 题正解零错（按原始数据独立复算）', w2.n === 20 && w2.badN === 0,
+    '抽样' + w2.n + ' 越' + w2.badN + (w2.bad.length ? ' ' + w2.bad.join(' / ') : '') + ' 类=' + w2.kinds);
+
+  /* 连开十轮（绕开「一日一轮」）：一轮内不重题，跨轮重复率须远低于 15% */
+  const w3 = await page.evaluate(() => {
+    const ids = [], lens = [];
+    for(let r = 0; r < 10; r++){
+      HX.state.quizDay = -1;
+      HX.startQuiz();
+      const cur = HX.state.quiz.qs.map(q => q.id);
+      lens.push(new Set(cur).size === cur.length);
+      ids.push(...cur);
+    }
+    const seenAt = {}; let rep = 0;
+    ids.forEach(id => { if(seenAt[id]) rep++; else seenAt[id] = 1; });
+    return { total: ids.length, rep, rate: +(rep / ids.length * 100).toFixed(1),
+             inRound: lens.every(Boolean), qLen: HX.QUIZ_LEN, seen: HX.state.qSeen.length };
+  });
+  okx('W3 未读优先：十轮 50 题重复率 < 15%', w3.total === 50 && w3.inRound && w3.rate < 15,
+    '总' + w3.total + ' 重' + w3.rep + ' 重复率' + w3.rate + '% 轮内不重=' + w3.inRound + ' qSeen=' + w3.seen);
+
+  okx('W5 出题记录只记五题/轮且可持久化', w3.seen === 50,
+    'qSeen=' + w3.seen + '（期望 50）');
+
+  /* 五选一题的标号必须齐备：曾经选项标号只到「丁」，第五项会渲成空标 */
+  const w6 = await page.evaluate(() => {
+    const five = HX.buildQuizPool().filter(it => it.opts.length === 5).slice(0, HX.QUIZ_LEN);
+    const q = HX.state.quiz;                      /* quizRun 与 state.quiz 同引用，原地改即可 */
+    q.qs = five.map(it => ({ id: it.id, q: it.q, why: it.why, opts: it.opts.slice(), ans: it.ans }));
+    q.i = 0; q.picked = []; q.done = false;
+    HX.go('quiz');
+    const opts = [...document.querySelectorAll('#sc-quiz .quiz-opt')];
+    const labels = opts.map(el => { const k = el.querySelector('.k'); return k ? k.textContent.trim() : ''; });
+    return { n: five.length, opts: opts.length, labels: labels.join(''),
+             bad: labels.filter(t => !/^[甲乙丙丁戊]$/.test(t)).length };
+  });
+  okx('W6 五选一题标号齐备（不至于渲成空标）',
+    w6.n === 5 && w6.opts === 5 && w6.bad === 0, JSON.stringify(w6));
+
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
   console.log('\n=========== 合香 · 乾隆香料商道 v2.3 回归 ===========');
