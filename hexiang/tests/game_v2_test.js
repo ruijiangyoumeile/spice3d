@@ -655,6 +655,34 @@ function serve(){
     ok('T9 键盘态挂 body.kbd，鼠标一动即撤（焦点环只在键盘时炫）',
       kbdOn && !document.body.classList.contains('kbd') && HX.setKbd !== undefined, String(kbdOn));
 
+    /* ---------- NA. 底部导航（4 项）与二级菜单 ---------- */
+    const navKeys = [...document.querySelectorAll('#bottomNav .bn-item')].map(b => b.dataset.nav);
+    ok('NA1 底部导航 4 项且顺序正确（首页/香道/商道/我的）',
+      navKeys.length === 4 && navKeys.join(',') === 'hub,xiang,shang,mine', navKeys.join(','));
+    S.screen = 'quiz'; HX.render();
+    ok('NA2 香道屏高亮「香道」且子项高亮问答',
+      document.querySelector('#bottomNav .bn-item[data-nav="xiang"]').classList.contains('on') &&
+      document.querySelector('#xiang-menu [data-go="quiz"]').classList.contains('on'),
+      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
+    S.screen = 'market'; HX.render();
+    ok('NA3 商道屏高亮「商道」且子项高亮市集',
+      document.querySelector('#bottomNav .bn-item[data-nav="shang"]').classList.contains('on') &&
+      document.querySelector('#shang-menu [data-go="market"]').classList.contains('on'),
+      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
+    S.screen = 'ach'; HX.render();
+    ok('NA4 成就屏映射「我的」高亮',
+      document.querySelector('#bottomNav .bn-item[data-nav="mine"]').classList.contains('on'),
+      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
+    /* 二级菜单交互：点「香道」弹出 → 点子项跳转并自动收起 */
+    const xiangItem = document.querySelector('#bottomNav .bn-item[data-nav="xiang"]');
+    xiangItem.click();
+    const popOpen = document.getElementById('xiang-menu').classList.contains('show');
+    document.querySelector('#xiang-menu [data-go="garden"]').click();
+    ok('NA5 二级菜单展开后点子项跳转并收起',
+      popOpen && HX.state.screen === 'garden' && !document.getElementById('xiang-menu').classList.contains('show'),
+      'pop=' + popOpen + ' screen=' + HX.state.screen);
+    S.screen = 'hub'; HX.render();
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
