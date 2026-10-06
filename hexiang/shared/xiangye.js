@@ -1185,6 +1185,7 @@
     arrived.forEach(deliver);
     checkHistory();
     maybeEvent(now);
+    tickContracts();                                /* 契约：逾期判定 + 生成新单 */
     DAILY_TICKS.forEach(function(fn){ try{ fn(HX.state); }catch(e){} });
   }
 
@@ -1417,6 +1418,194 @@
   }
 
   /* ============================================================
+     E · CONTRACT —— 订单与契约系统（v2.4 B2）
+     六类契约：香行常供 / 寺观香火 / 官衙办差 / 药铺订药 / 织造配香 / 海贸番商
+     状态：open（可接） / active（进行中） / done（已完成） / fail（已违约）
+     ============================================================ */
+  var CONTRACT_CATS = [
+    { id:'perfume',  name:'香行常供',  desc:'城内香铺要货，价平而稳。', fameReq:0,  rewardMul:1.00, daysMin:10, daysMax:20, advRate:0.30 },
+    { id:'temple',   name:'寺观香火',  desc:'寺观定制供香，要得急、给得爽。', fameReq:2,  rewardMul:1.15, daysMin:8,  daysMax:15, advRate:0.25 },
+    { id:'yamen',    name:'官衙办差',  desc:'衙门采买，拖欠是常有的事，办得好能涨声望。', fameReq:5,  rewardMul:1.30, daysMin:15, daysMax:30, advRate:0.20 },
+    { id:'herbal',   name:'药铺订药',  desc:'药铺订草药，量大价薄，但常年有单。', fameReq:1,  rewardMul:0.90, daysMin:12, daysMax:25, advRate:0.40 },
+    { id:'textile',  name:'织造配香',  desc:'织造局熏衣香，品类刁钻，赏格亦高。', fameReq:8,  rewardMul:1.45, daysMin:20, daysMax:40, advRate:0.15 },
+    { id:'sea',      name:'海贸番商',  desc:'洋商整批要货，只有广州能接，利厚风险亦大。', fameReq:12, rewardMul:1.70, daysMin:25, daysMax:50, advRate:0.10 }
+  ];
+
+  var CONTRACT_MAX = 8;                 /* 同时挂单上限（open + active） */
+  var CONTRACT_DAILY_CHANCE = 0.55;     /* 每日生成新单概率 */
+  var CONTRACT_MAX_ADD_PER_DAY = 2;     /* 每日最多新增几单 */
+
+  /* 生成一份随机契约（按声望筛选类别、按城定货、按距离定交期） */
+  function rollContract(rand){
+    rand = rand || Math.random;
+    var now = abs(), fam = CO.fame || 0;
+    var pool = CONTRACT_CATS.filter(function(c){ return fam >= c.fameReq; });
+    if(!pool.length) pool = [CONTRACT_CATS[0]];
+    var cat = pool[Math.floor(rand() * pool.length)];
+    var owned = ownedCities();
+    var city = owned[Math.floor(rand() * owned.length)];
+    /* 海贸番商只能在广州接 */
+    if(cat.id === 'sea') city = 'guangzhou';
+    /* 选货：2–4 种本地可购或可种的香料，数量随机 */
+    var supply = supplyOf(city);
+    if(!supply.length) supply = Object.keys(SPICES).slice(0, 5);
+    var kinds = 2 + Math.floor(rand() * 3);          /* 2–4 种 */
+    if(kinds > supply.length) kinds = supply.length;
+    /* 洗牌后取前 kinds 个，保证货物种类恰好是 kinds（早前「重复即跳过」会致种类不足） */
+    var shuffled = supply.slice();
+    for(var si = shuffled.length - 1; si > 0; si--){
+      var sj = Math.floor(rand() * (si + 1));
+      var tmp = shuffled[si]; shuffled[si] = shuffled[sj]; shuffled[sj] = tmp;
+    }
+    var picked = shuffled.slice(0, kinds);
+    var cargo = {};
+    var baseValue = 0;
+    picked.forEach(function(id){
+      var base = priceAt(city, id);
+      var qty = 5 + Math.floor(rand() * 20);          /* 5–24 斤/料 */
+      cargo[id] = qty;
+      baseValue += base * qty;
+    });
+    /* 交货期限：按类别 + 距离调（本地供佛急单 8 天，海贸番商 50 天） */
+    var days = cat.daysMin + Math.floor(rand() * (cat.daysMax - cat.daysMin + 1));
+    /* 奖励：货值 × 奖励倍率 + 声望赏金 */
+    var reward = Math.round(baseValue * cat.rewardMul);
+    var advance = Math.round(reward * cat.advRate);            /* 订金 */
+    var qual = 1 + Math.floor(rand() * 3);                     /* 品质要求 1–3 等 */
+    var id = 'ct_' + (CO.seq || 1); CO.seq = (CO.seq || 1) + 1;
+    return {
+      id:id, cat:cat.id, catName:cat.name, city:city,
+      title: pickContractTitle(cat.id, rand),
+      cargo:cargo, reward:reward, advance:advance,
+      qual:qual, deadline:now + days, born:now,
+      status:'open', acceptDay:null, finishDay:null,
+      desc:cat.desc
+    };
+  }
+  function pickContractTitle(cat, rand){
+    var T = {
+      perfume: ['凝香阁补货', '清韵香铺急要', '雅集社定制', '四时香行常供'],
+      temple:  ['慈恩寺供香', '白云观清供', '法源寺订制', '报恩寺熏香'],
+      yamen:   ['布政司采买', '知府衙办差', '织造局供奉', '盐运司打点'],
+      herbal:  ['仁安堂抓药', '保和堂订药', '同春堂补货', '万春堂药目'],
+      textile: ['江南织造熏衣', '苏州织造配香', '杭州织造订香', '织造局衣香'],
+      sea:     ['十三行整批', '番商洋货订', '海舶香药', '粤海关出洋']
+    };
+    var arr = T[cat] || T.perfume;
+    return arr[Math.floor(rand() * arr.length)];
+  }
+  /* 计算契约总货量与货值 */
+  function contractCargoValue(c, city){
+    city = city || c.city;
+    var total = 0;
+    Object.keys(c.cargo).forEach(function(id){ total += c.cargo[id] * priceAt(city, id); });
+    return total;
+  }
+  function contractCargoQty(c){
+    var n = 0;
+    Object.keys(c.cargo).forEach(function(id){ n += c.cargo[id]; });
+    return n;
+  }
+  /* 接单：扣订金入帐，状态转 active */
+  function acceptContract(id){
+    var s = HX.state, list = s.co.contracts || [];
+    var c = list.find(function(x){ return x.id === id; });
+    if(!c || c.status !== 'open') return false;
+    c.status = 'active';
+    c.acceptDay = abs();
+    if(c.advance > 0){
+      addMoney(c.advance, s);
+      log('契约', '接下「' + c.title + '」，定银 ' + fmt(c.advance) + '，限' + (c.deadline - c.acceptDay) + '日交齐。', '契约');
+    }else{
+      log('契约', '接下「' + c.title + '」，限' + (c.deadline - c.acceptDay) + '日交齐。', '契约');
+    }
+    return true;
+  }
+  /* 交货：校验仓廪 → 扣货 → 结算尾款 + 声望 → 状态 done
+     品质奖惩：当前简化为「按时交 +2 声望，逾期罚金 30% 且声望 -1」 */
+  function deliverContract(id){
+    var s = HX.state, list = s.co.contracts || [];
+    var c = list.find(function(x){ return x.id === id; });
+    if(!c || c.status !== 'active') return { ok:false, msg:'契约状态不对' };
+    var st = s.co.store[c.city] || {};
+    var missing = [];
+    Object.keys(c.cargo).forEach(function(gid){
+      if((st[gid] || 0) < c.cargo[gid]) missing.push(SPICES[gid].zh + '缺' + (c.cargo[gid] - (st[gid] || 0)));
+    });
+    if(missing.length) return { ok:false, msg:'仓廪不足：' + missing.join('、') };
+    /* 扣货 */
+    Object.keys(c.cargo).forEach(function(gid){
+      st[gid] -= c.cargo[gid];
+      if(st[gid] <= 0) delete st[gid];
+    });
+    var now = abs();
+    var late = now > c.deadline;
+    var finalReward = c.reward - c.advance;           /* 尾款 */
+    var fameDelta = 2;
+    if(late){
+      var penalty = Math.round(c.reward * 0.30);       /* 违约金 = 总赏的 30% */
+      finalReward -= penalty;
+      fameDelta = -1;
+    }
+    addMoney(finalReward, s);                           /* 尾款；罚到负数时由 addMoney 归零兜底 */
+    s.co.fame = Math.max(0, (s.co.fame || 0) + fameDelta);
+    c.status = late ? 'fail' : 'done';
+    c.finishDay = now;
+    log('契约',
+      (late ? '逾期交付「' : '交付「') + c.title + '」' +
+      (late ? '，罚银 ' + fmt(Math.round(c.reward * 0.30)) + '、声望 -1' : '，收尾款 ' + fmt(finalReward) + '、声望 +' + fameDelta),
+      '契约');
+    return { ok:true, late:late, reward:finalReward, fame:fameDelta };
+  }
+  /* 每日巡检：到期未交自动判违约（扣声望 + 记录），并尝试生成新单 */
+  function tickContracts(){
+    var s = HX.state;
+    if(!s.co.contracts) s.co.contracts = [];
+    var list = s.co.contracts;
+    var now = abs();
+    /* 1. 逾期未交者自动判违约（每天再扣 1 声望，最多 -3） */
+    list.forEach(function(c){
+      if(c.status === 'active' && now > c.deadline && !c._overdueNoted){
+        c._overdueNoted = 1;
+        s.co.fame = Math.max(0, (s.co.fame || 0) - 1);
+        log('契约', '「' + c.title + '」已过交期，声望 -1。', '契约');
+        push('契约逾期', '「' + c.title + '」过交期，声望受损。速去' + CITIES[c.city].name + '交割，尚有宽限。');
+      }
+    });
+    /* 2. 归档：已完/违约满 30 天者清出，无人接的老挂单（超 30 天）撤回腾位
+          ——老单不撤的话，挂单上限会被早期低级单永久占满，高级单永远进不来 */
+    var kept = list.filter(function(c){
+      if((c.status === 'done' || c.status === 'fail') && c.finishDay && now - c.finishDay > 30) return false;
+      if(c.status === 'open' && now - (c.born == null ? now : c.born) > 30) return false;
+      return true;
+    });
+    /* 3. 生成新挂单（在同一份数组上追加，最后统一回写；
+          不可再向旧 list 引用 push——filter 返回新数组后旧引用已脱离存档） */
+    var hangN = kept.filter(function(c){ return c.status === 'open' || c.status === 'active'; }).length;
+    if(hangN < CONTRACT_MAX && Math.random() <= CONTRACT_DAILY_CHANCE){
+      var addN = 1 + Math.floor(Math.random() * CONTRACT_MAX_ADD_PER_DAY);
+      for(var i = 0; i < addN && hangN < CONTRACT_MAX; i++){ kept.push(rollContract()); hangN++; }
+    }
+    s.co.contracts = kept;
+  }
+  /* 开局补几张初始挂单，让玩家一进游戏就有事做 */
+  function seedContracts(){
+    var s = HX.state;
+    if(!s.co.contracts) s.co.contracts = [];
+    if(s.co.contracts.length) return;
+    for(var i = 0; i < 3; i++) s.co.contracts.push(rollContract());
+  }
+  /* 对外工具：契约分桶（可接 / 进行中 / 已完） */
+  function contractsByStatus(){
+    var list = (CO && CO.contracts) || [];
+    return {
+      open:   list.filter(function(c){ return c.status === 'open'; }),
+      active: list.filter(function(c){ return c.status === 'active'; }),
+      done:   list.filter(function(c){ return c.status === 'done' || c.status === 'fail'; })
+    };
+  }
+
+  /* ============================================================
      E · ASSET —— 素材解析：模型 → 图片 → 墨线占位
      素材谱里没有登记的香料一律走占位，**不发出任何网络请求**（省请求、省等待）
      ============================================================ */
@@ -1622,6 +1811,14 @@
   .xy-mrow .act{grid-column:1/-1;justify-content:flex-start}\
   .xy-pop{right:8px;left:8px;bottom:12px;max-width:none}\
 }\
+.xy-ct-row{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:rgba(255,253,246,.72)}\
+.xy-ct-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--kai);font-size:14px;letter-spacing:1px}\
+.xy-ct-head b{font-size:15px}\
+.xy-ct-cargo{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.65}\
+.xy-ct-body{margin-top:2px}\
+.wrap .xy-ct-cargo{font-size:13px}\
+.wrap .xy-ct-head{font-size:14px}\
+.wrap .xy-ct-head b{font-size:15px}\
 /* ---- 可读性基座（依 game-ui-design：次要文字 ≥13px，触控目标 ≥44px）----\
    本表注入在 index.html 的 <style> 之后，同权重会盖掉那边，故加 .wrap 前缀提权 ---- */\
 .wrap .xy-chip,.wrap .xy-tab,.wrap .xy-ctab,.wrap .xy-ach-desc,.wrap .xy-ach-reward,\
@@ -1726,7 +1923,110 @@
   var el = function(id){ return document.getElementById(id); };
 
   /* ============================================================
-     D · VIEW —— 号簿：商号概况 · 目标 · 纪事
+     契约卡片渲染（号簿里的可接 / 进行中 / 已完三栏）
+     ============================================================ */
+  function contractRowHTML(c, now){
+    now = now == null ? abs() : now;
+    var cargoTxt = Object.keys(c.cargo).map(function(gid){
+      return SPICES[gid].zh + '×' + c.cargo[gid];
+    }).join('、');
+    var remain = c.deadline - now;
+    var statusTag = '';
+    if(c.status === 'open')       statusTag = '<span class="hint">可接</span>';
+    else if(c.status === 'active') statusTag = remain < 0
+      ? '<span style="color:var(--seal)">逾期 ' + (-remain) + ' 日</span>'
+      : '<span>剩 ' + remain + ' 日</span>';
+    else if(c.status === 'done')  statusTag = '<span style="color:#2e7d32">已完成</span>';
+    else if(c.status === 'fail')  statusTag = '<span style="color:var(--seal)">违约</span>';
+    var btn = '';
+    if(c.status === 'open'){
+      btn = '<button class="btn sm primary" data-ct-accept="' + c.id + '">接单</button>';
+    }else if(c.status === 'active'){
+      btn = '<button class="btn sm" data-ct-deliver="' + c.id + '">交付</button>';
+    }
+    return '<div class="xy-ct-row">' +
+      '<div class="xy-ct-head">' +
+        '<b>' + esc(c.title) + '</b>' +
+        '<span class="hint">[' + esc(c.catName) + '] ' + CITIES[c.city].name + '</span>' +
+        '<span class="spacer"></span>' + statusTag +
+      '</div>' +
+      '<div class="xy-ct-body">' +
+        '<div class="xy-ct-cargo">' + esc(cargoTxt) + '</div>' +
+        '<div class="row" style="margin-top:6px;gap:8px;flex-wrap:wrap">' +
+          '<span class="xy-chip">赏 <b>' + fmt(c.reward) + '</b></span>' +
+          '<span class="xy-chip">定银 <b>' + fmt(c.advance) + '</b></span>' +
+          '<span class="xy-chip">期限 ' + (c.deadline - (c.acceptDay || now)) + ' 日</span>' +
+          '<span class="spacer"></span>' + btn +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  /* 契约区：可接 / 进行中 / 已完，三栏 */
+  var ctTab = 'active';                           /* 当前查看的栏 */
+  function contractSectionHTML(){
+    var now = abs();
+    var buckets = contractsByStatus();
+    var tabs = [
+      { id:'open',   name:'可接',   list:buckets.open },
+      { id:'active', name:'进行中', list:buckets.active },
+      { id:'done',   name:'已完',   list:buckets.done }
+    ];
+    var cur = buckets[ctTab] ? ctTab : (buckets.active.length ? 'active' : (buckets.open.length ? 'open' : 'done'));
+    ctTab = cur;
+    var list = buckets[cur] || [];
+    return '<div class="card">' +
+      '<h2>契约 · ' + list.length + ' 单</h2>' +
+      '<div class="xy-catbar" style="margin-bottom:6px">' +
+        tabs.map(function(t){
+          return '<button class="xy-cat ' + (t.id === cur ? 'on' : '') + '" data-ct-tab="' + t.id + '">' +
+            t.name + '<b>' + t.list.length + '</b></button>';
+        }).join('') +
+      '</div>' +
+      (list.length
+        ? list.map(function(c){ return contractRowHTML(c, now); }).join('')
+        : '<div class="hint">' + (cur === 'open' ? '目前没有可接的契约。多跑几趟商、涨涨声望，自然有更高阶的单子找上门。'
+            : (cur === 'active' ? '手上没有进行中的契约。去「可接」那一栏看看有没有合适的。'
+            : '还没有完成过契约。先从简单的供香单做起吧。')) + '</div>') +
+    '</div>';
+  }
+  /* 绑定契约区按钮事件（接单 / 交付 / 页签切换） */
+  function bindContractButtons(){
+    var root = el('sc-book'); if(!root) return;
+    root.querySelectorAll('[data-ct-tab]').forEach(function(b){
+      b.onclick = function(){ ctTab = b.dataset.ctTab; renderBook(); };
+    });
+    root.querySelectorAll('[data-ct-accept]').forEach(function(b){
+      b.onclick = function(){
+        var id = b.dataset.ctAccept;
+        act(function(s){
+          if(acceptContract(id)){
+            if(HX.fx && HX.fx.tier) HX.fx.tier('small', b, '+定银', 'good');
+            if(HX.playTone) HX.playTone('coin');
+          }
+        });
+        renderBook();
+      };
+    });
+    root.querySelectorAll('[data-ct-deliver]').forEach(function(b){
+      b.onclick = function(){
+        var id = b.dataset.ctDeliver;
+        var r = null;
+        act(function(s){
+          r = deliverContract(id);
+          if(r && r.ok){
+            if(HX.fx && HX.fx.tier) HX.fx.tier(r.late ? 'small' : 'medium', b, r.late ? '逾期交付' : '交付完成', r.late ? 'bad' : 'good');
+            if(HX.playTone) HX.playTone(r.late ? 'bad' : 'big');
+          }else if(r && r.msg){
+            if(HX.toast) HX.toast(r.msg);
+          }
+        });
+        renderBook();
+      };
+    });
+  }
+
+  /* ============================================================
+     D · VIEW —— 号簿：商号概况 · 目标 · 契约 · 纪事
      ============================================================ */
   function renderBook(){
     var s = HX.state, owned = ownedCities();
@@ -1770,6 +2070,7 @@
           '<span>' + esc(g.name) + '<span class="hint"> · ' + esc(g.desc) + '</span></span></div>';
       }).join('') +
     '</div>' +
+    contractSectionHTML() +
     '<div class="card">' +
       '<h2>大事记</h2>' +
       (logs.length ? logs.map(function(l){
@@ -1780,6 +2081,7 @@
     el('sc-book').querySelectorAll('[data-go]').forEach(function(b){
       b.onclick = function(){ goInside(b.dataset.go); };
     });
+    bindContractButtons();
   }
 
   /* ============================================================
@@ -2253,6 +2555,7 @@
     if(typeof d.lastEv !== 'number') d.lastEv = 0;
     if(typeof d.harvested !== 'number') d.harvested = 0;
     if(typeof d.bizInit !== 'number') d.bizInit = 0;
+    if(!Array.isArray(d.contracts)) d.contracts = [];          /* 契约列表（可接/进行中/已完） */
     /* 新档／旧香道存档：补足开业本钱（四百两），只补一次 */
     if(!d.bizInit){ d.bizInit = 1; s.money = Math.max(s.money, 40000); }
     /* 香料谱扩充后：补足种子/识得/存货/品质诸表 */
@@ -2268,6 +2571,7 @@
     });
     initPrices(s);
     CO = d;
+    seedContracts();
   }
   function injectData(){
     Object.keys(SPICES).forEach(function(id){
@@ -2384,6 +2688,11 @@
     renderScreen:renderScreen, syncTabs:syncTabs, mount:mount, PROSE:PROSE,
     /* F · 扩展点 */
     registerSpice:registerSpice, registerScreen:registerScreen, registerAchievement:registerAchievement,
-    registerDailyTick:registerDailyTick, registerEventHandler:registerEventHandler
+    registerDailyTick:registerDailyTick, registerEventHandler:registerEventHandler,
+    /* B2 · 契约系统 */
+    CONTRACT_CATS:CONTRACT_CATS,
+    rollContract:rollContract, acceptContract:acceptContract, deliverContract:deliverContract,
+    tickContracts:tickContracts, seedContracts:seedContracts, contractsByStatus:contractsByStatus,
+    contractCargoValue:contractCargoValue, contractCargoQty:contractCargoQty
   };
 })(window);

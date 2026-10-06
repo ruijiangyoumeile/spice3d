@@ -683,6 +683,108 @@ function serve(){
       'pop=' + popOpen + ' screen=' + HX.state.screen);
     S.screen = 'hub'; HX.render();
 
+    /* ---------- B2. 契约系统（v2.4 订单与契约） ---------- */
+    /* 种子机制：清空后 seedContracts 应补 3 张可接单（验完即恢复，不扰动后续断言） */
+    var ctBackup = S.co.contracts.slice();
+    S.co.contracts = [];
+    XiangYe.seedContracts();
+    var seededN = S.co.contracts.length;
+    var seedOk = seededN === 3 && S.co.contracts.every(function(c){ return c.status === 'open' && c.cargo && c.reward > 0; });
+    S.co.contracts = ctBackup;
+    ok('B2-1 种子机制：空列表时 seedContracts 补 3 张可接契约', seedOk && seededN === 3,
+      '种子数=' + seededN);
+    var openList = XiangYe.contractsByStatus().open;
+    if(!openList.length){ S.co.contracts.push(XiangYe.rollContract()); openList = XiangYe.contractsByStatus().open; }
+    ok('B2-1b 常规运行中仍有可接契约（列表非空）', openList.length >= 1, '可接=' + openList.length);
+    ok('B2-2 契约结构完整（id/cat/city/cargo/reward/deadline/status）',
+      openList.length > 0 && openList.every(function(c){
+        return c.id && c.cat && c.city && c.cargo && typeof c.reward === 'number' &&
+          typeof c.deadline === 'number' && c.status === 'open' && c.title && c.catName;
+      }),
+      openList[0] ? JSON.stringify(openList[0]) : '(空)');
+    ok('B2-3 契约货物为 2–4 种本地可购香料，数量 > 0',
+      openList.every(function(c){
+        var ids = Object.keys(c.cargo);
+        return ids.length >= 2 && ids.length <= 4 && ids.every(function(id){
+          return XiangYe.priceS.canBuy(c.city, id) && c.cargo[id] > 0;
+        });
+      }),
+      openList.slice(0,2).map(function(c){ return c.city + ':' + Object.keys(c.cargo).join(','); }).join(' | '));
+    /* 接第一张单 */
+    var first = openList[0], mBefore = S.money, openBefore = XiangYe.contractsByStatus().open.length;
+    var okAccept = XiangYe.acceptContract(first.id);
+    ok('B2-4 接单成功：状态转 active + 订金入帐 + 可接数减一',
+      okAccept && first.status === 'active' && first.acceptDay === XiangYe.abs() &&
+      S.money >= mBefore && XiangYe.contractsByStatus().open.length === openBefore - 1,
+      'money=' + mBefore + '->' + S.money + ' open=' + openBefore + '->' + XiangYe.contractsByStatus().open.length);
+    /* 直接把货塞进仓库，测交付结算（绕过买卖流程） */
+    var delivCity = first.city;
+    if(!S.co.store[delivCity]) S.co.store[delivCity] = {};
+    Object.keys(first.cargo).forEach(function(id){ S.co.store[delivCity][id] = first.cargo[id] + 5; });
+    var fameBefore = S.co.fame, mBef2 = S.money;
+    var dr = XiangYe.deliverContract(first.id);
+    ok('B2-5 交付成功：扣货 + 收尾款 + 声望 +2 + 状态 done',
+      dr && dr.ok && !dr.late && first.status === 'done' && first.finishDay === XiangYe.abs() &&
+      S.co.fame >= fameBefore + 2 && S.money > mBef2,
+      'fame=' + fameBefore + '->' + S.co.fame + ' money=' + mBef2 + '->' + S.money + ' late=' + dr.late);
+    /* 测逾期罚金：开一短单，推进 3 天让 deadline 过去（顺带验 tick 的自动逾期判定），再交付 */
+    var lateC = XiangYe.rollContract();
+    lateC.deadline = XiangYe.abs() + 2;                    /* 故意设得很短（2 天） */
+    lateC.city = 'xian'; lateC.cargo = { huajiao: 10 };
+    S.co.contracts.push(lateC);
+    XiangYe.acceptContract(lateC.id);
+    if(!S.co.store.xian) S.co.store.xian = {};
+    S.co.store.xian.huajiao = (S.co.store.xian.huajiao || 0) + 20;
+    var fameB2 = S.co.fame;
+    for(var di = 0; di < 3; di++) HX.nextDay();
+    ok('B2-6a tick 逾期自动判罚：到期未交扣声望并标记（_overdueNoted）',
+      lateC._overdueNoted === 1 && S.co.fame < fameB2,
+      'fame=' + fameB2 + '->' + S.co.fame + ' noted=' + lateC._overdueNoted);
+    var fameB2b = S.co.fame;
+    var dr2 = XiangYe.deliverContract(lateC.id);
+    ok('B2-6b 逾期交付：状态 fail + 声望再 -1 + 罚金 30%',
+      dr2 && dr2.ok && dr2.late && lateC.status === 'fail' && S.co.fame <= fameB2b - 1,
+      'fame=' + fameB2b + '->' + S.co.fame + ' late=' + dr2.late + ' status=' + lateC.status);
+    /* 推进 35 天，过期完成的契约应被清掉（30 天自动归档） */
+    for(var di2 = 0; di2 < 35; di2++) HX.nextDay();
+    ok('B2-7 完成/失败的契约 30 天后自动清理（log 仍留痕）',
+      S.co.contracts.filter(function(c){ return c.id === first.id; }).length === 0 &&
+      S.co.log.some(function(l){ return l.text && l.text.indexOf(first.title) >= 0; }),
+      'contracts=' + S.co.contracts.length + ' logHit=' + S.co.log.some(function(l){ return l.text && l.text.indexOf(first.title) >= 0; }));
+    /* 六类契约池齐全：直接采样 60 次 rollContract（声望拉满），漏类概率 ≈ 0.01% */
+    S.co.fame = 20;
+    var cats = {};
+    for(var ci = 0; ci < 60; ci++){ cats[XiangYe.rollContract().cat] = 1; }
+    ok('B2-8 高声望下 6 类契约全能生成（香行/寺观/官衙/药铺/织造/海贸）',
+      Object.keys(cats).length === 6,
+      '采样得 ' + Object.keys(cats).length + ' 类：' + Object.keys(cats).sort().join(','));
+    /* 低声望时高级单不出现（海贸需声望 12） */
+    S.co.fame = 0;
+    var lowCats = {};
+    for(var ci2 = 0; ci2 < 30; ci2++){ lowCats[XiangYe.rollContract().cat] = 1; }
+    ok('B2-9 低声望（0）时海贸/织造等高级契约不出现',
+      !lowCats.sea && !lowCats.textile,
+      '低声望采样：' + Object.keys(lowCats).sort().join(','));
+    S.co.fame = fameBefore;                                    /* 恢复声望，避免影响后续断言 */
+
+    /* UI 级：号簿契约面板 —— 页签切换 + 接单按钮真点击（验证事件绑定，而非只调 API） */
+    if(!XiangYe.contractsByStatus().open.length) S.co.contracts.push(XiangYe.rollContract());
+    HX.go('book');
+    var openTab = document.querySelector('#sc-book [data-ct-tab="open"]');
+    if(openTab) openTab.click();                                 /* 切到「可接」栏再看行数 */
+    var ctRows = document.querySelectorAll('#sc-book .xy-ct-row').length;
+    var acceptBtn = document.querySelector('#sc-book [data-ct-accept]');
+    var uiCtId = acceptBtn ? acceptBtn.dataset.ctAccept : '';
+    var openN0 = XiangYe.contractsByStatus().open.length;
+    if(acceptBtn) acceptBtn.click();
+    var afterCt = (S.co.contracts || []).find(function(c){ return c.id === uiCtId; });
+    ok('B2-10 号簿契约面板：页签可切、接单按钮真点即转进行中',
+      ctRows > 0 && !!acceptBtn && !!afterCt && afterCt.status === 'active' &&
+      XiangYe.contractsByStatus().open.length === openN0 - 1,
+      'rows=' + ctRows + ' id=' + uiCtId + ' status=' + (afterCt ? afterCt.status : '?') +
+      ' open=' + openN0 + '->' + XiangYe.contractsByStatus().open.length);
+    S.screen = 'hub'; HX.render();
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
@@ -994,7 +1096,7 @@ function serve(){
 
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.3 回归 ===========');
+  console.log('\n=========== 合香 · 乾隆香料商道 v2.4 回归 ===========');
   all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
   console.log(`\n通过 ${passAll} / ${all.length}`);
   if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));
