@@ -748,6 +748,67 @@
   }
 
   /* ============================================================
+     C · SYSTEM —— 时令谱：二十四节气（v2.4 B1）
+     一年 360 日 → 24 节气 × 15 日，天然对齐（day 0 = 立春）。
+     当令品类「大出」：产地行价 ×0.96（seasonMul）、采收增产 ×1.15（seasonYieldMul）
+     —— 二者皆为纯函数（只读当前绝对日），同状态同日必然同结果，可复现。
+     ============================================================ */
+  var JIEQI = [
+    { n:'立春', cat:'土产', tip:'地气初动，根茎始萌' },
+    { n:'雨水', cat:'花',   tip:'润物无声，花木抽芽' },
+    { n:'惊蛰', cat:'南货', tip:'虫醒雷动，南货上市' },
+    { n:'春分', cat:'花',   tip:'昼夜均分，花信正盛' },
+    { n:'清明', cat:'花',   tip:'气清景明，采花制香' },
+    { n:'谷雨', cat:'南货', tip:'雨生百谷，香料趁湿' },
+    { n:'立夏', cat:'花',   tip:'夏木阴阴，花材渐收' },
+    { n:'小满', cat:'南货', tip:'籽粒初满，未熟而香' },
+    { n:'芒种', cat:'南货', tip:'忙收忙种，香市喧腾' },
+    { n:'夏至', cat:'南货', tip:'日长至极，南货当令' },
+    { n:'小暑', cat:'花',   tip:'暑气初蒸，花露可采' },
+    { n:'大暑', cat:'南货', tip:'溽暑熏蒸，香能辟秽' },
+    { n:'立秋', cat:'土产', tip:'凉风渐至，根实渐成' },
+    { n:'处暑', cat:'土产', tip:'暑气将止，掘根收果' },
+    { n:'白露', cat:'花',   tip:'露凝而白，采英入香' },
+    { n:'秋分', cat:'土产', tip:'秋色平分，土产大出' },
+    { n:'寒露', cat:'土产', tip:'露寒气重，根茎饱满' },
+    { n:'霜降', cat:'土产', tip:'霜打果熟，采收正忙' },
+    { n:'立冬', cat:'南货', tip:'万物收藏，香药入库' },
+    { n:'小雪', cat:'土产', tip:'窖藏根实，待价而沽' },
+    { n:'大雪', cat:'南货', tip:'天寒地冻，南货走俏' },
+    { n:'冬至', cat:'南货', tip:'一阳来复，香价渐起' },
+    { n:'小寒', cat:'土产', tip:'寒气正盛，温补当令' },
+    { n:'大寒', cat:'土产', tip:'岁暮天寒，根实最宜' }
+  ];
+  var JIEQI_DAYS = 15;                                  /* 360 / 24 */
+  function jieqiOf(a){                                  /* 绝对日 → 节气序号 0–23 */
+    var r = ((a % 360) + 360) % 360;
+    return Math.floor(r / JIEQI_DAYS);
+  }
+  function jieqiNow(){ return jieqiOf(abs()); }
+  function jieqiLeft(){                                 /* 距下一节气天数（1–15） */
+    var r = ((abs() % 360) + 360) % 360;
+    return JIEQI_DAYS - (r % JIEQI_DAYS);
+  }
+  function seasonMul(id){                               /* 当令品类行价系数 */
+    var sp = SPICES[id];
+    if(!sp || !sp.cat) return 1;
+    return JIEQI[jieqiNow()].cat === sp.cat ? 0.96 : 1;
+  }
+  function seasonYieldMul(id){                          /* 当令品类采收系数 */
+    var sp = SPICES[id];
+    if(!sp || !sp.cat) return 1;
+    return JIEQI[jieqiNow()].cat === sp.cat ? 1.15 : 1;
+  }
+  function jqLine(mode){                                 /* 田亩/市集等处共用的时令提示行 */
+    var J = JIEQI[jieqiNow()];
+    var mid = mode === 'market'
+      ? '当令「' + J.cat + '」行价贱 4%，买囤正当时'
+      : '宜收「' + J.cat + '」当令（价贱 4%、增产 15%）';
+    return '<div class="xy-now">' + J.n + ' · ' + mid +
+      ' · 距下一节气 ' + jieqiLeft() + ' 日 —— ' + J.tip + '</div>';
+  }
+
+  /* ============================================================
      C · SYSTEM —— 行价：产地贱、远地贵 + 时令/事件修正
      ============================================================ */
   function goodOf(id){ return SPICES[id]; }
@@ -782,7 +843,7 @@
   function priceAt(city, id){
     var s = HX.state;
     var p = (s.co.price[city] && s.co.price[city][id]) || curAnchor(city, id);
-    return Math.max(1, Math.round(p * modMul(city, id)));
+    return Math.max(1, Math.round(p * modMul(city, id) * seasonMul(id)));
   }
   function buyPrice(city, id){ return Math.ceil(priceAt(city, id) * 1.04); }
   function sellPrice(city, id){ return Math.max(1, Math.floor(priceAt(city, id) * 0.96)); }
@@ -887,7 +948,7 @@
       var q = normPlot(st.co.plots[city][idx]);
       var item = q.sow[si];
       if(!item) return;
-      var qty = Math.max(1, Math.round(SPICES[item.id].crop.y * (0.92 + Math.random() * 0.16) * yieldNow()));
+      var qty = Math.max(1, Math.round(SPICES[item.id].crop.y * (0.92 + Math.random() * 0.16) * yieldNow() * seasonYieldMul(item.id)));
       st.co.store[city][item.id] = (st.co.store[city][item.id] || 0) + qty;
       st.co.harvested = (st.co.harvested || 0) + qty;
       log(CITIES[city].name, '收获' + SPICES[item.id].zh + ' ' + qty + ' 斤，入' + CITIES[city].addr + '仓。', '农事');
@@ -2052,6 +2113,7 @@
         '<span class="xy-chip">行程 <b>' + s.co.trips + '</b> 次</span>' +
         '<span class="xy-chip">存货值 <b>' + fmt(stockVal) + '</b></span>' +
         '<span class="xy-chip">香谱 <b>' + Object.keys(SPICES).length + '</b> 味</span>' +
+        '<span class="xy-chip">节气 <b>' + JIEQI[jieqiNow()].n + '</b></span>' +
       '</div>' +
       '<div class="sep"></div>' +
       '<div class="row">' +
@@ -2102,6 +2164,7 @@
       '<h2>' + C.name + ' · 田亩</h2>' +
       '<div class="hint">' + esc(C.intro) + '<br/>' +
         '每块田本茬可种 <b>' + PLOT_SLOTS + ' 畦</b>，可先后下种不同香药；畦满则须收获腾畦，方能再种。</div>' +
+      jqLine() +
       '<div class="sep"></div>' +
       catBarHTML(catCounts(seeds), fmCat, 'data-fmcat') +
       '<div class="xy-grid">' + plots.map(function(p, i){ return plotHTML(p, i, now, planted); }).join('') + '</div>' +
@@ -2232,6 +2295,7 @@
     '<div class="card">' +
       '<h2>' + C.name + ' · 市集</h2>' +
       '<div class="hint">' + esc(C.addr) + '前街行栈云集。买入照行价加利，卖出坐扣行用，皆为市面常例。</div>' +
+      jqLine('market') +
       (cm.length ? '<div class="xy-mods">' + cm.map(function(m){
         return '<span class="xy-mod ' + (m.mul > 1 ? 'xy-up' : 'xy-down') + '">' + esc(m.label) +
           ' · ' + (m.mul > 1 ? '价涨' : '价跌') + Math.round(Math.abs(m.mul - 1) * 100) + '%</span>';
@@ -2693,6 +2757,10 @@
     CONTRACT_CATS:CONTRACT_CATS,
     rollContract:rollContract, acceptContract:acceptContract, deliverContract:deliverContract,
     tickContracts:tickContracts, seedContracts:seedContracts, contractsByStatus:contractsByStatus,
-    contractCargoValue:contractCargoValue, contractCargoQty:contractCargoQty
+    contractCargoValue:contractCargoValue, contractCargoQty:contractCargoQty,
+    /* B1 · 时令谱（二十四节气） */
+    JIEQI:JIEQI, JIEQI_DAYS:JIEQI_DAYS,
+    jieqiOf:jieqiOf, jieqiNow:jieqiNow, jieqiLeft:jieqiLeft,
+    seasonMul:seasonMul, seasonYieldMul:seasonYieldMul
   };
 })(window);

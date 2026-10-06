@@ -785,6 +785,77 @@ function serve(){
       ' open=' + openN0 + '->' + XiangYe.contractsByStatus().open.length);
     S.screen = 'hub'; HX.render();
 
+    /* ---------- B1. 时令谱（二十四节气，v2.4） ---------- */
+    ok('B1-1 节气计算：24 节气 × 15 日、跨年循环可复现',
+      XiangYe.JIEQI.length === 24 && XiangYe.JIEQI_DAYS === 15 &&
+      XiangYe.jieqiOf(0) === 0 && XiangYe.jieqiOf(14) === 0 && XiangYe.jieqiOf(15) === 1 &&
+      XiangYe.jieqiOf(345) === 23 && XiangYe.jieqiOf(360) === 0 && XiangYe.jieqiOf(375) === 1,
+      '0→' + XiangYe.jieqiOf(0) + ' 15→' + XiangYe.jieqiOf(15) + ' 345→' + XiangYe.jieqiOf(345) + ' 360→' + XiangYe.jieqiOf(360));
+    var b1KeepDay = S.day;
+    S.day = 1; var b1LeftA = XiangYe.jieqiLeft();
+    S.day = 8; var b1LeftB = XiangYe.jieqiLeft();
+    S.day = b1KeepDay;
+    ok('B1-2 距下一节气：初一→15 日、初八→8 日（1–15 封闭）',
+      b1LeftA === 15 && b1LeftB === 8, b1LeftA + ' / ' + b1LeftB);
+    var b1JQ = XiangYe.JIEQI[XiangYe.jieqiNow()];
+    var b1Same = Object.keys(XiangYe.SPICES).filter(function(id){ return XiangYe.SPICES[id].cat === b1JQ.cat; });
+    var b1Other = Object.keys(XiangYe.SPICES).filter(function(id){ return XiangYe.SPICES[id].cat !== b1JQ.cat; });
+    ok('B1-3 当令品类价贱 4%、增产 15%；他类系数为 1',
+      b1Same.length > 0 && b1Other.length > 0 &&
+      b1Same.every(function(id){ return XiangYe.seasonMul(id) === 0.96 && XiangYe.seasonYieldMul(id) === 1.15; }) &&
+      b1Other.every(function(id){ return XiangYe.seasonMul(id) === 1 && XiangYe.seasonYieldMul(id) === 1; }),
+      b1JQ.n + ' 当令=' + b1JQ.cat + '（同类 ' + b1Same.length + ' 味 · 他类 ' + b1Other.length + ' 味）');
+    /* 行价随节气可复现：同一价格表下，当令节气合计价 < 非当令合计价（≈0.96 倍）
+       同类全量聚合比对，摊薄整数取整误差 */
+    var b1jqOn = XiangYe.JIEQI.findIndex(function(x){ return x.cat === b1JQ.cat; });
+    var b1jqOff = XiangYe.JIEQI.findIndex(function(x){ return x.cat !== b1JQ.cat; });
+    S.day = b1jqOn * 15 + 6;
+    var b1SumOn = b1Same.reduce(function(acc, id){ return acc + XiangYe.priceS.priceAt('xian', id); }, 0);
+    S.day = b1jqOff * 15 + 6;
+    var b1SumOff = b1Same.reduce(function(acc, id){ return acc + XiangYe.priceS.priceAt('xian', id); }, 0);
+    S.day = b1KeepDay;
+    ok('B1-4 行价随节气可复现：当令合计价 < 非当令合计价（比值≈0.96）',
+      b1SumOn < b1SumOff && Math.abs(b1SumOn / b1SumOff - 0.96) < 0.02,
+      b1JQ.cat + ' 当令' + b1SumOn + ' / 非当令' + b1SumOff + ' 比值' + (b1SumOn / b1SumOff).toFixed(3));
+    /* 采收增产可复现：mock 随机=0.5，同一作物在「非当令 / 当令」两次收获精确比对 */
+    var b1Cid = XiangYe.priceS.supplyOf('xian').filter(function(id){
+      return XiangYe.SPICES[id].crop && !XiangYe.SPICES[id].sea; })[0];
+    var b1jqC = XiangYe.JIEQI.findIndex(function(x){ return x.cat === XiangYe.SPICES[b1Cid].cat; });
+    var b1jqN = XiangYe.JIEQI.findIndex(function(x){ return x.cat !== XiangYe.SPICES[b1Cid].cat; });
+    if(!S.co.plots.xian[0]) S.co.plots.xian[0] = { sow: [] };
+    if(!S.co.store.xian) S.co.store.xian = {};
+    var b1OrigRandom = Math.random;
+    Math.random = function(){ return 0.5; };
+    var b1KeepYield = S.co.yieldMul; S.co.yieldMul = null;   /* 排除天气增产干扰 */
+    var b1S0 = S.co.store.xian[b1Cid] || 0;
+    S.day = b1jqN * 15 + 6;
+    S.co.plots.xian[0].sow = [{ id: b1Cid, ready: XiangYe.abs() }];
+    XiangYe.harvest('xian', 0, 0);
+    var b1QN = (S.co.store.xian[b1Cid] || 0) - b1S0;
+    var b1S1 = S.co.store.xian[b1Cid] || 0;
+    S.day = b1jqC * 15 + 6;
+    S.co.plots.xian[0].sow = [{ id: b1Cid, ready: XiangYe.abs() }];
+    XiangYe.harvest('xian', 0, 0);
+    var b1QY = (S.co.store.xian[b1Cid] || 0) - b1S1;
+    Math.random = b1OrigRandom;
+    S.co.yieldMul = b1KeepYield;
+    S.day = b1KeepDay;
+    var b1Y = XiangYe.SPICES[b1Cid].crop.y;
+    ok('B1-5 采收增产可复现：当令产量 = round(y×1.15)，非当令 = round(y)',
+      b1QN === Math.round(b1Y) && b1QY === Math.round(b1Y * 1.15),
+      b1Cid + ' y=' + b1Y + ' 非当令' + b1QN + ' 当令' + b1QY);
+    /* UI：田亩与市集顶部展示当前节气与倒计时 */
+    var b1Jn = XiangYe.JIEQI[XiangYe.jieqiNow()].n;
+    S.screen = 'farm'; HX.render();
+    var b1FarmHTML = (document.getElementById('sc-farm') || {}).innerHTML || '';
+    S.screen = 'market'; HX.render();
+    var b1MkHTML = (document.getElementById('sc-market') || {}).innerHTML || '';
+    ok('B1-6 田亩/市集顶部展示当前节气与「距下一节气」倒计时',
+      b1FarmHTML.indexOf(b1Jn) >= 0 && b1FarmHTML.indexOf('距下一节气') >= 0 &&
+      b1MkHTML.indexOf(b1Jn) >= 0 && b1MkHTML.indexOf('当令') >= 0,
+      '节气=' + b1Jn);
+    S.screen = 'hub'; HX.render();
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
