@@ -856,6 +856,51 @@ function serve(){
       '节气=' + b1Jn);
     S.screen = 'hub'; HX.render();
 
+    /* ---------- D4. 存档：IndexedDB 备份 + 导出/导入 JSON（v2.4） ---------- */
+    var d4Txt = HX.exportSave();
+    var d4P = null; try{ d4P = JSON.parse(d4Txt); }catch(e){}
+    ok('D4-1 导出存档：返回可解析的 v1 JSON，含当前钱/日',
+      !!d4P && d4P.v === 1 && typeof d4P.money === 'number' && typeof d4P.day === 'number' &&
+      d4P.money === HX.state.money && d4P.day === HX.state.day,
+      d4P ? ('v=' + d4P.v + ' money=' + d4P.money + ' day=' + d4P.day) : '解析失败');
+
+    var d4Bad1 = HX.importSave('{not json');
+    var d4Bad2 = HX.importSave(JSON.stringify({ v:2, money:1 }));
+    ok('D4-2 导入校验：非法 JSON 与版本不符者均被拒',
+      d4Bad1.ok === false && d4Bad2.ok === false &&
+      /JSON/.test(d4Bad1.msg) && /版本/.test(d4Bad2.msg),
+      d4Bad1.msg + ' / ' + d4Bad2.msg);
+
+    /* 往返：先留一份 → 改乱 → 导回 → 应还原 */
+    var d4Keep = HX.exportSave();
+    HX.state.money = 123456; HX.state.day = 77;
+    var d4Round = HX.importSave(d4Keep);
+    ok('D4-3 导入往返：导出的存档导回后钱/日还原',
+      d4Round.ok && HX.state.money === d4P.money && HX.state.day === d4P.day,
+      'money=' + HX.state.money + '/' + d4P.money + ' day=' + HX.state.day + '/' + d4P.day);
+
+    /* IndexedDB 读写往返（备份通道可用） */
+    var d4Idb = await (function(){
+      var probe = JSON.stringify({ v:1, money:42, day:9, probe:'d4' });
+      return HX.idbPut('__d4_probe__', probe).then(function(ok1){
+        return HX.idbGet('__d4_probe__').then(function(got){ return { ok1:ok1, same:got === probe }; });
+      });
+    })();
+    ok('D4-4 IndexedDB 读写往返一致（备份通道可用）',
+      d4Idb.ok1 === true && d4Idb.same === true, JSON.stringify(d4Idb));
+
+    /* save() 仍同步落 localStorage（主读路径不变，旧断言与线上行为不被破坏） */
+    HX.state.money = 55555;
+    HX.save();
+    var d4LS = null; try{ d4LS = JSON.parse(localStorage.getItem('spiceGame_v1')); }catch(e){}
+    ok('D4-5 save() 仍同步写入 localStorage（主读路径不变）',
+      !!d4LS && d4LS.money === 55555, d4LS ? ('money=' + d4LS.money) : '读取失败');
+
+    /* UI：书斋存档工具条齐备 */
+    HX.go('hub');
+    var d4UI = ['btnExportSave','btnImportSave','fileImportSave'].every(function(id){ return !!document.getElementById(id); });
+    ok('D4-6 书斋展示「导出/导入存档」按钮与隐藏文件输入', d4UI, String(d4UI));
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;

@@ -1244,7 +1244,95 @@ function freshState(){
   return s;
 }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  let payload;
+  try{ payload = JSON.stringify(state); }catch(e){ return; }
+  try{
+    localStorage.setItem(KEY, payload);
+  }catch(e){
+    /* 配额不足/隐私模式：转存 IndexedDB，并明说一句，免得玩家以为白玩了 */
+    idbPut(KEY, payload).then(ok => {
+      if(ok) toast('本地存储已满，存档已转存备份（IndexedDB）');
+    });
+  }
+  /* 始终镜像一份到 IndexedDB：localStorage 被清理时可从备份恢复。防抖 800ms，避免频繁写 */
+  if(_idbMirrorTimer) clearTimeout(_idbMirrorTimer);
+  _idbMirrorTimer = setTimeout(() => { idbPut(KEY, payload); }, 800);
+}
+
+/* ============================================================
+   =3b BACKUP —— IndexedDB 兜底存储 + 导出/导入 JSON（v2.4 D4）
+   localStorage 仍为同步主存（读档路径不变，确定性可测）；
+   IndexedDB 作异地备份与配额兜底；JSON 导出用于换机/留档。
+   ============================================================ */
+const IDB_NAME = 'spiceGame_v1', IDB_STORE = 'saves';
+let _idbOpen = null, _idbMirrorTimer = null;
+
+function idbReady(){
+  if(_idbOpen) return _idbOpen;
+  _idbOpen = new Promise((res, rej) => {
+    if(!('indexedDB' in window)) return rej(new Error('no-indexeddb'));
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+  return _idbOpen;
+}
+/* 写入；返回 Promise<boolean>（失败静默，不阻塞主流程） */
+function idbPut(key, text){
+  return idbReady().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(text, key);
+    tx.oncomplete = () => res(true);
+    tx.onerror = () => rej(tx.error);
+  })).catch(() => false);
+}
+function idbGet(key){
+  return idbReady().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const r = tx.objectStore(IDB_STORE).get(key);
+    r.onsuccess = () => res(r.result || null);
+    r.onerror = () => rej(r.error);
+  })).catch(() => null);
+}
+/* 导出：返回存档 JSON 文本（UI 侧再触发下载） */
+function exportSave(){
+  return JSON.stringify(state);
+}
+/* 导入：校验为「本作 v1 存档」后整体替换，并重绘 */
+function importSave(text){
+  let p;
+  try{ p = JSON.parse(text); }catch(e){ return { ok:false, msg:'不是合法的 JSON 文件' }; }
+  if(!p || p.v !== 1) return { ok:false, msg:'存档版本不符（需 v1）' };
+  try{
+    localStorage.setItem(KEY, JSON.stringify(p));
+  }catch(e){ return { ok:false, msg:'写入失败：本地存储不可用' }; }
+  state = load();
+  /* 商道层持有 state.co 的引用，换档后必须重建，否则读到旧档数据 */
+  if(window.XiangYe && window.HX) window.XiangYe.mount(window.HX);
+  go(state.screen && SCREENS.indexOf(state.screen) >= 0 ? state.screen : 'hub');
+  return { ok:true };
+}
+/* 从 IndexedDB 备份恢复（localStorage 被清理时的救档） */
+function restoreFromIDB(){
+  return idbGet(KEY).then(text => {
+    if(!text) return { ok:false, msg:'未找到备份' };
+    return importSave(text);
+  });
+}
+/* 触发浏览器下载存档文件 */
+function downloadSave(){
+  try{
+    const d = new Date();
+    const stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const blob = new Blob([exportSave()], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '合香存档-' + stamp + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    return true;
+  }catch(e){ return false; }
 }
 
 /* 成就奖励文案：钱或种子 */
@@ -2243,6 +2331,13 @@ function renderHub(){
         <button class="btn sm ${state.settings.reduceMotion ? 'primary' : 'ghost'}" data-set="reduceMotion">静默 ${state.settings.reduceMotion ? '开' : '关'}</button>
         <span class="hint">（静默＝关闭震动与闪动，适合长时间阅读）</span>
       </div>
+      <div class="row" style="font-size:13px" id="saveTools">
+        <span class="hint">存档：</span>
+        <button class="btn sm" id="btnExportSave">导出存档</button>
+        <button class="btn sm" id="btnImportSave">导入存档</button>
+        <span class="hint" id="saveMsg">换机或留档：导出为 JSON 文件，随时导回。</span>
+        <input type="file" id="fileImportSave" accept="application/json,.json" hidden>
+      </div>
       ${state.trade ? `
       <div class="sep"></div>
       <div class="hint" style="color:var(--seal)">
@@ -2306,6 +2401,26 @@ function renderHub(){
     blendOrderId = 'royal';
     mutate(s => { s.orders.royal.unlocked = true; });
     go('blend');
+  };
+  /* 存档导出/导入：文件进出皆在本地，不经网络 */
+  const bx = $('btnExportSave'), bi = $('btnImportSave'), bf = $('fileImportSave'), bm = $('saveMsg');
+  if(bx) bx.onclick = () => {
+    const ok = downloadSave();
+    if(bm) bm.textContent = ok ? '已导出，请查收浏览器下载。' : '导出失败（浏览器不支持）。';
+  };
+  if(bi && bf) bi.onclick = () => bf.click();
+  if(bf) bf.onchange = () => {
+    const f = bf.files && bf.files[0];
+    if(!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      const r = importSave(String(fr.result));
+      if(!r.ok && bm) bm.textContent = '导入失败：' + r.msg;
+      else toast('存档已导入');
+    };
+    fr.onerror = () => { if(bm) bm.textContent = '读取文件失败。'; };
+    fr.readAsText(f);
+    bf.value = '';                       /* 允许重复导入同一文件 */
   };
 }
 
@@ -3606,6 +3721,7 @@ window.HX = {
   get state(){ return state; },
   save, mutate, render, toast, go, esc, qOf, inkIcon, addLog, releaseViewer,
   nextDay, randomSeed, rewardText, achPop, setKbd,
+  exportSave, importSave, downloadSave, restoreFromIDB, idbGet, idbPut,   /* D4：存档备份与导入导出 */
   fx: FX, playTone,                     /* 手感层接口：商道层经此调用；旧调用方不传亦不影响 */
   HERBS, CODEX, HERB_BASE, ORDERS, ANCIENT_CARDS, ACHIEVEMENTS, ZONES, EVENTS,
   SCREENS, HASH_OF, SCREEN_OF,
