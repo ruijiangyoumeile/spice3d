@@ -345,6 +345,9 @@ node hexiang/tests/live_check.js
 ### 6.1 版本里程碑（近期提交）
 
 ```
+fc11df5  docs: 同类项目调研与桌面打包方案（docx）及生成脚本入库       ← 本地未推送
+56be5e8  feat(香料): 第五批 20 味页面入库（站点达 111 页）            ← 本地未推送
+2dfbd3c  docs(迁移): 新增 Codex 项目交接文档（11 章全量交接）          ← 本地未推送
 0c3c560  feat(v2.5 B3): 合香工坊 —— 香方制成品与陈化增值生产链      ← 本地未推送
 d84809b  feat(v2.4 D4): 存档加 IndexedDB 兜底备份与导出/导入 JSON   ← 已推送
 7aa9bd0  feat(v2.4 B1): 时令谱 —— 二十四节气驱动采收与行价          ← 已推送
@@ -399,11 +402,11 @@ e1f74b6  feat(v2.2): 可读性与触控合规 + 确定性测试钩子
 | 位置 | 状态 |
 |---|---|
 | `origin/main`（GitHub） | `d84809b`（含导航/B2/B1/D4） |
-| 本地 `main` | `0c3c560`（含 B3/v2.5）——**ahead 1，未推送** |
-| 工作区未提交 | 修改：`qr/index.html`；未跟踪：**20 个新香料页**（changpu / fangfeng / gegen / hehua / jianghua / jiegeng / jiexiang / jiulixiang / lianqiao / liulanxiang / qinghao / ruixiang / sanqi / shuixian / tianma / wangxiangyu / xiangqinglan / yansui / yelaixiang / yulan）、`output/`、`生成报告.js` |
-| 线上 Pages | BUILD **v2.4**（B3 未部署） |
+| 本地 `main` | `fc11df5`——含 B3/v2.5 + 交接文档 + 20 页入库 + 调研报告，**ahead 4，待推送** |
+| 工作区 | 已清空（全部提交入库；`*.usdz` 依 `.gitignore` 排除） |
+| 线上 Pages | BUILD **v2.4**（B3 及之后提交未部署） |
 
-> ⚠️ 迁移前建议：先让用户确认 20 个新香料页与 `qr/index.html` 的提交策略（页面已在磁盘、二维码已导出，但未入库）。
+> 说明：20 个新香料页与 `qr/index.html` 已于本轮迁移前补入库（commit `56be5e8`）；交接文档见 `2dfbd3c`；调研报告与生成脚本见 `fc11df5`。
 
 ### 7.2 功能完成度矩阵
 
@@ -426,8 +429,8 @@ e1f74b6  feat(v2.2): 可读性与触控合规 + 确定性测试钩子
 ### 7.3 待办清单
 
 **P0（发版阻塞）**
-- [ ] 推送 `0c3c560`（B3/v2.5）——需用户逐次授权
-- [ ] 决定 20 个新香料页 + `qr/index.html` 的提交方案
+- [x] 内容补入库：20 个新香料页 + `qr/index.html`（`56be5e8`）、交接文档（`2dfbd3c`）、调研报告与脚本（`fc11df5`）
+- [ ] 推送 4 个待推提交（`d84809b` → `fc11df5`）——需用户逐次授权（GitHub 与 Codex 两侧）
 - [ ] 推送后跑 `live_check.js` 确认 BUILD v2.5 上线
 
 **P1（v2.5 收尾）**
@@ -509,7 +512,7 @@ e1f74b6  feat(v2.2): 可读性与触控合规 + 确定性测试钩子
 | # | 内容 | 来源 | 备注 |
 |---|---|---|---|
 | 1 | 代码仓库（全量历史） | https://github.com/ruijiangyoumeile/spice3d | 或经 Codex 托管新建仓库（origin.cursor.com 系）后 push |
-| 2 | 未提交工作区 | 部署仓工作区（20 个新香料页 + qr/index.html + output/ + 生成报告.js） | 建议先与产品主理确认提交策略再入库 |
+| 2 | 未提交工作区 | ✅ 已全部入库（`56be5e8` / `fc11df5`），随仓库迁移即可 | 原 20 页 + qr 更新 + 调研报告已补提交 |
 | 3 | 本文档 + 四份仓库文档 | 仓库根目录 | 文档随仓库走 |
 | 4 | 素材库 | `D:\blender素材库\香料\`（含 `二维码\` 111 张） | 仓库外，必须单独打包 |
 | 5 | ComfyUI 管线 | `D:\trae文件\ComfyUI\`（工作流/脚本/模型） | 出图与混元自动化依赖 |
