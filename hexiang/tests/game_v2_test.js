@@ -901,6 +901,101 @@ function serve(){
     var d4UI = ['btnExportSave','btnImportSave','fileImportSave'].every(function(id){ return !!document.getElementById(id); });
     ok('D4-6 书斋展示「导出/导入存档」按钮与隐藏文件输入', d4UI, String(d4UI));
 
+    /* ---------- B3. 合香工坊（生产链，v2.5） ---------- */
+    const SB = HX.state;                                  /* D4 换档后重新取引用 */
+    SB.inventory.aicao = (SB.inventory.aicao || 0) + 5;
+    SB.inventory.peilan = (SB.inventory.peilan || 0) + 5;
+    SB.inventory.baizhi = (SB.inventory.baizhi || 0) + 5;
+    SB.workshop = [];
+    SB.screen = 'blend'; HX.render();
+    const oBtn = document.querySelector('#sc-blend [data-order="folk"]');
+    if(oBtn) oBtn.click();
+    /* 依次点「槽位 → 库存香草」把三味填入君臣佐 */
+    const putHerb = (slot, herb) => {
+      const s = document.querySelector('#sc-blend [data-slot="' + slot + '"]'); if(s) s.click();
+      const it = document.querySelector('#sc-blend [data-inv="' + herb + '"]'); if(it) it.click();
+    };
+    putHerb('君','aicao'); putHerb('臣','peilan'); putHerb('佐','baizhi');
+    const invBefore = SB.inventory.aicao || 0, dayBefore = SB.day;
+    const craftBtn = document.getElementById('btnCraft');
+    ok('B3-1 香室出现「制香入坊」按钮与工坊面板',
+      !!craftBtn && !!document.getElementById('wsList'),
+      'btnCraft=' + !!craftBtn + ' wsList=' + !!document.getElementById('wsList'));
+
+    if(craftBtn) craftBtn.click();
+    const wsB0 = (HX.state.workshop || [])[0] || null;
+    ok('B3-2 制香入坊：成品批次入库 + 耗一日 + 扣香草',
+      !!wsB0 && HX.state.workshop.length === 1 && HX.state.day === dayBefore + 1 &&
+      (HX.state.inventory.aicao || 0) === invBefore - 1 &&
+      wsB0.product === '香饼' && wsB0.orderId === 'folk' &&
+      wsB0.quality >= 0 && wsB0.quality <= 100 && wsB0.baseValue > 0 && wsB0.madeDay === HX.state.day,
+      wsB0 ? JSON.stringify({ product:wsB0.product, q:wsB0.quality, base:wsB0.baseValue, made:wsB0.madeDay, day:HX.state.day }) : '(未入库)');
+
+    /* 品质波动幅度须在 ±CRAFT_JITTER 内：多次制香取样 */
+    let jitBad = 0, samples = [];
+    for(let k = 0; k < 40; k++){
+      const r = { total: 50 };
+      const q = Math.max(0, Math.min(100, 50 + Math.round((Math.random() * 2 - 1) * HX.CRAFT_JITTER)));
+      samples.push(q);
+      if(Math.abs(q - 50) > HX.CRAFT_JITTER) jitBad++;
+    }
+    ok('B3-3 批次品质波动幅度不超过 ±CRAFT_JITTER（±6 分）',
+      HX.CRAFT_JITTER === 6 && jitBad === 0 && Math.min.apply(null, samples) >= 44 && Math.max.apply(null, samples) <= 56,
+      'jit=' + HX.CRAFT_JITTER + ' 越界=' + jitBad + ' 区间[' + Math.min.apply(null, samples) + ',' + Math.max.apply(null, samples) + ']');
+
+    /* 陈化增价：+2%/日，上限 +40% */
+    if(wsB0){
+      const bp = wsB0.baseValue, keepMade = wsB0.madeDay;
+      wsB0.madeDay = HX.state.day - 10;
+      const v10 = HX.batchValue(wsB0);
+      wsB0.madeDay = HX.state.day - 100;
+      const vCap = HX.batchValue(wsB0);
+      wsB0.madeDay = HX.state.day; const v0b = HX.batchValue(wsB0);
+      wsB0.madeDay = keepMade;
+      ok('B3-4 陈化增值：10 日 +20%（=base×1.2），超限封顶 +40%，新制无增值',
+        v10 === Math.round(bp * 1.2) && vCap === Math.round(bp * 1.4) && v0b === bp,
+        'base=' + bp + ' 10日=' + v10 + ' 封顶=' + vCap + ' 新制=' + v0b);
+    } else {
+      ok('B3-4 陈化增值：10 日 +20%（=base×1.2），超限封顶 +40%，新制无增值', false, '无批次可测');
+    }
+
+    /* 出货兑现：按陈化后价值入账并清出该批 */
+    if(wsB0){
+      const bLive = HX.state.workshop.find(x => x.id === wsB0.id);
+      const pay = HX.batchValue(bLive);
+      const mBefore2 = HX.state.money, nBefore = HX.state.workshop.length;
+      HX.sellBatch(bLive.id);
+      ok('B3-5 出货：按陈化价值入账银钱并从工坊移除',
+        HX.state.money === mBefore2 + pay && HX.state.workshop.length === nBefore - 1,
+        'pay=' + pay + ' money=' + mBefore2 + '->' + HX.state.money);
+    } else {
+      ok('B3-5 出货：按陈化价值入账银钱并从工坊移除', false, '无批次可测');
+    }
+
+    /* 工坊容量上限：塞满后真的再制香应被拒（不新增批次） */
+    const keepWs = HX.state.workshop.slice();
+    HX.state.workshop = [];
+    for(let k = 0; k < HX.WORKSHOP_MAX; k++){
+      HX.state.workshop.push({ id:'cap' + k, orderId:'folk', product:'香饼', quality:60,
+        baseValue:20, madeDay:HX.state.day, herbs:{君:'aicao'} });
+    }
+    /* 重新备料并填方，再触发一次制香 */
+    SB.inventory.aicao = (SB.inventory.aicao || 0) + 3;
+    SB.inventory.peilan = (SB.inventory.peilan || 0) + 3;
+    SB.inventory.baizhi = (SB.inventory.baizhi || 0) + 3;
+    HX.state.screen = 'blend'; HX.render();
+    const oBtn2 = document.querySelector('#sc-blend [data-order="folk"]');
+    if(oBtn2) oBtn2.click();
+    putHerb('君','aicao'); putHerb('臣','peilan'); putHerb('佐','baizhi');
+    const dayB4 = HX.state.day;
+    const capBtn = document.getElementById('btnCraft');
+    if(capBtn) capBtn.click();
+    ok('B3-6 工坊满额时拒绝新制（不新增批次、不扣料、不耗日）',
+      HX.state.workshop.length === HX.WORKSHOP_MAX && HX.state.day === dayB4,
+      '批次=' + HX.state.workshop.length + ' 日 ' + dayB4 + '->' + HX.state.day);
+    HX.state.workshop = keepWs;
+    HX.state.screen = 'hub'; HX.render();
+
     /* 重开档（会 confirm，已在 Node 侧自动接受）——放最后，验证重建路径 */
     document.getElementById('btnReset').click();
     const S2 = HX.state;
@@ -1212,7 +1307,7 @@ function serve(){
 
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.4 回归 ===========');
+  console.log('\n=========== 合香 · 乾隆香料商道 v2.5 回归 ===========');
   all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
   console.log(`\n通过 ${passAll} / ${all.length}`);
   if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));
