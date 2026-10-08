@@ -208,6 +208,26 @@
       <button class="tab" data-go="yansui/">🌿 芫荽</button>
       <button class="tab" data-go="yelaixiang/">🌙 夜来香</button>
       <button class="tab" data-go="yulan/">🤍 玉兰</button>
+      <button class="tab" data-go="baihe/">🌸 百合</button>
+      <button class="tab" data-go="baizi/">🌲 柏子</button>
+      <button class="tab" data-go="chaihu/">☘️ 柴胡</button>
+      <button class="tab" data-go="hehuanhua/">🎀 合欢花</button>
+      <button class="tab" data-go="houpo/">🪵 厚朴</button>
+      <button class="tab" data-go="huanglan/">🌻 黄兰</button>
+      <button class="tab" data-go="juhong/">🧡 橘红</button>
+      <button class="tab" data-go="maoxiang/">🌾 茅香</button>
+      <button class="tab" data-go="milan/">🌼 米兰</button>
+      <button class="tab" data-go="mudanpi/">🌷 牡丹皮</button>
+      <button class="tab" data-go="mugua/">🍐 木瓜</button>
+      <button class="tab" data-go="muxianghua/">💮 木香花</button>
+      <button class="tab" data-go="shiluo/">🍃 莳萝</button>
+      <button class="tab" data-go="shuilian/">🏵️ 睡莲</button>
+      <button class="tab" data-go="xiangchun/">🌱 香椿</button>
+      <button class="tab" data-go="youhua/">🍊 柚花</button>
+      <button class="tab" data-go="yueji/">🌺 月季</button>
+      <button class="tab" data-go="yuzan/">🕊️ 玉簪</button>
+      <button class="tab" data-go="ziran/">🌰 孜然</button>
+      <button class="tab" data-go="ziteng/">🍇 紫藤</button>
       <button class="tab" data-go="">✳️ 自定义</button>
     </div>
     <input id="url" type="url" spellcheck="false" placeholder="输入页面地址" />
@@ -221,7 +241,7 @@
 
   <script src="../shared/qrcode.min.js"></script><script>
     var DEFAULT_BASE = "https://ruijiangyoumeile.github.io/spice3d/";
-    var KNOWN = ["bohe/", "jinyinhua/", "midiexiang/", "aicao/", "furong/", "dingxiang/", "bajiao/", "baizhi/", "peilan/", "yuegui/", "tanxiang/", "hujiao/", "jianghuang/", "baikou/", "bailixiang/", "cangzhu/", "chenpi/", "gansong/", "huoxiang/", "jingjie/", "liangjiang/", "luohanguo/", "niuzhi/", "rougui/", "shengjiang/", "wujiapi/", "wuzhuyu/", "xiangmaocao/", "xinyi/", "zisu/", "sharen/", "anxixiang/", "caoguo/", "chenxiang/", "chuanxiong/", "duzhong/", "foshou/", "guihua/", "huajiao/", "jiangzhenxiang/", "lamei/", "longnaoxiang/", "meiguihua/", "molihua/", "ruxiang/", "suhexiang/", "sumu/", "xiangyuan/", "xiaohuixiang/", "yunmuxiang/", "zhizi/", "ainaixiang/", "bibo/", "caodoukou/", "daidaihua/", "gancao/", "gaoben/", "guizhi/", "hangju/", "hongdoukou/", "linglingxiang/", "luolei/", "moyao/", "qianghuo/", "shannai/", "xiangfu/", "xiangru/", "xixin/", "yizhi/", "yujin/", "zanghonghua/", "bailanhua/", "baizhu/", "bichengqie/", "binlang/", "danggui/", "duhuo/", "ercha/", "eshu/", "fengxiangzhi/", "hanxiaohua/", "lanhua/", "meihua/", "paicaoxiang/", "roudoukou/", "suxinhua/", "xuejie/", "yunxiang/", "zelan/", "zhangnao/", "zhulan/", "changpu/", "fangfeng/", "gegen/", "hehua/", "jianghua/", "jiegeng/", "jiexiang/", "jiulixiang/", "lianqiao/", "liulanxiang/", "qinghao/", "ruixiang/", "sanqi/", "shuixian/", "tianma/", "wangxiangyu/", "xiangqinglan/", "yansui/", "yelaixiang/", "yulan/"];
+    var KNOWN = ["bohe/", "jinyinhua/", "midiexiang/", "aicao/", "furong/", "dingxiang/", "bajiao/", "baizhi/", "peilan/", "yuegui/", "tanxiang/", "hujiao/", "jianghuang/", "baikou/", "bailixiang/", "cangzhu/", "chenpi/", "gansong/", "huoxiang/", "jingjie/", "liangjiang/", "luohanguo/", "niuzhi/", "rougui/", "shengjiang/", "wujiapi/", "wuzhuyu/", "xiangmaocao/", "xinyi/", "zisu/", "sharen/", "anxixiang/", "caoguo/", "chenxiang/", "chuanxiong/", "duzhong/", "foshou/", "guihua/", "huajiao/", "jiangzhenxiang/", "lamei/", "longnaoxiang/", "meiguihua/", "molihua/", "ruxiang/", "suhexiang/", "sumu/", "xiangyuan/", "xiaohuixiang/", "yunmuxiang/", "zhizi/", "ainaixiang/", "bibo/", "caodoukou/", "daidaihua/", "gancao/", "gaoben/", "guizhi/", "hangju/", "hongdoukou/", "linglingxiang/", "luolei/", "moyao/", "qianghuo/", "shannai/", "xiangfu/", "xiangru/", "xixin/", "yizhi/", "yujin/", "zanghonghua/", "bailanhua/", "baizhu/", "bichengqie/", "binlang/", "danggui/", "duhuo/", "ercha/", "eshu/", "fengxiangzhi/", "hanxiaohua/", "lanhua/", "meihua/", "paicaoxiang/", "roudoukou/", "suxinhua/", "xuejie/", "yunxiang/", "zelan/", "zhangnao/", "zhulan/", "changpu/", "fangfeng/", "gegen/", "hehua/", "jianghua/", "jiegeng/", "jiexiang/", "jiulixiang/", "lianqiao/", "liulanxiang/", "qinghao/", "ruixiang/", "sanqi/", "shuixian/", "tianma/", "wangxiangyu/", "xiangqinglan/", "yansui/", "yelaixiang/", "yulan/", "baihe/", "baizi/", "chaihu/", "hehuanhua/", "houpo/", "huanglan/", "juhong/", "maoxiang/", "milan/", "mudanpi/", "mugua/", "muxianghua/", "shiluo/", "shuilian/", "xiangchun/", "youhua/", "yueji/", "yuzan/", "ziran/", "ziteng/"];
     var tabs = document.querySelectorAll(".tab");
     var input = document.getElementById("url");
     var canvas = document.getElementById("qr");
