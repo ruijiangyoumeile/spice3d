@@ -875,6 +875,7 @@ body{background:#eae6d8;color:var(--ink)}
 
 .guide-note{display:flex;align-items:center;gap:10px;background:#edf2dd;border:1px solid #c3cdb0;border-radius:9px;padding:10px 12px;margin:12px 0}.guide-note p{flex:1;min-width:0;margin:0;font-size:13px;line-height:1.8;color:var(--garden)}.guide-note button{min-height:44px;min-width:66px;padding:8px;border:1px solid #aebc94;border-radius:6px;background:#fffdf3;color:var(--garden);font-size:13px;cursor:pointer}
 </style>
+<link rel="stylesheet" href="shared/layout.css">
 </head>
 <body>
 <div class="wrap">
@@ -1217,7 +1218,7 @@ const CARD_COST = 8;
 /* 御用订单解锁：识得八味香草后，宫中传旨 */
 const ROYAL_KNOWN = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '3.0-preview.1';
+const BUILD = '3.0-preview.2';
 
 /* ============================================================
    =3 STORE
@@ -2448,8 +2449,10 @@ function courtyardHTML(){
       <button class="scene-hotspot hotspot-blend" data-go="blend">香坊<small>${(state.workshop || []).length} 批陈化中</small></button>
       <button class="scene-hotspot hotspot-study" data-go="study">发现册<small>辨草得种子</small></button>
       <span class="scene-caption">${esc(wxOf(state.weather).name)} · 第 ${state.day} 日</span>
-    </div><div><div class="scene-daily">${tasks.slice(0,3).map(t => `<button class="daily-action" data-go="${t.go}"><b>${t.title}</b><span>${t.desc}</span><em>→</em></button>`).join('')}</div>
-    <div class="scene-links"><button data-go="codex">香料图鉴</button><button data-go="quiz">辨识挑战</button><button data-go="book">行旅与商道${active || transit ? ' · 有待办' : ''}</button></div>
+    </div><div class="hub-notebook"><h3 class="folio-section-title">小院手札<span>草木与日常</span></h3>
+    <dl class="courtyard-ledger"><div><dt>待种香草</dt><dd>${seeds}<small>枚种子</small></dd></div><div><dt>成熟待收</dt><dd>${ready}<small>株</small></dd></div><div><dt>香坊存材</dt><dd>${inventory}<small>株</small></dd></div></dl>
+    <h3 class="folio-section-title">今日可做<span>循香而行</span></h3><div class="scene-daily">${tasks.slice(0,3).map(t => `<button class="daily-action" data-go="${t.go}"><b>${t.title}</b><span>${t.desc}</span><em>→</em></button>`).join('')}</div>
+    <h3 class="folio-section-title">再探一页<span>识草 · 问香 · 行旅</span></h3><div class="scene-links"><button data-go="codex"><b>香料图鉴</b><small>看形态，读典故，观三维标本</small></button><button data-go="quiz"><b>辨识挑战</b><small>以草木知识作答，每日五题</small></button><button data-go="book"><b>行旅与商道${active || transit ? ' · 有待办' : ''}</b><small>查契约与商队，翻看经营记录</small></button></div>
     ${state.presentation.introDismissed ? '' : `<aside class="guide-note"><p>先从发现册认识艾草、佩兰和白芷，再到药圃种植，采收后去香坊试第一份配方。三维标本在图鉴详细观察时打开。</p><button type="button" data-dismiss-intro>知道了</button></aside>`}</div></div>`;
 }
 function gardenSceneHTML(){
@@ -3008,6 +3011,7 @@ function renderGarden(){
   };
 
   $('sc-garden').innerHTML = `
+    <header class="page-heading"><div><span class="scene-kicker">栽种 · 候时 · 采收</span><h2>药圃日记</h2><p>先看明日天时，再选合适的地块。每一株香草，都从这里开始。</p></div><span class="folio-number" aria-hidden="true">01</span></header>
     ${gardenSceneHTML()}
     ${!state.stats.harvest ? guideHintHTML(state.plants.length ? 'first-harvest' : 'first-plant', state.plants.length ? '推进一日后点成熟植株采收；日期也会推进商队、契约和陈化。' : '先点地块选气候，再选择种子。艾草宜干燥、佩兰宜湿润、白芷宜半阴。') : ''}
     <div class="card">
@@ -3137,6 +3141,7 @@ function renderGarden(){
         ? '<b>据生境择地</b>（信息来自古籍与香草志）：<br/>' +
           matched.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')
         : '';
+      bindArtFallback(row);
       row.querySelectorAll('[data-seed]').forEach(b => {
         b.onclick = () => plantHerb(b.dataset.seed, zone);
       });
@@ -3221,6 +3226,7 @@ function renderBlend(){
   const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
 
   $('sc-blend').innerHTML = `
+    <header class="page-heading"><div><span class="scene-kicker">君臣佐使 · 合香成方</span><h2>香坊配伍</h2><p>选一份来客委托，以草木入方；看清配伍，再决定交付或陈化。</p></div><span class="folio-number" aria-hidden="true">02</span></header>
     ${!state.stats.crafts && !state.stats.blends ? guideHintHTML('first-blend', '点选君、臣、佐、使槽位，再放入库存材料。看清配伍结果后，可即时交付或制香入坊。') : (!(state.stats.batchSold || 0) && state.workshop.length ? guideHintHTML('first-sale', '成品在工坊按日陈化，点击出货兑现当前价值。入坊与即时交付不会重复消耗同一份材料。') : '')}
     <div class="visitor-order">${artImage(((window.GAME_ART || {}).characters || {}).host, 'visitor-art')}<div><h3>${esc(order.buyer)}来访</h3><p>${esc(order.intro)}</p><span class="scene-helper">挑选材料，先看配伍结果，再选择交付或制香入坊。</span></div></div>
     <div class="card flat" style="padding:12px 16px">
@@ -3284,6 +3290,7 @@ function renderBlend(){
             <span class="hint" id="invCount"></span>
           </div>
           <div class="inv" id="invRow"></div>
+          <p class="material-note">图片为植株示意；实际用材与用途请查看香料图鉴词条。</p>
           <div class="hint" style="margin-top:10px">
             点香草放入「${blendSel}位」；同一味不可重复入方。再点已占用的槽位可替换。
           </div>
@@ -3569,6 +3576,7 @@ function renderCodex(){
   }).filter(Boolean).join(' · ') + '（分/斤）' : '—';
 
   $('sc-codex').innerHTML = `
+    <header class="page-heading"><div><span class="scene-kicker">形态 · 生境 · 典故</span><h2>草木图鉴</h2><p>翻看已经识得的香料，观察植物形态，循词条认识其来处与用途。</p></div><span class="folio-number" aria-hidden="true">03</span></header>
     ${herbArt(codexHerb, 'codex-hero-art')}
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
@@ -3588,7 +3596,7 @@ function renderCodex(){
 
     <div class="codex-tabs" id="codexTabs">
       ${shown.map(id => `<button class="codex-tab ${id === codexHerb ? 'on' : ''}" data-h="${id}" ${state.known[id] ? '' : 'disabled'}>
-        ${esc(HERBS[id].name)}${state.known[id] ? '' : ' · 未识'}
+        ${state.known[id] ? herbArt(id, 'specimen-thumb codex-thumb') : ''}<span>${esc(HERBS[id].name)}<small>${state.known[id] ? '已识' : '未识'}</small></span>
       </button>`).join('')}
     </div>
 

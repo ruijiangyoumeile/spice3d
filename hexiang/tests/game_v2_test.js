@@ -537,7 +537,8 @@ function serve(){
     ok('R2 分层音效接口在位', typeof HX.playTone === 'function');
 
     HX.fx.shake(0.8);
-    await new Promise(r => setTimeout(r, 90));
+    /* Sample the rendered frame, not a timer that can fire before Chromium paints. */
+    await new Promise(r => requestAnimationFrame(r));
     const shaken = !!stageEl.style.transform && stageEl.style.transform !== 'none';
     ok('R3 震动产生位移（只动视觉层）', shaken, stageEl.style.transform);
     await new Promise(r => setTimeout(r, 1400));
@@ -733,8 +734,12 @@ function serve(){
     XiangYe.acceptContract(lateC.id);
     if(!S.co.store.xian) S.co.store.xian = {};
     S.co.store.xian.huajiao = (S.co.store.xian.huajiao || 0) + 20;
+    /* Isolate the penalty from unrelated caravan arrivals (+1 fame) left by earlier tests. */
+    var penaltyTransit = S.co.transit;
+    S.co.transit = [];
     var fameB2 = S.co.fame;
     for(var di = 0; di < 3; di++) HX.nextDay();
+    S.co.transit = penaltyTransit;
     ok('B2-6a tick 逾期自动判罚：到期未交扣声望并标记（_overdueNoted）',
       lateC._overdueNoted === 1 && S.co.fame < fameB2,
       'fame=' + fameB2 + '->' + S.co.fame + ' noted=' + lateC._overdueNoted);
