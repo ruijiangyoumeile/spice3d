@@ -1327,7 +1327,7 @@
   }
 
   /* 成就音效：MP3（1.35 秒）优先，缺失则退 WebAudio 合成，绝不阻塞界面 */
-  var SFX_SRC = './shared/sfx/achievement.mp3';
+  var SFX_SRC = document.createElement('audio').canPlayType('audio/mpeg') ? './shared/sfx/achievement.mp3' : './shared/sfx/achievement.wav';
   var audioEl = null, audioOk = true;
   function playSfx(){
     if(audioOk){
@@ -1916,16 +1916,13 @@
     var old = document.getElementById('xyTabs');
     if(old) old.remove();
     var nav = document.createElement('nav');
-    nav.className = 'xy-tabs'; nav.id = 'xyTabs';
-    nav.innerHTML = TABS.map(function(t){
-      return (t.group ? '<span class="xy-group">' + t.group + '</span>' : '') +
-        '<button class="xy-tab" data-sc="' + t.id + '" type="button">' + t.name + '</button>';
-    }).join('') +
-      '<span class="xy-spacer"></span>' +
-      '<span class="xy-chip" id="xyDate">—</span>' +
-      '<span class="xy-chip">声望 <b id="xyFame">0</b></span>' +
-      '<button class="xy-tab" id="xyDay" type="button">推进一日</button>' +
-      '<button class="xy-tab" id="xyTen" type="button">推进一旬</button>';
+    nav.className = 'merchant-status'; nav.id = 'xyTabs';
+    nav.innerHTML = '<details><summary>天时与行旅 · 声望 <b id="xyFame">0</b></summary><div class="merchant-actions">' +
+      TABS.filter(function(t){ return ['hub','study','garden','blend','codex','quiz','book','farm','market','cara','shop','annals','ach'].indexOf(t.id) < 0; }).map(function(t){ return '<button class="btn sm" data-sc="' + t.id + '">' + esc(t.name) + '</button>'; }).join('') +
+      '<span id="xyDate">—</span>' +
+      '<button class="btn sm" id="xyDay" type="button">推进一日</button>' +
+      '<button class="btn sm" id="xyTen" type="button">推进一旬</button></div>' +
+      '<p>会推进种植、商队、契约与陈化，请先查看今日待办。</p></details>';
     wrap.insertBefore(nav, stage);
     nav.querySelectorAll('[data-sc]').forEach(function(b){
       b.onclick = function(){ HX.go(b.dataset.sc); };
@@ -2596,6 +2593,7 @@
      F · API —— 与香道层对接：数据注入 / 状态树迁移 / 挂载
      ============================================================ */
   function ensureCo(s){
+    if(typeof HX.ensurePresentationState === 'function') HX.ensurePresentationState(s);
     if(!s.co) s.co = {};
     var d = s.co;
     if(!d.shops || !d.shops.xian) d.shops = Object.assign({ xian:true }, d.shops || {});
@@ -2721,6 +2719,7 @@
       HX.save();
       syncTabs();
       if(SCREEN_IDS.indexOf(HX.state.screen) >= 0) renderScreen(HX.state.screen);
+      if(typeof HX.render === 'function') HX.render();
     }catch(e){
       /* 商道层异常不拖垮香道层：留痕、提示，香道六屏照常可玩 */
       try{ console.error('[XiangYe] mount 失败：', e); }catch(e2){}
@@ -2737,7 +2736,7 @@
     /* 核心 */
     abs:abs, calOf:calOf, dateText:dateText, absToText:absToText, absToYearMonth:absToYearMonth,
     eraText:eraText, cnNum:cnNum, MONTHS:MONTHS, fmt:fmt, fmtShort:fmtShort, HQ:HQ,
-    drain:drain, push:push, pop:pop, showAch:showAch, playSfx:playSfx, checkAch:checkAch,
+    drain:drain, push:push, pop:pop, showAch:showAch, playSfx:playSfx, checkAch:checkAch, SFX_SRC:SFX_SRC,
     /* 系统 */
     tick:tick, commitDays:commitDays, plantCrop:plantCrop, harvest:harvest, buyPlot:buyPlot, PLOT_SLOTS:PLOT_SLOTS,
     openShop:openShop, buyGood:buyGood, sellGood:sellGood, estTrip:estTrip, dispatch:dispatch,

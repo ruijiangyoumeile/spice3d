@@ -1,0 +1,154 @@
+{
+  "records": [
+    {
+      "id": "scene-courtyard",
+      "tool": "image_gen",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\scene-courtyard.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\scene-courtyard.png",
+      "sha256": "b453e1cab57d27e32a965c9f41997a5fc404b4de392596f733a50b0bb72ae78f",
+      "webBytes": 474940,
+      "width": 1000,
+      "height": 1500,
+      "alphaExtrema": [
+        255,
+        255
+      ]
+    },
+    {
+      "id": "scene-garden",
+      "tool": "ComfyUI FLUX.2 klein",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-staging\\scene-garden.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\scene-garden.png",
+      "sha256": "67d125c9da9941a52e06570dc9fb032ded1b0a42bd7e1abfc525e83c6519aa93",
+      "webBytes": 176272,
+      "width": 1000,
+      "height": 750,
+      "alphaExtrema": [
+        255,
+        255
+      ]
+    },
+    {
+      "id": "scene-workbench",
+      "tool": "ComfyUI FLUX.2 klein",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-staging\\scene-workbench.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\scene-workbench.png",
+      "sha256": "12b33954cb8719089e43435da0080d0dcb3ff507cf8fce8d7799fbeba789b810",
+      "webBytes": 60342,
+      "width": 1000,
+      "height": 750,
+      "alphaExtrema": [
+        255,
+        255
+      ]
+    },
+    {
+      "id": "character-host",
+      "tool": "image_gen",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\character-host.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\character-host.png",
+      "sha256": "37136182f14696dd42d59292236dca90bcd5da9a93be8ab232b2a6d9b3cd9ebf",
+      "webBytes": 38268,
+      "width": 420,
+      "height": 630,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-aicao",
+      "tool": "ComfyUI Qwen four-step",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-staging\\edit-aicao.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-aicao.png",
+      "sha256": "f16b6834fdf3fba6c83b8f4027b9cfcdb89bdadd0030c8f5f030475896cc7bc6",
+      "webBytes": 63288,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-peilan",
+      "tool": "image_gen botanical correction",
+      "source": "C:\\Users\\pc\\.codex\\generated_images\\01a116a3-cda9-75b2-93dc-5e375eaba5d2\\exec-e72fdf76-a788-46fa-9adb-dd4b3f1ed358.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-peilan.png",
+      "sha256": "92170e9eb9451e8430352049ae93eaf194c52019fe75bb9eebd9a11f8ce0a047",
+      "webBytes": 106226,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-baizhi",
+      "tool": "image_gen botanical correction",
+      "source": "C:\\Users\\pc\\.codex\\generated_images\\01a116a3-cda9-75b2-93dc-5e375eaba5d2\\exec-089c3ea9-5d84-4c62-9aaa-82a036485ef3.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-baizhi.png",
+      "sha256": "20b8e89e2826345fe97c43b94cc4bf9789ff66f56a5ddb11fbce73c486b67b24",
+      "webBytes": 109976,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-bohe",
+      "tool": "ComfyUI Qwen four-step",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-staging\\edit-bohe.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-bohe.png",
+      "sha256": "f95e63254909ffded2dffd6cb73e435bba3c9091af31847dc45b2af45776a3c6",
+      "webBytes": 47520,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-moli",
+      "tool": "ComfyUI Qwen four-step",
+      "source": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-staging\\edit-moli.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-moli.png",
+      "sha256": "c18dd5f86ab256450924e94eef16915856cd4e1ff83f5174d4f31cb555a8c67c",
+      "webBytes": 26242,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "herb-huajiao",
+      "tool": "existing approved game resource",
+      "source": "D:\\trae文件\\香料3D展示\\huajiao\\models\\front.png",
+      "approvedOriginal": "D:\\codex\\对话\\游戏改版策略-2026-10-07\\art-approved\\herb-huajiao.png",
+      "sha256": "24566c2573d5157e712facdd365ecd753b5c2811263bbf379db41c2f819f9c0c",
+      "webBytes": 33734,
+      "width": 512,
+      "height": 640,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    }
+  ],
+  "notes": [
+    "首次艾草文生图、佩兰和白芷的旧参考风格编辑均未作为最终图鉴素材",
+    "花椒Qwen编辑失败，未自动重试；复用既有参考图",
+    "所有图片仅作形态示意，科学文本仍以原古籍/词条来源为准"
+  ],
+  "botanicalReferences": [
+    "https://www.efloras.org/florataxon.aspx?flora_id=2&taxon_id=200023167",
+    "https://www.efloras.org/florataxon.aspx?flora_id=2&taxon_id=200023934",
+    "https://efloras.org/florataxon.aspx?flora_id=2&taxon_id=200015358"
+  ]
+}

@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#f1ead6">
 <title>香料博物馆 · 合香</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23a23e2b'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23f7f1e2' font-family='KaiTi,STKaiti,serif'%3E%E9%A6%99%3C/text%3E%3C/svg%3E">
-<link rel="modulepreload" href="shared/model-viewer.min.js">
 <script src="shared/ar-launcher.js" defer></script>
 <style>
 /* ============================================================
@@ -803,6 +802,78 @@ body.kbd :focus-visible{
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important}
 }
+/* 场景化小院：真实图片与可访问 DOM 分层 */
+#toast,#achPop{pointer-events:none}
+:root{--garden:#425d48;--garden-soft:#e8eddd;--paper-hi:#fffdf5}
+body{background:#eae6d8;color:var(--ink)}
+.wrap{max-width:1040px;padding:18px 22px 104px}
+.topbar{gap:10px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+.brand{font-size:25px;letter-spacing:4px;writing-mode:horizontal-tb;white-space:nowrap}
+.brand small{font-size:13px;letter-spacing:1px;display:block;color:var(--muted)}
+.topbar .chip{font-size:13px;min-width:0;max-width:250px;overflow:hidden;text-overflow:ellipsis}
+.topbar .chip b{white-space:nowrap}
+.topbar #btnReset{min-width:44px}
+.bottomnav{background:rgba(255,253,245,.97);border-top:1px solid #d9cfb7;box-shadow:0 -6px 20px #5945250a}
+.bottomnav .bn-item{border:0;border-radius:0;background:transparent;color:var(--muted);font-family:var(--kai);font-size:14px;min-height:60px;flex:1;cursor:pointer}
+.bottomnav .bn-item.on{color:var(--seal);background:#f0e8d2}
+.merchant-status{font-size:13px;color:var(--muted);margin-bottom:12px;border:1px solid var(--line-2);border-radius:8px;padding:8px 12px;background:#fffdf5aa}
+.merchant-status summary{cursor:pointer;min-height:28px;line-height:28px}
+.merchant-status .merchant-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px}
+.merchant-status button{font-size:13px;min-height:44px}
+.scene-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:2px 2px 14px}
+.scene-intro h2{font:27px var(--kai);letter-spacing:3px;margin:4px 0;color:var(--garden)}
+.scene-intro p{font-size:14px;color:var(--muted);margin:0;line-height:1.6}
+.scene-kicker{font-size:13px;letter-spacing:2px;color:#877151}
+.scene-count{font-size:13px;white-space:nowrap;color:var(--seal)}
+.courtyard-scene{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;border-radius:14px;background:linear-gradient(135deg,#dce5cb,#f7edce);border:1px solid #b7b59b;box-shadow:0 12px 28px #49391416}
+.scene-background{display:block;width:100%;height:100%;object-fit:cover;object-position:center 42%}
+.scene-hotspot{position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px;transform:translate(-50%,-50%);padding:10px 16px;border:1px solid #9b8660;border-radius:9px;background:#fffdf5ef;box-shadow:0 4px 14px #3f331d26;color:var(--ink);font:16px var(--kai);min-height:48px;min-width:80px;cursor:pointer}
+.scene-hotspot:hover{background:#fffdf5;box-shadow:0 5px 18px #3f331d40}
+.scene-hotspot small{font:13px var(--sans);color:var(--muted);white-space:nowrap}.scene-hotspot{min-width:108px;padding:10px 12px}
+.hotspot-garden{left:23%;top:43%}.hotspot-blend{left:77%;top:30%}.hotspot-study{left:68%;top:79%}
+.scene-caption{position:absolute;left:14px;bottom:14px;font-size:13px;background:#fffdf5df;color:var(--garden);padding:7px 10px;border-radius:6px}
+.scene-daily{display:grid;gap:8px;margin:14px 0}
+.daily-action{display:flex;gap:10px;align-items:center;width:100%;min-height:56px;text-align:left;border:1px solid #d5d0ba;background:#fffdf7;border-radius:9px;padding:12px;color:var(--ink);cursor:pointer}
+.daily-action b{font:17px var(--kai);color:var(--garden);min-width:88px}.daily-action span{font-size:13px;line-height:1.5;flex:1}.daily-action em{font-style:normal;color:var(--seal)}
+.scene-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+.scene-links button{min-height:52px;border:1px solid var(--line);border-radius:8px;font:15px var(--kai);color:var(--garden);background:#f7f7e9;cursor:pointer}
+.scene-tools{border:1px solid var(--line);border-radius:9px;margin:14px 0;background:#fffdf599}
+.scene-tools>summary{font:15px var(--kai);padding:14px;cursor:pointer;min-height:44px}
+.scene-tools .card{margin:0;border:none;box-shadow:none;background:transparent}
+.hub-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.hub-tile{min-height:94px;border-radius:8px}
+.scene-banner{position:relative;border:1px solid #b9b99e;border-radius:10px;overflow:hidden;margin:0 0 16px;background:var(--garden-soft);height:210px}
+.scene-banner .scene-background{object-position:center}
+.scene-banner .banner-title{position:absolute;left:14px;bottom:14px;background:#fffdf5eb;padding:9px 14px;border-radius:7px;color:var(--garden);font:20px var(--kai)}
+.zone-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.zone{min-height:94px;padding:12px 5px;background:#f8f9ed;border-radius:9px}
+.zone .zn{font-size:15px}.zone .zd{font-size:13px;white-space:normal}.zone.sel{border-color:var(--garden);background:#e4ebd8}
+.garden-plants{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.plant-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;border:1px solid #b9c3a5;border-radius:10px;padding:10px 7px;min-height:180px;min-width:0;background:linear-gradient(#f9fbf0,#e3ebd4);color:var(--ink);cursor:pointer}
+.plant-tile.ready{border-color:#8b9b61;background:linear-gradient(#faffef,#dce9c6)}
+.plant-art{width:100%;height:112px;object-fit:contain;display:block}.plant-tile .plant-name{font:17px var(--kai)}
+.plant-tile .plant-state{font-size:13px;color:var(--garden)}.plant-tile .plant-meta{font-size:13px;color:var(--muted);text-align:center}
+.plant-empty{font-size:14px;line-height:1.8;color:var(--muted);padding:18px;background:#f2f4e4;border:1px dashed #abb994;border-radius:10px}
+.plant-zone-title{font:17px var(--kai);color:var(--garden);margin:14px 0 8px}
+.specimen-thumb{width:56px;height:56px;object-fit:contain;display:block;flex:none}.inv-item{min-height:68px;display:flex;gap:7px;align-items:center;min-width:0}
+.workbench{position:relative;border:1px solid #b2a17f;border-radius:11px;background:#ede9cf;padding:18px 14px 24px;background-size:cover;background-position:center;margin-bottom:14px;isolation:isolate}
+.workbench::before{content:'';position:absolute;inset:0;background:#fffdf522;z-index:-1}
+.workbench .slots{margin:0;gap:8px}.workbench .slot{min-height:150px;background:#fffdf5db;border-radius:9px;cursor:pointer;min-width:0;border:1px solid #b5a283;font-family:inherit;text-align:center}
+.workbench .slot.sel{outline:2px solid var(--seal);outline-offset:1px}.slot .specimen-thumb{width:100%;height:72px;margin:auto}.slot .sr{font:24px var(--kai);color:var(--seal)}
+.visitor-order{display:flex;gap:12px;align-items:center;margin:0 0 16px;background:#f5f7e7;border:1px solid #c3c9ac;border-radius:10px;padding:12px}
+.visitor-art{width:78px;height:114px;object-fit:contain;flex:none}.visitor-order h3{font:20px var(--kai);margin:0 0 6px;color:var(--garden)}.visitor-order p{font-size:14px;line-height:1.7;margin:0}
+.codex-hero-art{width:100%;max-height:320px;object-fit:contain;background:#f8faef;border-radius:10px;margin:10px 0}
+.scene-helper{font-size:13px;line-height:1.8;color:var(--muted)}
+@media(min-width:700px){.hub-scene-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}.courtyard-scene{max-height:640px}.scene-daily{margin:0 0 14px}.scene-links{grid-template-columns:1fr}.garden-plants{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:420px){.wrap{padding:10px 12px 92px}.topbar{gap:7px;flex-wrap:wrap}.topbar .brand{font-size:22px}.topbar .chip{max-width:190px;padding:5px 8px}.topbar #btnReset{margin-left:auto}.scene-intro h2{font-size:24px}.scene-intro p{font-size:13px}.scene-links{gap:6px}.scene-links button{font-size:14px}.hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.garden-plants{gap:7px}.plant-tile{min-height:165px}.plant-art{height:100px}.workbench{padding:14px 8px}.workbench .slots{grid-template-columns:repeat(2,minmax(0,1fr))}.workbench .slot{min-height:130px}.inv-item{padding:8px;max-width:100%}.specimen-thumb{width:44px;height:52px}}
+
+.starter-herbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 18px}.starter-herb{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border:1px solid #b9c3a5;border-radius:9px;background:#f4f7e8;color:var(--garden);font:16px var(--kai);min-height:96px;cursor:pointer}.starter-herb .specimen-thumb{width:64px;height:70px}
+.garden-scene{position:relative;height:330px;overflow:hidden;border:1px solid #b1bba1;border-radius:12px;background:var(--garden-soft)}
+.garden-scene .scene-background{object-position:center}.garden-zone{position:absolute;bottom:12px;transform:translateX(-50%);min-width:92px;min-height:48px;border:1px solid #9eaa88;border-radius:7px;background:#fffdf4ec;color:var(--garden);padding:8px;font:15px var(--kai);cursor:pointer}
+.garden-zone span{display:block;font:13px var(--sans);margin-top:3px;white-space:nowrap}.garden-sprite{position:absolute;top:22%;transform:translateX(-50%);width:100px;min-height:150px;border:0;background:transparent;padding:0;cursor:pointer;color:var(--garden)}
+.garden-sprite .plant-art{height:120px;width:100%;filter:drop-shadow(0 2px 3px #43572b22)}.garden-sprite>span{display:block;background:#fffdf5e8;border-radius:5px;padding:4px 2px;font-size:13px;line-height:1.5}
+@media(min-width:700px){.garden-scene{height:460px}.garden-sprite{width:150px;top:27%}.garden-sprite .plant-art{height:190px}.garden-zone{min-width:126px}}
+
+.guide-note{display:flex;align-items:center;gap:10px;background:#edf2dd;border:1px solid #c3cdb0;border-radius:9px;padding:10px 12px;margin:12px 0}.guide-note p{flex:1;min-width:0;margin:0;font-size:13px;line-height:1.8;color:var(--garden)}.guide-note button{min-height:44px;min-width:66px;padding:8px;border:1px solid #aebc94;border-radius:6px;background:#fffdf3;color:var(--garden);font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -813,6 +884,7 @@ body.kbd :focus-visible{
     <div class="chip">钱 <b id="uiMoney">0</b></div>
     <div class="chip">第 <b id="uiDay">1</b> 日</div>
     <span class="hint" id="uiVer" style="align-self:center"></span>
+    <button class="btn sm ghost" id="btnTools" type="button">设置</button>
     <button class="btn sm ghost" id="btnReset" title="清空存档">重开</button>
   </header>
 
@@ -825,55 +897,7 @@ body.kbd :focus-visible{
     <section class="screen" id="sc-quiz"></section>
   </div>
 
-  <nav class="bottomnav" id="bottomNav" role="navigation" aria-label="主导航">
-    <div class="bn-item" role="button" tabindex="0" data-nav="hub" aria-label="首页">
-      <svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 10.5 L12 4 L20 10.5 V20 H4 Z"/>
-        <path d="M9 20 V14 H15 V20"/>
-      </svg>
-      <span>首页</span>
-    </div>
-    <div class="bn-item has-sub" role="button" tabindex="0" data-nav="xiang" data-sub="xiang-menu" aria-label="香道">
-      <svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3 C14 7 16 9 16 13 A4 4 0 0 1 8 13 C8 9 10 7 12 3 Z"/>
-        <path d="M6 20 L18 20"/>
-        <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
-      </svg>
-      <span>香道</span>
-      <div class="bn-pop" id="xiang-menu" role="menu">
-        <button role="menuitem" data-go="study">读古籍</button>
-        <button role="menuitem" data-go="garden">药圃</button>
-        <button role="menuitem" data-go="blend">香室</button>
-        <button role="menuitem" data-go="codex">香草志</button>
-        <button role="menuitem" data-go="quiz">香料问答</button>
-      </div>
-    </div>
-    <div class="bn-item has-sub" role="button" tabindex="0" data-nav="shang" data-sub="shang-menu" aria-label="商道">
-      <svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="4" y="7" width="16" height="13" rx="1.5"/>
-        <path d="M4 11 L20 11"/>
-        <path d="M8 7 V5 H16 V7"/>
-        <circle cx="8.5" cy="15" r="1"/>
-        <circle cx="15.5" cy="15" r="1"/>
-      </svg>
-      <span>商道</span>
-      <div class="bn-pop" id="shang-menu" role="menu">
-        <button role="menuitem" data-go="book">号簿</button>
-        <button role="menuitem" data-go="farm">田亩</button>
-        <button role="menuitem" data-go="market">市集</button>
-        <button role="menuitem" data-go="cara">商队</button>
-        <button role="menuitem" data-go="shop">铺面</button>
-        <button role="menuitem" data-go="annals">编年</button>
-      </div>
-    </div>
-    <div class="bn-item" role="button" tabindex="0" data-nav="mine" data-go="ach" aria-label="我的">
-      <svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="9" r="4"/>
-        <path d="M4 21 C4 16.5 7.5 14 12 14 C16.5 14 20 16.5 20 21"/>
-      </svg>
-      <span>我的</span>
-    </div>
-  </nav>
+  <nav class="bottomnav" id="bottomNav" role="navigation" aria-label="主导航"><button class="bn-item" type="button" data-nav="hub" data-go="hub" aria-label="小院"><svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10L12 4L20 10V20H4Z"/><path d="M9 20V14H15V20"/></svg><span>小院</span></button><button class="bn-item" type="button" data-nav="garden" data-go="garden" aria-label="药圃"><svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9M12 14C3 14 3 6 3 6C12 6 12 14 12 14M12 10C21 10 21 3 21 3C12 3 12 10 12 10"/></svg><span>药圃</span></button><button class="bn-item" type="button" data-nav="blend" data-go="blend" aria-label="香坊"><svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12H17L16 20H8ZM10 10C7 7 14 5 11 2M14 10C12 7 18 5 15 2"/></svg><span>香坊</span></button><button class="bn-item" type="button" data-nav="codex" data-go="codex" aria-label="图鉴"><svg class="bn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4C8 3 12 5 12 5C12 5 16 3 21 4V20C16 19 12 21 12 21C12 21 8 19 3 20Z M12 5V21"/></svg><span>图鉴</span></button></nav>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -905,6 +929,7 @@ body.kbd :focus-visible{
 <!-- 商道层（乾隆经营）与香料素材谱：先加载数据与系统，再由下方模块脚本 mount -->
 <script src="./shared/spice-prose.js"></script>
 <script src="./shared/spice-assets.js"></script>
+<script src="./shared/game-art.js"></script>
 <script src="./shared/xiangye.js"></script>
 <script type="module">
 /* ============================================================
@@ -1192,7 +1217,7 @@ const CARD_COST = 8;
 /* 御用订单解锁：识得八味香草后，宫中传旨 */
 const ROYAL_KNOWN = 8;
 /* 版本号：用于确认浏览器打开的是否最新版（Pages 有缓存） */
-const BUILD = '2.5';
+const BUILD = '3.0-preview.1';
 
 /* ============================================================
    =3 STORE
@@ -1201,6 +1226,7 @@ const KEY = 'spiceGame_v1';
 
 const DEFAULT_STATE = {
   v:1, money:32, day:1, screen:'hub',
+  presentation:{ v:1, introDismissed:false, dismissedHints:{} },
   seeds:{ aicao:1, peilan:0, baizhi:0, bohe:0, shengjiang:0, xinyi:0, rougui:0, midiexiang:0,
           dingxiang:0, chenpi:0, wuzhuyu:0, hujiao:0, jinyinhua:0, cangzhu:0 },
   plants:[],
@@ -1225,6 +1251,17 @@ const DEFAULT_STATE = {
   settings:{ seenIntro:false, shake:true, reduceMotion:false, sound:true }
 };
 
+const PRESENTATION_HINT_IDS = ['first-plant','first-harvest','first-blend','first-sale'];
+function normalizePresentation(s){
+  const p = s.presentation;
+  const source = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
+  const h = source.dismissedHints;
+  const hints = h && typeof h === 'object' && !Array.isArray(h) ? h : {};
+  s.presentation = { v:1, introDismissed:source.introDismissed === true, dismissedHints:{} };
+  PRESENTATION_HINT_IDS.forEach(id => { if(hints[id] === true) s.presentation.dismissedHints[id] = true; });
+  return s;
+}
+
 let state = load();
 
 function load(){
@@ -1244,7 +1281,7 @@ function load(){
     if(!Array.isArray(s.history)) s.history = [];
     if(!WEATHER_OF[s.weather]) s.weather = 'mild';
     if(!WEATHER_OF[s.weatherNext]) s.weatherNext = 'mild';
-    return s;
+    return normalizePresentation(s);
   }catch(e){ return freshState(); }
 }
 /* 新档：气候从随机一处起头，免得开局总是「和风」 */
@@ -2061,13 +2098,18 @@ const FX = (function(){
     return { left: window.innerWidth / 2, top: Math.max(120, window.innerHeight * 0.32), width: 0, height: 0 };
   }
   /* —— 屏幕震动：小事件几乎不动，大事件猛，且必定衰减归零 —— */
+  let shakeTimer = null, shakeEnd = 0;
   function shake(amount){
     if(off()) return;
     trauma = Math.min(1, trauma + amount);
+    shakeEnd = performance.now() + 480;
+    if(shakeTimer) clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(() => { trauma = 0; if(raf) cancelAnimationFrame(raf); raf = 0; stage.style.transform = ''; shakeTimer = null; }, 500);
     if(!raf){ t0 = performance.now(); raf = requestAnimationFrame(tick); }
   }
   function tick(now){
-    const dt = Math.min(0.05, (now - t0) / 1000);
+    if(now >= shakeEnd){ trauma = 0; raf = 0; stage.style.transform = ''; return; }
+    const dt = Math.max(0, (now - t0) / 1000);
     t0 = now;
     trauma = Math.max(0, trauma - 1.2 * dt);
     const k = trauma * trauma;                       /* 平方：低值近乎不动 */
@@ -2156,6 +2198,7 @@ const FX = (function(){
   /* —— 立即把视觉层推到静息：归零 trauma、撤销停帧、清残留节点 ——
      自动化测试用它取代「真等 1.5 秒」，断言才不脆（见 tests T4）。 */
   function settle(){
+    if(shakeTimer){ clearTimeout(shakeTimer); shakeTimer = null; }
     trauma = 0;
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
     stage.style.transform = '';
@@ -2284,64 +2327,37 @@ let codexCat = '*';       // 香草志品类页签（全部/土产/南货/花/�
 let ledgerAll = false;
 
 function go(screen){
+  const changed = state.screen !== screen;
   if(SCREENS.indexOf(screen) < 0) screen = 'hub';
   if(screen !== 'garden') dayReport = null;   // 纪事只在药圃停留期间展示
   state.screen = screen;
   if(location.hash !== HASH_OF[screen]) location.hash = HASH_OF[screen];
   save();
   render();
+  if(changed) window.scrollTo(0, 0);
 }
 
 /* ============================================================
    底部导航（4 项：首页 / 香道 / 商道 / 我的）+ 二级弹出菜单
    —— 单点维护：屏 → 导航项映射与高亮/开合全部集中在此
    ============================================================ */
-const NAV_OF = { hub:'hub',
-                 study:'xiang', garden:'xiang', blend:'xiang', codex:'xiang', quiz:'xiang',
-                 book:'shang', farm:'shang', market:'shang', cara:'shang', shop:'shang', annals:'shang',
-                 ach:'mine' };
-
-/* 依当前屏高亮导航项 + 二级菜单内对应子项 */
+const NAV_OF = { hub:'hub', study:'codex', garden:'garden', blend:'blend', codex:'codex', quiz:'codex',
+  book:'hub', farm:'hub', market:'hub', cara:'hub', shop:'hub', annals:'hub', ach:'hub' };
 function renderBottomNav(){
-  const nav = document.getElementById('bottomNav');
-  if(!nav) return;
-  const key = NAV_OF[state.screen] || 'hub';
-  nav.querySelectorAll('.bn-item').forEach(item => {
-    item.classList.toggle('on', item.dataset.nav === key);
-    const pop = item.dataset.sub ? document.getElementById(item.dataset.sub) : null;
-    if(!pop) return;
-    pop.querySelectorAll('[data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === state.screen));
+  document.querySelectorAll('#bottomNav .bn-item').forEach(item => {
+    const on = item.dataset.nav === (NAV_OF[state.screen] || 'hub');
+    item.classList.toggle('on', on);
+    if(on) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
   });
 }
-function closeBnPops(){
-  document.querySelectorAll('.bn-pop.show').forEach(p => p.classList.remove('show'));
-}
-/* 点击主导航项：香道/商道开合二级菜单；首页/我的直接跳转 */
 document.getElementById('bottomNav').addEventListener('click', e => {
-  const subBtn = e.target.closest('.bn-pop button');
-  if(subBtn && subBtn.dataset.go){ closeBnPops(); go(subBtn.dataset.go); return; }
-  const item = e.target.closest('.bn-item');
-  if(!item) return;
-  if(item.dataset.nav === 'hub'){ closeBnPops(); go('hub'); return; }
-  if(item.dataset.nav === 'mine'){ closeBnPops(); go('ach'); return; }
-  if(item.dataset.sub){
-    const pop = document.getElementById(item.dataset.sub);
-    const wasOpen = pop && pop.classList.contains('show');
-    closeBnPops();
-    if(pop && !wasOpen) pop.classList.add('show');
-  }
+  const item = e.target.closest('[data-go]');
+  if(item) go(item.dataset.go);
 });
-/* 点击导航以外的区域：收起二级菜单 */
-document.addEventListener('click', e => {
-  if(!e.target.closest('.bottomnav')) closeBnPops();
-});
-/* 键盘：焦点在导航项本体（div[role=button]）时，Enter/Space 等价于点击；
-   二级菜单里的真 button 保持浏览器原生激活，不拦截 */
-document.getElementById('bottomNav').addEventListener('keydown', e => {
-  if((e.key !== 'Enter' && e.key !== ' ') || !e.target.classList.contains('bn-item')) return;
-  e.preventDefault();
-  e.target.click();
-});
+document.getElementById('btnTools').onclick = () => {
+  go('hub'); const details = document.getElementById('sceneTools');
+  if(details){ details.open = true; details.querySelector('summary').focus(); }
+};
 
 /* ============================================================
    渲染入口
@@ -2385,7 +2401,80 @@ function render(){
 /* ============================================================
    =6 SCREEN · hub 书斋
    ============================================================ */
+/* 美术只影响呈现，不复制经营结算。 */
+function artImage(a, cls, lazy){
+  return a && a.src ? `<img class="${esc(cls)}" src="${esc(a.src)}" alt="${esc(a.alt)}" width="${a.width}" height="${a.height}"${lazy ? ' loading="lazy"' : ''}>` : '';
+}
+function bindArtFallback(root){
+  root.querySelectorAll('[data-dismiss-intro]').forEach(b => { b.onclick = () => mutate(s => { s.presentation.introDismissed = true; }); });
+  root.querySelectorAll('[data-dismiss-hint]').forEach(b => { b.onclick = () => {
+    const id = b.dataset.dismissHint;
+    if(PRESENTATION_HINT_IDS.includes(id)) mutate(s => { s.presentation.dismissedHints[id] = true; });
+  }; });
+  root.querySelectorAll('img[data-art],img.scene-background,img.plant-art,img.specimen-thumb,img.visitor-art,img.codex-hero-art').forEach(img => {
+    img.onerror = () => { img.hidden = true; img.removeAttribute('src'); };
+  });
+}
+function guideHintHTML(id, text){
+  if(state.presentation.dismissedHints[id]) return '';
+  return `<aside class="guide-note"><p>${esc(text)}</p><button type="button" data-dismiss-hint="${esc(id)}">知道了</button></aside>`;
+}
+function herbArt(id, cls){
+  const a = ((window.GAME_ART || {}).herbs || {})[id];
+  return a ? artImage(a.mature, cls || 'specimen-thumb', true) : '';
+}
+function sceneBanner(id, title){
+  const a = ((window.GAME_ART || {}).scenes || {})[id];
+  return `<div class="scene-banner">${artImage(a, 'scene-background')}<span class="banner-title">${esc(title)}</span></div>`;
+}
+function courtyardHTML(){
+  const co = state.co || {}, art = window.GAME_ART || {};
+  const seeds = Object.values(state.seeds).reduce((n, v) => n + v, 0);
+  const ready = state.plants.filter(p => p.ready).length;
+  const inventory = Object.values(state.inventory).reduce((n, v) => n + v, 0);
+  const known = Object.values(state.known).filter(Boolean).length;
+  const transit = (co.transit || []).length;
+  const active = (co.contracts || []).filter(c => c.status === 'active').length;
+  const tasks = [];
+  if(ready) tasks.push({go:'garden',title:'采收香草',desc:`${ready} 株已经成熟，收进香坊备用。`});
+  if(active || transit) tasks.push({go:'book',title:'查看行旅',desc:`${active} 张进行中契约 · ${transit} 支在途商队，记得查看交期与到货。`});
+  if(inventory) tasks.push({go:'blend',title:'调一炉香',desc:`已有 ${inventory} 株材料，挑选来客委托，试一份配方。`});
+  if(seeds) tasks.push({go:'garden',title:'种下一株',desc:`手中有 ${seeds} 枚种子，选合适的气候区，推进一日后可采收。`});
+  tasks.push({go:'study',title:'发现新香料',desc:'翻开古籍，辨草识香。答对后得到种子和图鉴记录。'});
+  return `<div class="scene-intro"><div><span class="scene-kicker">合香 · 草木日常</span><h2>香料小院</h2><p>看一株草木，种一味香草，调一炉好香。</p></div><span class="scene-count">已识 ${known} / ${Object.keys(HERBS).length}</span></div>
+    <div class="hub-scene-layout"><div class="courtyard-scene">
+      ${artImage((art.scenes || {}).courtyard, 'scene-background')}
+      <button class="scene-hotspot hotspot-garden" data-go="garden">药圃<small>${ready ? ready + ' 株可采收' : seeds + ' 枚种子'}</small></button>
+      <button class="scene-hotspot hotspot-blend" data-go="blend">香坊<small>${(state.workshop || []).length} 批陈化中</small></button>
+      <button class="scene-hotspot hotspot-study" data-go="study">发现册<small>辨草得种子</small></button>
+      <span class="scene-caption">${esc(wxOf(state.weather).name)} · 第 ${state.day} 日</span>
+    </div><div><div class="scene-daily">${tasks.slice(0,3).map(t => `<button class="daily-action" data-go="${t.go}"><b>${t.title}</b><span>${t.desc}</span><em>→</em></button>`).join('')}</div>
+    <div class="scene-links"><button data-go="codex">香料图鉴</button><button data-go="quiz">辨识挑战</button><button data-go="book">行旅与商道${active || transit ? ' · 有待办' : ''}</button></div>
+    ${state.presentation.introDismissed ? '' : `<aside class="guide-note"><p>先从发现册认识艾草、佩兰和白芷，再到药圃种植，采收后去香坊试第一份配方。三维标本在图鉴详细观察时打开。</p><button type="button" data-dismiss-intro>知道了</button></aside>`}</div></div>`;
+}
+function gardenSceneHTML(){
+  const art = ((window.GAME_ART || {}).scenes || {}).garden;
+  return `<div class="garden-scene">${artImage(art, 'scene-background')}${ZONES.map((z,i) => {
+    const plants = state.plants.filter(p => p.zone === z.id), p = plants[0];
+    const left = [17,50,83][i];
+    return `<button class="garden-zone" style="left:${left}%" data-z="${esc(z.id)}">${esc(z.id)}区<span>${plants.length ? plants.length + ' 株 · 查看选种' : '点此选种'}</span></button>` +
+      (p ? `<button class="garden-sprite" style="left:${left}%" data-scene-plant-id="${esc(p.id)}" aria-label="${esc(HERBS[p.herb].name)}，${p.ready ? '点击采收' : '生长中'}">${herbArt(p.herb, 'plant-art')}<span>${esc(HERBS[p.herb].name)} · ${p.ready ? '可采收' : '生长中示意'}</span></button>` : '');
+  }).join('')}</div><p class="scene-helper">点地块选种，点成熟植株采收。场景展示每区第一株，下方列出全部植株。</p>`;
+}
+
+function gardenPlantsHTML(){
+  if(!state.plants.length) return '<div class="plant-empty">地块还空着。手中已有艾草种子时，可以选择干燥区开始；其他种子从发现册获得。</div>';
+  return ZONES.map(z => {
+    const plants = state.plants.filter(p => p.zone === z.id);
+    if(!plants.length) return '';
+    return `<h3 class="plant-zone-title">${esc(z.id)}区 · ${plants.length} 株</h3><div class="garden-plants">${plants.map(p => `<button class="plant-tile${p.ready ? ' ready' : ''}" data-plant-id="${esc(p.id)}"${p.ready ? ` data-harvest="${esc(p.id)}"` : ''} aria-label="${esc(HERBS[p.herb].name)}，${p.ready ? '可采收' : '生长中'}">
+      ${herbArt(p.herb, 'plant-art')}<span class="plant-name">${esc(HERBS[p.herb].name)}</span><span class="plant-state">${p.ready ? '点击采收' : '生长中 · 待推进一日'}</span><span class="plant-meta">${p.ready ? qLabel(p.quality) + ' ' + Math.round(p.quality * 100) + '%' : '植株形态示意'}</span></button>`).join('')}</div>`;
+  }).join('');
+}
+
 function renderHub(){
+  const toolsWasOpen = !!($('sceneTools') && $('sceneTools').open);
+  const linksWasOpen = !!($('sceneEntrypoints') && $('sceneEntrypoints').open);
   /* 商道层状态树（尚未 mount 时给一份空档，避免首帧取不到） */
   const co = state.co || {};
   const CITIES_OF = () => (window.XiangYe ? XiangYe.CITY_IDS : []);
@@ -2428,8 +2517,10 @@ function renderHub(){
   ];
 
   $('sc-hub').innerHTML = `
+    ${courtyardHTML()}
+    <details class="scene-tools" id="sceneTools"><summary>设置、存档与小院记录</summary>
     <div class="card">
-      <h2>书斋</h2>
+      <h2>小院记录</h2>
       <div class="hint">
         读古籍得种子，种于药圃，再入香室按订单配伍出售。<br/>
         每卖出一方，便得一枚历史小卡与一笔钱——钱可再买古籍，循环往复。
@@ -2456,7 +2547,7 @@ function renderHub(){
         <span class="hint">（静默＝关闭震动与闪动，适合长时间阅读）</span>
       </div>
       <div class="row" style="font-size:13px" id="saveTools">
-        <span class="hint">存档：</span>
+        <span class="hint">存档：</span><button class="btn sm" id="btnGuideReset">重看引导</button>
         <button class="btn sm" id="btnExportSave">导出存档</button>
         <button class="btn sm" id="btnImportSave">导入存档</button>
         <span class="hint" id="saveMsg">换机或留档：导出为 JSON 文件，随时导回。</span>
@@ -2475,6 +2566,8 @@ function renderHub(){
       </div>` : ''}
     </div>
 
+    </details>
+    <details class="scene-tools" id="sceneEntrypoints"><summary>发现册、行旅与成就入口</summary>
     <div class="hub-grid">
       ${tiles.map(t => `
         <button class="hub-tile" data-go="${t.s}">
@@ -2484,6 +2577,7 @@ function renderHub(){
         </button>`).join('')}
     </div>
 
+    </details>
     ${state.log.length ? `
     <div class="card flat" style="margin-top:14px">
       <h2>近日纪事</h2>
@@ -2508,6 +2602,9 @@ function renderHub(){
     </div>` : ''}
   `;
 
+  $('sceneTools').open = toolsWasOpen;
+  $('sceneEntrypoints').open = linksWasOpen;
+  bindArtFallback($('sc-hub'));
   $('sc-hub').querySelectorAll('[data-go]').forEach(b => {
     b.onclick = () => go(b.dataset.go);
   });
@@ -2528,6 +2625,7 @@ function renderHub(){
     go('blend');
   };
   /* 存档导出/导入：文件进出皆在本地，不经网络 */
+  $('btnGuideReset').onclick = () => { mutate(s => { s.presentation = {v:1,introDismissed:false,dismissedHints:{}}; }); };
   const bx = $('btnExportSave'), bi = $('btnImportSave'), bf = $('fileImportSave'), bm = $('saveMsg');
   if(bx) bx.onclick = () => {
     const ok = downloadSave();
@@ -2578,9 +2676,10 @@ function herbNature(id){
   const taste = (a.辛 >= a.苦 && a.辛 >= a.甘) ? '辛' : (a.苦 >= a.甘 ? '苦' : '甘');
   return taste + ((a.温 || 0) >= (a.凉 || 0) ? '温' : '凉');
 }
-function kindName(k){ return !k ? '随机' : k.key; }
+function kindName(k){ return !k ? '随机' : (k.axis === 'herb' && HERBS[k.key] ? HERBS[k.key].name : k.key); }
 function cardKindMatch(c, k){
   if(!k) return true;
+  if(k.axis === 'herb') return c.herb === k.key;
   const h = HERBS[c.herb];
   if(!h) return true;
   return k.axis === 'cat' ? (h.cat || '土产') === k.key : herbNature(c.herb) === k.key;
@@ -2625,6 +2724,8 @@ function renderStudy(){
           抽卡次序：<b>先出未读过的</b>，其次出未识得的香草；读尽方许重读。
         </div>
         <div class="sep"></div>
+        <h3>小院入门三味</h3><p class="scene-helper">艾草、佩兰、白芷可以配第一份端午香囊。先选一味，再购买它的古籍卡，辨对后照常获得种子。</p>
+        <div class="starter-herbs" id="studyGuide">${['aicao','peilan','baizhi'].map(id => `<button class="starter-herb" data-study-herb="${id}">${herbArt(id)}<span>${esc(HERBS[id].name)}</span></button>`).join('')}</div>
         <div class="hint" style="margin-bottom:6px">定向择读——只读某一类，免得久候一味不来</div>
         <div class="kind-row" id="kindRow">
           ${chips.map(o => {
@@ -2658,6 +2759,13 @@ function renderStudy(){
         }).join('')}
       </div>` : ''}
     `;
+    bindArtFallback($('sc-study'));
+    $('studyGuide').querySelectorAll('[data-study-herb]').forEach(b => {
+      b.onclick = () => {
+        if(!['aicao','peilan','baizhi'].includes(b.dataset.studyHerb)) return;
+        studyKind = { axis:'herb', key:b.dataset.studyHerb }; resetStudyCard(); renderStudy();
+      };
+    });
     $('kindRow').querySelectorAll('[data-kind]').forEach(b => {
       b.onclick = () => {
         const v = b.dataset.kind;
@@ -2847,6 +2955,41 @@ function bindSearchInput(input, getKw, setKw, refresh){
   });
 }
 
+function plantHerb(herbId, zone){
+  if(!Object.prototype.hasOwnProperty.call(HERBS, herbId) || !ZONES.some(z => z.id === zone) || !(state.seeds[herbId] > 0)) return false;
+  const h = HERBS[herbId];
+  const good = h.zone === zone;
+  const base = good ? 0.88 + Math.random() * 0.12 : 0.5 + Math.random() * 0.22;
+  const quality = +Math.min(1, base).toFixed(2);
+  mutate(s => {
+    s.seeds[herbId] -= 1;
+    s.plants.push({ id:'p' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                    herb:herbId, zone, plantedDay:s.day, ready:false, quality });
+  });
+  if(good) toast(`${h.name}种于${zone}区，正得其宜`);
+  else toast(`${h.name}宜种于${h.zone}区——此区不合，品质将受损`);
+  return true;
+}
+
+function harvestPlant(id, anchorEl){
+  const p = state.plants.find(x => x.id === id);
+  if(!p || p.ready !== true || !HERBS[p.herb]) return false;
+  const isTop = p.quality >= 0.85;
+  const rect = anchorEl && anchorEl.getBoundingClientRect ? anchorEl.getBoundingClientRect() : null;
+  mutate(s => {
+    s.plants = s.plants.filter(x => x.id !== id);
+    s.inventory[p.herb] = (s.inventory[p.herb] || 0) + 1;
+    const prev = s.quality[p.herb];
+    s.quality[p.herb] = (typeof prev === 'number') ? +((prev + p.quality) / 2).toFixed(2) : p.quality;
+    s.stats.harvest = (s.stats.harvest || 0) + 1;
+    if(isTop) s.stats.topGrade = (s.stats.topGrade || 0) + 1;
+  });
+  playTone(isTop ? 'good' : 'tick');
+  FX.tier(isTop ? 'medium' : 'small', rect, '收获 ' + HERBS[p.herb].name + ' · ' + Math.round(p.quality * 100) + '%', isTop ? 'up' : '');
+  toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
+  return true;
+}
+
 function renderGarden(){
   /* 输入中途被重绘（过一日/收获）时，重绘后把焦点与光标交还搜索框 */
   const seedHadFocus = !!document.activeElement && document.activeElement.id === 'seedSearch';
@@ -2865,6 +3008,8 @@ function renderGarden(){
   };
 
   $('sc-garden').innerHTML = `
+    ${gardenSceneHTML()}
+    ${!state.stats.harvest ? guideHintHTML(state.plants.length ? 'first-harvest' : 'first-plant', state.plants.length ? '推进一日后点成熟植株采收；日期也会推进商队、契约和陈化。' : '先点地块选气候，再选择种子。艾草宜干燥、佩兰宜湿润、白芷宜半阴。') : ''}
     <div class="card">
       <h2>药圃</h2>
       <div class="hint">
@@ -2925,14 +3070,7 @@ function renderGarden(){
 
     <div class="card flat">
       <h2>圃中</h2>
-      ${state.plants.length ? state.plants.map(p => `
-        <div class="plot">
-          <span class="pn">${esc(HERBS[p.herb].name)}</span>
-          <span class="pm">种于 ${esc(p.zone)}区 · 第 ${p.plantedDay} 日下种${p.ready ? ' · 已可收获' : ' · 生长中'}${
-            p.ready && p.wxDelta ? ` · 天气 ${p.wxDelta > 0 ? '+' : ''}${Math.round(p.wxDelta * 100)}%` : ''}</span>
-          <span class="q-tag ${p.ready ? qClass(p.quality) : 'q-mid'}">${p.ready ? qLabel(p.quality) + ' ' + Math.round(p.quality * 100) + '%' : '生长中'}</span>
-          ${p.ready ? `<button class="btn primary sm" data-harvest="${p.id}">收获</button>` : ''}
-        </div>`).join('') : '<div class="hint">圃中空空。先去「读古籍」得种子。</div>'}
+      ${gardenPlantsHTML()}
       <div class="sep"></div>
       <div class="row">
         <button class="btn" id="btnNextDay">过一日（催熟 · 看天时）</button>
@@ -2954,6 +3092,12 @@ function renderGarden(){
     </div>` : ''}
   `;
 
+  bindArtFallback($('sc-garden'));
+  $('sc-garden').querySelectorAll('[data-plant-id],[data-scene-plant-id]').forEach(b => { b.onclick = () => {
+    const p = state.plants.find(p => p.id === (b.dataset.plantId || b.dataset.scenePlantId));
+    if(p && p.ready) harvestPlant(p.id, b); else toast('生长中：推进一日后可采收，日期也会影响行旅与陈化。');
+  }; });
+  $('sc-garden').querySelectorAll('.garden-scene [data-z]').forEach(b => { b.onclick = () => { gardenZone = b.dataset.z; renderGarden(); $('seedPick').scrollIntoView({block:'center'}); }; });
   $('btnBackGarden').onclick = () => go('hub');
 
   $('zoneGrid').querySelectorAll('[data-z]').forEach(b => {
@@ -2987,55 +3131,25 @@ function renderGarden(){
       const matched = kw ? seeds.filter(k => fuzzyHit(k, kw)) : seeds;
       cnt.textContent = kw ? matched.length + ' / ' + seeds.length : seeds.length + ' 味';
       row.innerHTML = matched.length
-        ? matched.map(k => `<button class="inv-item" data-seed="${k}">${hlName(k, kw)} <span class="q">×${state.seeds[k]}</span></button>`).join('')
+        ? matched.map(k => `<button class="inv-item" data-seed="${k}">${herbArt(k)}${hlName(k, kw)} <span class="q">×${state.seeds[k]}</span></button>`).join('')
         : `<span class="inv-empty">没有匹配「${esc(kw)}」的种子——可用名、拼音或首字母，如 艾 / aicao / ac</span>`;
       hab.innerHTML = matched.length
         ? '<b>据生境择地</b>（信息来自古籍与香草志）：<br/>' +
           matched.map(k => `<b style="font-family:var(--kai)">${esc(HERBS[k].name)}</b>：${esc(CODEX[k].habitat)}`).join('<br/>')
         : '';
       row.querySelectorAll('[data-seed]').forEach(b => {
-        b.onclick = () => plant(b.dataset.seed, zone);
+        b.onclick = () => plantHerb(b.dataset.seed, zone);
       });
     }
     bindSearchInput(si, () => gardenSearch, v => { gardenSearch = v; }, refresh);
     refresh();
+    bindArtFallback(row);
     if(refocus){ si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
   }
 
-  function plant(herbId, zone){
-    const h = HERBS[herbId];
-    const good = h.zone === zone;
-    const base = good ? 0.88 + Math.random() * 0.12 : 0.5 + Math.random() * 0.22;
-    const quality = +Math.min(1, base).toFixed(2);
-    mutate(s => {
-      s.seeds[herbId] -= 1;
-      s.plants.push({ id:'p' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                      herb:herbId, zone, plantedDay:s.day, ready:false, quality });
-    });
-    if(good) toast(`${h.name}种于${zone}区，正得其宜`);
-    else toast(`${h.name}宜种于${h.zone}区——此区不合，品质将受损`);
-  }
 
   $('sc-garden').querySelectorAll('[data-harvest]').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.harvest;
-      const p = state.plants.find(x => x.id === id);
-      if(!p) return;
-      const isTop = p.quality >= 0.85;
-      const rect = b.getBoundingClientRect();
-      mutate(s => {
-        s.plants = s.plants.filter(x => x.id !== id);
-        s.inventory[p.herb] = (s.inventory[p.herb] || 0) + 1;
-        const prev = s.quality[p.herb];
-        s.quality[p.herb] = (typeof prev === 'number') ? +((prev + p.quality) / 2).toFixed(2) : p.quality;
-        s.stats.harvest = (s.stats.harvest || 0) + 1;
-        if(isTop) s.stats.topGrade = (s.stats.topGrade || 0) + 1;
-      });
-      playTone(isTop ? 'good' : 'tick');
-      FX.tier(isTop ? 'medium' : 'small', rect,
-        '收获 ' + HERBS[p.herb].name + ' · ' + Math.round(p.quality * 100) + '%', isTop ? 'up' : '');
-      toast(`收获 ${HERBS[p.herb].name}，品质 ${Math.round(p.quality * 100)}%`);
-    };
+    b.onclick = () => harvestPlant(b.dataset.harvest, b);
   });
 
   $('sc-garden').querySelectorAll('[data-sell]').forEach(b => {
@@ -3107,6 +3221,8 @@ function renderBlend(){
   const inv = Object.keys(state.inventory).filter(k => state.inventory[k] > 0);
 
   $('sc-blend').innerHTML = `
+    ${!state.stats.crafts && !state.stats.blends ? guideHintHTML('first-blend', '点选君、臣、佐、使槽位，再放入库存材料。看清配伍结果后，可即时交付或制香入坊。') : (!(state.stats.batchSold || 0) && state.workshop.length ? guideHintHTML('first-sale', '成品在工坊按日陈化，点击出货兑现当前价值。入坊与即时交付不会重复消耗同一份材料。') : '')}
+    <div class="visitor-order">${artImage(((window.GAME_ART || {}).characters || {}).host, 'visitor-art')}<div><h3>${esc(order.buyer)}来访</h3><p>${esc(order.intro)}</p><span class="scene-helper">挑选材料，先看配伍结果，再选择交付或制香入坊。</span></div></div>
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
         <button class="btn sm ghost" id="btnBackBlend">← 回到书斋</button>
@@ -3145,17 +3261,17 @@ function renderBlend(){
       <div>
         <div class="card">
           <h2>配伍</h2>
-          <div class="slots" id="slotRow">
+          <div class="workbench" id="artWorkbench"><div class="slots" id="slotRow">
             ${SLOT_NAMES.map(r => {
               const id = blendDraft[r];
               const q = id ? Math.round(qOf(id) * 100) : 0;
               const lack = id && (state.inventory[id] || 0) <= 0;
-              return `<div class="slot ${id ? 'filled' : ''} ${lack ? 'lack' : ''} ${blendSel === r ? 'sel' : ''}" data-slot="${r}">
+              return `<button type="button" class="slot ${id ? 'filled' : ''} ${lack ? 'lack' : ''} ${blendSel === r ? 'sel' : ''}" data-slot="${r}">
                 <span class="sr">${r}</span>
-                ${id ? `<span class="sh">${esc(HERBS[id].name)}</span><span class="sq">${lack ? '已无存货' : '品质 ' + q + '%'}</span>` : '<span class="sq">点击选中此位</span>'}
-              </div>`;
+                ${id ? `${herbArt(id)}<span class="sh">${esc(HERBS[id].name)}</span><span class="sq">${lack ? '已无存货' : '品质 ' + q + '%'}</span>` : '<span class="sq">点击选中此位</span>'}
+              </button>`;
             }).join('')}
-          </div>
+          </div></div>
           <div class="row" style="margin-bottom:8px">
             <span class="hint">当前选中：<b style="font-family:var(--kai);color:var(--seal)">${blendSel}位</b></span>
             <div class="spacer"></div>
@@ -3200,6 +3316,9 @@ function renderBlend(){
     </div>
   `;
 
+  const workbenchArt = ((window.GAME_ART || {}).scenes || {}).workbench;
+  if(workbenchArt) $('artWorkbench').style.backgroundImage = 'url("' + workbenchArt.src + '")';
+  bindArtFallback($('sc-blend'));
   $('btnBackBlend').onclick = () => go('hub');
   /* 库存列表：与搜索框分开刷新——输入时只换列表，输入框节点原地不动 */
   const invS = $('invSearch'), invRow = $('invRow'), invCnt = $('invCount');
@@ -3209,9 +3328,10 @@ function renderBlend(){
     invCnt.textContent = kw ? matched.length + ' / ' + inv.length : inv.length + ' 味';
     invRow.innerHTML = inv.length
       ? (matched.length
-          ? matched.map(k => `<button class="inv-item" data-inv="${k}">${hlName(k, kw)} <span class="q">×${state.inventory[k]}</span></button>`).join('')
+          ? matched.map(k => `<button class="inv-item" data-inv="${k}">${herbArt(k)}${hlName(k, kw)} <span class="q">×${state.inventory[k]}</span></button>`).join('')
           : `<span class="inv-empty">库存中没有匹配「${esc(kw)}」的香草——可用名、拼音或首字母，如 艾 / aicao / ac</span>`)
       : '<span class="hint">库存空空，先去药圃收获。若没钱买古籍，可先卖掉手中的香草换钱。</span>';
+    bindArtFallback(invRow);
     invRow.querySelectorAll('[data-inv]').forEach(b => {
       b.onclick = () => {
         const id = b.dataset.inv;
@@ -3449,6 +3569,7 @@ function renderCodex(){
   }).filter(Boolean).join(' · ') + '（分/斤）' : '—';
 
   $('sc-codex').innerHTML = `
+    ${herbArt(codexHerb, 'codex-hero-art')}
     <div class="card flat" style="padding:12px 16px">
       <div class="row">
         <button class="btn sm ghost" id="btnBackCodex">← 回到书斋</button>
@@ -3526,6 +3647,7 @@ function renderCodex(){
     ${achCard()}
   `;
 
+  bindArtFallback($('sc-codex'));
   $('btnBackCodex').onclick = () => go('hub');
   $('codexCats').querySelectorAll('[data-cat]').forEach(b => {
     b.onclick = () => { codexCat = b.dataset.cat; renderCodex(); };
@@ -3848,7 +3970,7 @@ $('btnReset').onclick = () => {
 
 window.addEventListener('hashchange', () => {
   const s = SCREEN_OF[location.hash];
-  if(s && s !== state.screen){ state.screen = s; save(); render(); }
+  if(s && s !== state.screen) go(s);
 });
 
 /* 首次进入给一句引导；老存档补上气候字段 */
@@ -3866,6 +3988,7 @@ render();
 window.HX = {
   get state(){ return state; },
   save, mutate, render, toast, go, esc, qOf, inkIcon, addLog, releaseViewer,
+  ensurePresentationState:normalizePresentation, plantHerb, harvestPlant,
   nextDay, randomSeed, rewardText, achPop, setKbd,
   exportSave, importSave, downloadSave, restoreFromIDB, idbGet, idbPut,   /* D4：存档备份与导入导出 */
   /* B3：合香工坊（生产链） */

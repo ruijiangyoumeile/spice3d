@@ -7,7 +7,7 @@
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
-const puppeteer = require('puppeteer-core');
+const puppeteer = process.env.TEST_ENGINE ? require('./playwright_adapter') : require('puppeteer-core');
 
 /* 站点根目录＝本脚本的上两级（hexiang/tests → hexiang → 站点根），与线上结构一致 */
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -65,7 +65,7 @@ function serve(){
     ok('A6 词条待补者 ≤ 2 味', pendingCodex.length <= 2, pendingCodex.join(','));
     ok('A7 扩展点 API', ['registerAsset','registerScreen','renderScreen','mount','assetOf','spiceIcon'].every(k => typeof XY[k] === 'function'));
     ok('A8 商道七屏已注册', ['book','farm','market','cara','shop','annals','ach'].every(id => HX.SCREENS.indexOf(id) >= 0));
-    ok('A9 页签 13 个', document.querySelectorAll('#xyTabs [data-sc]').length === 13, document.querySelectorAll('#xyTabs [data-sc]').length);
+    ok('A9 十三业务屏可达且无重复页签', HX.SCREENS.length === 13 && document.querySelectorAll('#xyTabs [data-sc]').length === 0, HX.SCREENS.length);
     ok('A10 屏容器齐备', ['book','farm','market','cara','shop','annals','ach'].every(id => !!T('sc-' + id)));
 
     /* ---------- B. 数据与口径 ---------- */
@@ -188,13 +188,25 @@ function serve(){
     /* 音效：MP3 存在且 ≤ 2 秒 */
     let dur = 0, mp3ok = false;
     try{
-      const buf = await (await fetch('shared/sfx/achievement.mp3')).arrayBuffer();
+      const buf = await (await fetch(XY.SFX_SRC)).arrayBuffer();
       mp3ok = buf.byteLength > 1000;
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
-      const ab = await ac.decodeAudioData(buf.slice(0));
-      dur = ab.duration; ac.close();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if(AudioCtx){
+        const ac = new AudioCtx();
+        const ab = await ac.decodeAudioData(buf.slice(0));
+        dur = ab.duration; await ac.close();
+      }else{
+        /* Windows WebKit does not expose WebAudio; validate the actual native media resource. */
+        dur = await new Promise((resolve, reject) => {
+          const audio = new Audio(XY.SFX_SRC);
+          const timeout = setTimeout(() => { audio.removeAttribute('src'); reject(new Error('audio metadata timeout')); }, 5000);
+          audio.onloadedmetadata = () => { clearTimeout(timeout); resolve(audio.duration); audio.removeAttribute('src'); };
+          audio.onerror = () => { clearTimeout(timeout); reject(new Error('audio resource cannot load')); };
+          audio.preload = 'metadata'; audio.load();
+        });
+      }
     }catch(e){ mp3ok = false; }
-    ok('F9 成就音效为 MP3', mp3ok);
+    ok('F9 成就音效有可播放短音频（MP3/PCM兼容）', mp3ok);
     ok('F10 音效时长 ≤ 2 秒', dur > 0 && dur <= 2, dur.toFixed(2) + 's');
 
     /* ---------- G. 编年与政策 ---------- */
@@ -316,8 +328,8 @@ function serve(){
     XY.showAch([mkAch(5)]);
     await new Promise(r => setTimeout(r, 600));            /* 等入场动画结束再测位置 */
     const cardRect = document.querySelector('#xyAch .xy-ach-card').getBoundingClientRect();
-    const tabsRect = document.getElementById('xyTabs').getBoundingClientRect();
-    ok('M7 不遮挡页签栏', cardRect.top >= tabsRect.bottom - 2, Math.round(cardRect.top) + ' vs 页签底 ' + Math.round(tabsRect.bottom));
+    const tabsRect = document.querySelector('.topbar').getBoundingClientRect();
+    ok('M7 不遮挡主要顶栏', cardRect.top >= tabsRect.bottom - 2, Math.round(cardRect.top) + ' vs 页签底 ' + Math.round(tabsRect.bottom));
     document.getElementById('xyAchClose').click();
 
     /* ---------- N. 交互链路（真点 DOM） ---------- */
@@ -333,9 +345,10 @@ function serve(){
     if(plantBtns.length) plantBtns[0].click();
     ok('N2 田亩播种按钮真点可用', plantBtns.length > 0 && S.co.plots.xian.some(p => (p.sow || []).length > 0),
       plantBtns.length + ' 钮 / ' + S.co.plots.xian.map(p => (p.sow || []).length).join(','));
-    const tabMarket = document.querySelector('#xyTabs [data-sc="market"]');
+    HX.go('hub');
+    const tabMarket = document.querySelector('#sc-hub [data-go="market"]');
     tabMarket.click();
-    ok('N3 页签点击切屏', HX.state.screen === 'market' && document.getElementById('sc-market').classList.contains('on'), HX.state.screen);
+    ok('N3 行旅入口点击切屏', HX.state.screen === 'market' && document.getElementById('sc-market').classList.contains('on'), HX.state.screen);
     S.known.jinyinhua = true; S.screen = 'codex'; HX.render();
     const ct = document.querySelector('#codexTabs [data-h="jinyinhua"]');
     if(ct) ct.click();
@@ -655,32 +668,17 @@ function serve(){
     ok('T9 键盘态挂 body.kbd，鼠标一动即撤（焦点环只在键盘时炫）',
       kbdOn && !document.body.classList.contains('kbd') && HX.setKbd !== undefined, String(kbdOn));
 
-    /* ---------- NA. 底部导航（4 项）与二级菜单 ---------- */
+    /* NA v3 visual: approved replacement of old nested menus. Business assertions unchanged. */
     const navKeys = [...document.querySelectorAll('#bottomNav .bn-item')].map(b => b.dataset.nav);
-    ok('NA1 底部导航 4 项且顺序正确（首页/香道/商道/我的）',
-      navKeys.length === 4 && navKeys.join(',') === 'hub,xiang,shang,mine', navKeys.join(','));
+    ok('NA1 四入口小院/药圃/香坊/图鉴', navKeys.join(',') === 'hub,garden,blend,codex', navKeys.join(','));
     S.screen = 'quiz'; HX.render();
-    ok('NA2 香道屏高亮「香道」且子项高亮问答',
-      document.querySelector('#bottomNav .bn-item[data-nav="xiang"]').classList.contains('on') &&
-      document.querySelector('#xiang-menu [data-go="quiz"]').classList.contains('on'),
-      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
+    ok('NA2 辨识挑战映射图鉴高亮', document.querySelector('#bottomNav [data-nav="codex"]').getAttribute('aria-current') === 'page');
     S.screen = 'market'; HX.render();
-    ok('NA3 商道屏高亮「商道」且子项高亮市集',
-      document.querySelector('#bottomNav .bn-item[data-nav="shang"]').classList.contains('on') &&
-      document.querySelector('#shang-menu [data-go="market"]').classList.contains('on'),
-      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
+    ok('NA3 商道返回小院高亮且有行旅入口', document.querySelector('#bottomNav [data-nav="hub"]').classList.contains('on') && !!document.querySelector('#sc-hub [data-go="book"]'));
     S.screen = 'ach'; HX.render();
-    ok('NA4 成就屏映射「我的」高亮',
-      document.querySelector('#bottomNav .bn-item[data-nav="mine"]').classList.contains('on'),
-      'nav=' + document.querySelector('#bottomNav .bn-item.on').dataset.nav);
-    /* 二级菜单交互：点「香道」弹出 → 点子项跳转并自动收起 */
-    const xiangItem = document.querySelector('#bottomNav .bn-item[data-nav="xiang"]');
-    xiangItem.click();
-    const popOpen = document.getElementById('xiang-menu').classList.contains('show');
-    document.querySelector('#xiang-menu [data-go="garden"]').click();
-    ok('NA5 二级菜单展开后点子项跳转并收起',
-      popOpen && HX.state.screen === 'garden' && !document.getElementById('xiang-menu').classList.contains('show'),
-      'pop=' + popOpen + ' screen=' + HX.state.screen);
+    ok('NA4 记录册保持可达', document.querySelector('#bottomNav [data-nav="hub"]').classList.contains('on') && !!document.getElementById('sc-ach'));
+    document.querySelector('#bottomNav [data-go="garden"]').click();
+    ok('NA5 直接入口跳转药圃并同步hash', HX.state.screen === 'garden' && location.hash === HX.hashOf('garden'));
     S.screen = 'hub'; HX.render();
 
     /* ---------- B2. 契约系统（v2.4 订单与契约） ---------- */
@@ -1001,10 +999,10 @@ function serve(){
     const S2 = HX.state;
     ok('N6 重开档后商道层重建', !!document.getElementById('xyTabs') &&
       Object.keys(S2.co.price.xian).length >= 50 && S2.money === 40000 &&
-      document.querySelectorAll('#xyTabs [data-sc]').length >= 13,
+      HX.SCREENS.length >= 13 && ['book','farm','market','cara','shop','annals','ach'].every(id => !!document.getElementById('sc-' + id)),
       S2.money + ' / ' + Object.keys(S2.co.price.xian).length);
 
-    return { R };
+    return { R, build:document.getElementById('uiVer').textContent };
   });
 
   const pass = result.R.filter(r => r.p).length, fail = result.R.filter(r => !r.p);
@@ -1013,7 +1011,7 @@ function serve(){
 
   /* ---------- S. 真键盘端到端（Node 侧 page.keyboard，验证「不用鼠标也能玩」） ---------- */
   const optN = await page.evaluate(() => {
-    HX.state.money = 500000; HX.state.screen = 'study'; HX.state.readCards = []; HX.render();
+    HX.state.money = 500000; HX.state.readCards = []; HX.go('study');
     const b = document.getElementById('btnBuy'); if(b) b.click();
     return document.querySelectorAll('#optGrid .opt').length;
   });
@@ -1053,8 +1051,10 @@ function serve(){
 
   /* 键盘导航至商道层页签并切屏（跨模块兼容） */
   const tabJump = await page.evaluate(async () => {
-    const tab = document.querySelector('#xyTabs [data-sc="market"]');
+    HX.go('hub');
+    const tab = document.querySelector('#sc-hub [data-go="market"]');
     if(!tab || tab.disabled) return { ok:false };
+    const menu = tab.closest('details'); if(menu) menu.open = true;
     tab.focus();
     return { ok:true, focused: document.activeElement === tab };
   });
@@ -1062,7 +1062,7 @@ function serve(){
     await page.keyboard.press('Enter');
     await new Promise(r => setTimeout(r, 150));
     const jumped = await page.evaluate(() => HX.state.screen);
-    okx('S6 键盘可达商道页签并切屏', jumped === 'market', jumped);
+    okx('S6 键盘可达折叠行旅入口并切屏', jumped === 'market', jumped);
   }
   const kbClick = await page.evaluate(() => {
     const row = document.querySelector('#sc-market .xy-mrow[data-good]');
@@ -1307,7 +1307,7 @@ function serve(){
 
   const all = result.R.concat(extra);
   const passAll = all.filter(r => r.p).length, failAll = all.filter(r => !r.p);
-  console.log('\n=========== 合香 · 乾隆香料商道 v2.5 回归 ===========');
+  console.log('\n=========== 合香 · 香料小院 ' + result.build + ' 回归 ===========');
   all.forEach(r => { if(!r.p) console.log('  ✗ ' + r.n + (r.x ? '  [' + r.x + ']' : '')); });
   console.log(`\n通过 ${passAll} / ${all.length}`);
   if(failAll.length) console.log('失败项：' + failAll.map(f => f.n).join('；'));
@@ -1317,8 +1317,8 @@ function serve(){
 
   await browser.close();
   server.close();
-  process.exit(failAll.length ? 1 : 0);
+  process.exit(failAll.length || errs.length ? 1 : 0);
 })().catch(e => {
-  console.error('测试脚本异常：', e.message);
+  console.error('测试脚本异常：', e.stack);
   process.exit(2);
 });
